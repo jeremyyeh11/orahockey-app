@@ -43,11 +43,22 @@ export async function middleware(request: NextRequest) {
 
   // Role-based routing: send authenticated users to the right area
   if (user && isProtected) {
-    const { data: player } = await supabase
+    let { data: player } = await supabase
       .from('players')
       .select('role')
       .eq('auth_user_id', user.id)
       .single()
+
+    // First login: auto-link player record by matching email
+    if (!player) {
+      await supabase.rpc('link_player_account')
+      const { data: linked } = await supabase
+        .from('players')
+        .select('role')
+        .eq('auth_user_id', user.id)
+        .single()
+      player = linked
+    }
 
     const role = player?.role ?? 'player'
 
