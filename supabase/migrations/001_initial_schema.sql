@@ -9,23 +9,6 @@
 create extension if not exists "uuid-ossp";
 
 -- ─────────────────────────────────────────
--- HELPER: is the current user an admin?
--- ─────────────────────────────────────────
-create or replace function is_admin()
-returns boolean
-language sql
-security definer
-stable
-as $$
-  select exists (
-    select 1
-    from players
-    where auth_user_id = auth.uid()
-      and role = 'admin'
-  );
-$$;
-
--- ─────────────────────────────────────────
 -- TEAMS
 -- ─────────────────────────────────────────
 create table teams (
@@ -83,6 +66,24 @@ create table players (
 );
 
 alter table players enable row level security;
+
+-- ─────────────────────────────────────────
+-- HELPER: is the current user an admin?
+-- (defined after players table exists)
+-- ─────────────────────────────────────────
+create or replace function is_admin()
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (
+    select 1
+    from players
+    where auth_user_id = auth.uid()
+      and role = 'admin'
+  );
+$$;
 
 create policy "Admins have full access to players"
   on players for all
