@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-surface text-white;
+  }
+
+  body {
+    @apply min-h-screen bg-surface text-white antialiased;
+  }
+}
