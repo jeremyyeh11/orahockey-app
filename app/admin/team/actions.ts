@@ -58,14 +58,14 @@ export async function importPlayers(rows: { full_name: string; email: string; ro
     team_id: team?.id ?? null,
   }))
 
-  const { error, count } = await supabase
+  const { data, error } = await supabase
     .from('players')
     .upsert(players, { onConflict: 'email', ignoreDuplicates: true })
-    .select('id', { count: 'exact', head: true })
+    .select('id')
 
   if (error) throw new Error(error.message)
   revalidatePath('/admin/team')
-  return { imported: count ?? 0 }
+  return { imported: data?.length ?? 0 }
 }
 
 export async function togglePlayerActive(id: string, is_active: boolean) {
