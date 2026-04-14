@@ -16,7 +16,7 @@ export function createClient() {
             return [{ name: trimmed.slice(0, eqIdx), value: trimmed.slice(eqIdx + 1) }]
           })
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
             const maxAge = options?.maxAge ?? SESSION_MAX_AGE
             document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`
