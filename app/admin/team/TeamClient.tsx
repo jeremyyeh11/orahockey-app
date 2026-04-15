@@ -8,7 +8,7 @@ type Player = {
   full_name: string
   email: string
   jersey_number: number | null
-  position: 'F' | 'D' | 'G' | null
+  position: string[] | null
   role: 'player' | 'admin'
   is_active: boolean
   auth_user_id: string | null
@@ -18,19 +18,23 @@ type FormData = {
   full_name: string
   email: string
   jersey_number: number | null
-  position: 'F' | 'D' | 'G' | null
+  position: string[] | null
   role: 'player' | 'admin'
 }
 
+const POSITIONS = ['FWD', 'MID', 'DEF', 'GK'] as const
+
 const POSITION_COLORS: Record<string, string> = {
-  F: 'bg-orange-900/50 text-orange-300',
-  D: 'bg-blue-900/50 text-blue-300',
-  G: 'bg-purple-900/50 text-purple-300',
+  FWD: 'bg-orange-900/50 text-orange-300',
+  MID: 'bg-green-900/50 text-green-300',
+  DEF: 'bg-blue-900/50 text-blue-300',
+  GK: 'bg-purple-900/50 text-purple-300',
 }
 
 export default function TeamClient({ players }: { players: Player[] }) {
   const [showModal, setShowModal] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
+  const [selectedPositions, setSelectedPositions] = useState<string[]>([])
   const [showInactive, setShowInactive] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -41,14 +45,22 @@ export default function TeamClient({ players }: { players: Player[] }) {
 
   function openAdd() {
     setEditingPlayer(null)
+    setSelectedPositions([])
     setError(null)
     setShowModal(true)
   }
 
   function openEdit(player: Player) {
     setEditingPlayer(player)
+    setSelectedPositions(player.position ?? [])
     setError(null)
     setShowModal(true)
+  }
+
+  function togglePosition(pos: string) {
+    setSelectedPositions(prev =>
+      prev.includes(pos) ? prev.filter(p => p !== pos) : [...prev, pos]
+    )
   }
 
   function closeModal() {
@@ -64,7 +76,7 @@ export default function TeamClient({ players }: { players: Player[] }) {
       full_name: fd.get('full_name') as string,
       email: fd.get('email') as string,
       jersey_number: jerseyRaw ? Number(jerseyRaw) : null,
-      position: (fd.get('position') as 'F' | 'D' | 'G') || null,
+      position: selectedPositions.length > 0 ? selectedPositions : null,
       role: fd.get('role') as 'player' | 'admin',
     }
   }
@@ -215,11 +227,11 @@ export default function TeamClient({ players }: { players: Player[] }) {
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-white truncate">{player.full_name}</div>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                {player.position && (
-                  <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${POSITION_COLORS[player.position]}`}>
-                    {player.position}
+                {player.position?.map(pos => (
+                  <span key={pos} className={`rounded px-1.5 py-0.5 text-xs font-medium ${POSITION_COLORS[pos] ?? 'bg-slate-700 text-slate-300'}`}>
+                    {pos}
                   </span>
-                )}
+                ))}
                 {player.role === 'admin' && (
                   <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-brand/30 text-brand-light">
                     admin
@@ -307,16 +319,22 @@ export default function TeamClient({ players }: { players: Player[] }) {
 
                 <div className="flex-1">
                   <label className="block text-xs font-medium text-slate-400 mb-1">Position</label>
-                  <select
-                    name="position"
-                    defaultValue={editingPlayer?.position ?? ''}
-                    className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                  >
-                    <option value="">—</option>
-                    <option value="F">Forward</option>
-                    <option value="D">Defence</option>
-                    <option value="G">Goalie</option>
-                  </select>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {POSITIONS.map(pos => (
+                      <button
+                        key={pos}
+                        type="button"
+                        onClick={() => togglePosition(pos)}
+                        className={`rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
+                          selectedPositions.includes(pos)
+                            ? `${POSITION_COLORS[pos]} border-transparent`
+                            : 'border-surface-border text-slate-400 hover:text-white hover:border-slate-500'
+                        }`}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

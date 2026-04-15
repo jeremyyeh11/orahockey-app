@@ -47,6 +47,14 @@ NEXT_PUBLIC_SUPABASE_URL=https://hvclbymllcqotvanbukx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_LuLhf_qZ_OVExwuwv74lmg_YZ3C2XWW
 ```
 
+## Git workflow
+After any code changes, always commit and push to GitHub. Vercel auto-deploys on push to main.
+```bash
+git add <changed files>
+git commit -m "description of change"
+git push
+```
+
 ## Deployment (Vercel)
 1. Env vars must be added manually in Vercel project settings (they're gitignored)
 2. Supabase → Authentication → URL Configuration must include the Vercel domain in Site URL and Redirect URLs

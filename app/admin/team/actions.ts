@@ -7,7 +7,7 @@ type PlayerInput = {
   full_name: string
   email: string
   jersey_number: number | null
-  position: 'F' | 'D' | 'G' | null
+  position: string[] | null
   role: 'player' | 'admin'
 }
 
