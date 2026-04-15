@@ -214,17 +214,17 @@ export default function TeamClient({ players }: { players: Player[] }) {
         {visible.map(player => (
           <div
             key={player.id}
-            className={`rounded-xl border border-surface-border bg-surface-card px-4 py-3 flex items-center gap-3 transition ${
+            className={`rounded-xl border border-surface-border bg-surface-card px-4 py-3 flex items-stretch gap-3 transition ${
               !player.is_active ? 'opacity-50' : ''
             }`}
           >
-            {/* Jersey # */}
-            <div className="w-8 shrink-0 text-center font-bold text-slate-400 text-sm">
+            {/* Jersey # — sized to match name+position block height */}
+            <div className="shrink-0 w-9 flex items-center justify-center font-bold text-slate-400 text-2xl leading-none">
               {player.jersey_number != null ? `#${player.jersey_number}` : '—'}
             </div>
 
-            {/* Name + badges */}
-            <div className="flex-1 min-w-0">
+            {/* Name + position badges */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
               <div className="font-semibold text-white truncate">{player.full_name}</div>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 {player.position?.map(pos => (
@@ -232,31 +232,24 @@ export default function TeamClient({ players }: { players: Player[] }) {
                     {pos}
                   </span>
                 ))}
-                {player.role === 'admin' && (
-                  <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-brand/30 text-brand-light">
-                    admin
-                  </span>
-                )}
-                <span className={`text-xs ${player.auth_user_id ? 'text-green-400' : 'text-slate-600'}`}>
-                  {player.auth_user_id ? '● linked' : '○ unlinked'}
-                </span>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Right: meta (admin/linked) + Edit */}
+            <div className="shrink-0 flex flex-col items-end justify-between">
+              <div className="flex items-center gap-1.5">
+                {player.role === 'admin' && (
+                  <span className="text-[10px] text-slate-500">admin</span>
+                )}
+                <span className={`text-[10px] ${player.auth_user_id ? 'text-green-700' : 'text-slate-700'}`}>
+                  {player.auth_user_id ? '● linked' : '○ unlinked'}
+                </span>
+              </div>
               <button
                 onClick={() => openEdit(player)}
-                className="text-xs text-slate-400 hover:text-white transition px-2 py-1.5 rounded hover:bg-slate-700"
+                className="text-xs text-slate-400 hover:text-white transition px-2 py-1 rounded hover:bg-slate-700"
               >
                 Edit
-              </button>
-              <button
-                onClick={() => handleToggleActive(player)}
-                disabled={isPending}
-                className="text-xs text-slate-500 hover:text-slate-300 transition px-2 py-1.5 rounded hover:bg-slate-700 disabled:opacity-40"
-              >
-                {player.is_active ? 'Deactivate' : 'Activate'}
               </button>
             </div>
           </div>
