@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
 
 const NAV = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: '⬛' },
@@ -17,6 +18,16 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-surface">
@@ -25,6 +36,12 @@ export default function AdminLayout({
         <span className="text-lg font-bold tracking-tight text-white">
           ORA Hockey <span className="text-xs font-normal text-slate-400">Admin</span>
         </span>
+        <button
+          onClick={handleLogout}
+          className="text-xs text-slate-400 hover:text-white transition"
+        >
+          Logout
+        </button>
       </header>
 
       {/* Page content — padded bottom so it isn't hidden behind nav */}
