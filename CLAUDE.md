@@ -48,12 +48,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_LuLhf_qZ_OVExwuwv74lmg_YZ3C2XWW
 ```
 
 ## Git workflow
-After any code changes, always commit and push to GitHub. Vercel auto-deploys on push to main.
+**Always commit and push after every code change** — Vercel auto-deploys on push to main.
 ```bash
 git add <changed files>
 git commit -m "description of change"
 git push
 ```
+Do not skip this step. Every session that modifies code must end with a commit + push.
 
 ## Deployment (Vercel)
 1. Env vars must be added manually in Vercel project settings (they're gitignored)
