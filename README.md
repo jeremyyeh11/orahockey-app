@@ -1,6 +1,6 @@
 # ORA Hockey Team App
 
-![ORA Hockey Crest](public/crest.png)
+<img src="public/crest.png" alt="ORA Hockey Crest" width="20%" />
 
 A mobile-first app for managing the ORA Hockey club (MHL1 league).
 
