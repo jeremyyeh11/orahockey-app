@@ -1,5 +1,7 @@
 # ORA Hockey — MHL1 Team Management App
 
+<img src="public/crest.png" alt="ORA Hockey Crest" width="20%" />
+
 Mobile-first team management portal for ORA Hockey (MHL1).  
 Built with Next.js 14 (App Router), TypeScript, Tailwind CSS, and Supabase.
 
