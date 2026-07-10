@@ -50,18 +50,20 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo / Title */}
-        <div className="mb-8 text-center">
-          <div className="bg-gold mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl font-display text-2xl font-black tracking-tight text-[#0a0a0c] shadow-[0_8px_28px_-6px_rgba(203,161,53,0.6)] ring-1 ring-white/20">
+        <div className="mb-9 text-center">
+          <div className="bg-accent mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl font-display text-lg font-bold tracking-tight text-white">
             ORA
           </div>
-          <h1 className="font-display text-2xl font-bold text-white">
-            ORA <span className="text-gold">Hockey</span>
+          <h1 className="font-display text-[1.7rem] font-bold tracking-tight text-white">
+            ORA <span className="text-brand-light">Hockey</span>
           </h1>
-          <p className="mt-1 text-sm tracking-wide text-slate-400">MHL1 Team Portal</p>
+          <p className="mt-2.5 text-[11px] font-medium uppercase tracking-[0.28em] text-slate-500">
+            MHL1 Team Portal
+          </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="glass-strong space-y-4 rounded-3xl p-6">
+        <form onSubmit={handleSubmit} className="card space-y-4 p-6">
           <div>
             <label
               htmlFor="email"
@@ -109,7 +111,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-gold w-full rounded-xl py-3 font-display font-semibold text-[#0a0a0c] shadow-[0_6px_20px_-6px_rgba(203,161,53,0.6)] ring-1 ring-white/20 transition hover:brightness-105 disabled:opacity-50"
+            className="bg-accent mt-1 w-full rounded-xl py-3 font-display text-sm font-semibold tracking-wide text-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.6)] transition hover:brightness-[1.08] disabled:opacity-50"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>

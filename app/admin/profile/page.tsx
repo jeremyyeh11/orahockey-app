@@ -32,9 +32,9 @@ export default async function AdminProfilePage() {
       <h1 className="mb-4 text-xl font-bold text-white">Profile</h1>
 
       {/* Identity card */}
-      <div className="glass-strong rounded-3xl p-6">
+      <div className="card p-6">
         <div className="flex items-center gap-4">
-          <div className="bg-gold flex h-16 w-16 shrink-0 items-center justify-center rounded-full font-display text-xl font-black text-[#0a0a0c] ring-1 ring-white/20">
+          <div className="bg-accent flex h-16 w-16 shrink-0 items-center justify-center rounded-full font-display text-xl font-bold text-white ring-1 ring-white/10">
             {initials(name)}
           </div>
           <div className="min-w-0">

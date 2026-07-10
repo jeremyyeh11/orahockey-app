@@ -10,22 +10,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Old gold (Raffles-inspired)
+        // Muted green — the single brand accent
         brand: {
-          DEFAULT: '#cba135',
-          dark: '#9a7b1a',
-          light: '#f0d283',
+          DEFAULT: '#2e6b3e',
+          dark: '#245331',
+          light: '#5aa971',
         },
-        // Deep green accent
         accent: {
-          DEFAULT: '#1c6e4e',
-          light: '#2f9e6f',
+          DEFAULT: '#2e6b3e',
+          light: '#5aa971',
         },
-        // Near-black surfaces
+        // Grey/black surfaces
         surface: {
-          DEFAULT: '#08080a',
-          card: '#141417',
-          border: '#2a2a30',
+          DEFAULT: '#131315',
+          card: '#1e1e21',
+          raised: '#26262a',
+          border: '#323238',
+        },
+        // Category colours — reserved for later features (per-discipline tiles, etc.)
+        category: {
+          red: '#e5484d',
+          blue: '#3b82f6',
+          orange: '#f97316',
         },
       },
       fontFamily: {

@@ -44,7 +44,7 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
           {open && (
             <div
               role="menu"
-              className="glass-strong animate-popin absolute bottom-full mb-3 w-60 overflow-hidden rounded-[26px] p-2"
+              className="menu-dock animate-popin absolute bottom-full mb-3 flex w-60 flex-col gap-1 overflow-hidden p-2"
             >
               {items.map((item) => {
                 const activeItem = isActive(item, pathname)
@@ -54,21 +54,12 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
                     href={item.href}
                     role="menuitem"
                     onClick={() => setOpen(false)}
-                    className={`flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition ${
-                      activeItem
-                        ? 'bg-white/[0.07] text-white'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    className={`menu-item flex items-center gap-3 ${
+                      activeItem ? 'is-active' : ''
                     }`}
                   >
-                    <item.Icon
-                      className={`h-[18px] w-[18px] shrink-0 ${
-                        activeItem ? 'text-brand-light' : 'text-slate-400'
-                      }`}
-                    />
+                    <item.Icon className="h-[18px] w-[18px] shrink-0" />
                     <span>{item.label}</span>
-                    {activeItem && (
-                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent-light shadow-[0_0_8px_rgba(47,158,111,0.8)]" />
-                    )}
                   </Link>
                 )
               })}
@@ -82,7 +73,7 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
             aria-label={open ? 'Close menu' : `Menu — ${active.label}`}
             aria-expanded={open}
             aria-haspopup="menu"
-            className="bg-gold flex h-12 w-12 items-center justify-center rounded-full text-[#0a0a0c] shadow-[0_6px_20px_-4px_rgba(203,161,53,0.55)] ring-1 ring-white/20 transition active:scale-90"
+            className="bg-accent flex h-12 w-12 items-center justify-center rounded-full text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,0.7)] ring-1 ring-white/10 transition active:scale-90"
           >
             {open ? (
               <CloseIcon className="h-[19px] w-[19px]" strokeWidth={2.5} />
@@ -92,7 +83,7 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
           </button>
 
           {/* Active page label under the button */}
-          <span className="mt-1.5 text-[10px] font-medium uppercase tracking-widest text-slate-500">
+          <span className="menu-label mt-1.5 uppercase tracking-widest">
             {open ? 'Close' : active.label}
           </span>
         </div>
