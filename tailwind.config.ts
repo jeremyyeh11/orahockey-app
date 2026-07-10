@@ -10,19 +10,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Muted green — the single brand accent
         brand: {
-          DEFAULT: '#1d4ed8', // blue-700
-          dark: '#1e3a8a',    // blue-900
-          light: '#3b82f6',   // blue-500
+          DEFAULT: '#2e6b3e',
+          dark: '#245331',
+          light: '#5aa971',
         },
+        accent: {
+          DEFAULT: '#2e6b3e',
+          light: '#5aa971',
+        },
+        // Grey/black surfaces
         surface: {
-          DEFAULT: '#0f172a', // slate-900
-          card: '#1e293b',    // slate-800
-          border: '#334155',  // slate-700
+          DEFAULT: '#131315',
+          card: '#1e1e21',
+          raised: '#26262a',
+          border: '#323238',
+        },
+        // Category colours — reserved for later features (per-discipline tiles, etc.)
+        category: {
+          red: '#e5484d',
+          blue: '#3b82f6',
+          orange: '#f97316',
         },
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Sora', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
     },
   },

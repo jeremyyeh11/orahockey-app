@@ -1,13 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   html {
-    @apply bg-surface text-white;
+    @apply text-white;
+    background-color: #131315;
   }
 
   body {
-    @apply min-h-screen bg-surface text-white antialiased;
+    @apply min-h-screen font-sans text-white antialiased;
+    position: relative;
+    background-color: #131315;
   }
+
+  /* Ambient wash — a single restrained green glow so the dark grey has some life */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background:
+      radial-gradient(95% 55% at 50% -15%, rgba(46, 107, 62, 0.1), transparent 60%),
+      #131315;
+  }
+
+  /* Film grain / dither texture overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: 'Sora', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* Flat card — the primary surface. Solid grey, hairline border, generous radius. */
+  .card {
+    background-color: #1e1e21;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1.25rem;
+  }
+
+  .card-raised {
+    background-color: #26262a;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 1.25rem;
+  }
+
+  /* Subtle frosted surface, kept neutral grey for overlays/backdrops */
+  .glass {
+    @apply border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl;
+  }
+
+  /* Solid muted-green accent fill (subtle top lift for depth, not gloss) */
+  .bg-accent {
+    background-image: linear-gradient(180deg, #35784a 0%, #2e6b3e 100%);
+  }
+}
+
+/* ── Menu dock — dark glassmorphism pill nav with green accent ── */
+.menu-dock {
+  background: rgba(24, 24, 27, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+.menu-label {
+  margin: 0;
+  color: rgba(228, 228, 232, 0.55);
+  font-family: system-ui, sans-serif;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.menu-item {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(228, 228, 232, 0.6);
+  font-family: system-ui, sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  transition: background 160ms ease, color 160ms ease;
+}
+.menu-item:hover {
+  color: rgba(245, 245, 248, 0.92);
+}
+.menu-item.is-active {
+  background: #2e6b3e;
+  color: #eafff0;
+}
+
+@keyframes popin {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-popin {
+  animation: popin 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom center;
 }
