@@ -1,5 +1,7 @@
 # ORA Hockey Team App
 
+![ORA Hockey Crest](public/crest.png)
+
 A mobile-first app for managing the ORA Hockey club (MHL1 league).
 
 It gives the club one place to run both teams instead of juggling group chats and spreadsheets:
