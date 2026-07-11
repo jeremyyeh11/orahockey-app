@@ -61,18 +61,19 @@ Do not skip this step. Every session that modifies code must end with a commit +
 2. Supabase → Authentication → URL Configuration must include the Vercel domain in Site URL and Redirect URLs
 
 ## Current state
-- Schema and migrations: ✅ done
+- Schema and migrations: ✅ done (note: live DB has drifted from `001_initial_schema.sql` —
+  `players.position` is now `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
+  `player_stats` simplified to goals/assists/clean_sheet)
 - Auth + middleware: ✅ done
-- Login page: ✅ done
-- Admin pages: ✅ scaffolded (stubs, not yet built out)
-- Player pages: ✅ scaffolded (stubs, not yet built out)
+- Login page: ✅ done (dev shortcut: admin/admin maps to `NEXT_PUBLIC_DEV_LOGIN_*` in `.env.local`, dev builds only)
+- Admin pages: ✅ built (Dashboard, Team, Schedule, Stats, Polls, Profile)
+- Player pages: ✅ built (Home, Schedule + attendance, Stats, Polls + voting)
+- Seed data: ✅ 2026 season backlog seeded (`supabase/seed/2026_season.sql`) — 14 played games,
+  20 trainings, attendance, stats, polls, using the real 24-player roster
 - Deployment: ⚠️ in progress
 
-## What to build next
-Pages are stubs — need real data and UI built out:
-1. Admin: Team sheet (player list, add/edit/remove players)
-2. Admin: Schedule (add games + training sessions)
-3. Player: Schedule view + attendance buttons
-4. Admin: Stats entry per game
-5. Player: Stats view
-6. Polls (admin create, player vote)
+## Conventions
+- Dates are stored timestamptz and always displayed in Singapore time via `lib/format.ts`
+- Page pattern: server `page.tsx` fetches → passes to a `'use client'` component; mutations
+  are server actions in a sibling `actions.ts` that `revalidatePath` affected routes
+- Game `result` is derived from the score (win/loss/tie) when saving in admin Schedule
