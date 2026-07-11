@@ -1,8 +1,8 @@
 -- =============================================================
 -- ORA Hockey — 2026 season seed data (completed season backlog)
 -- Uses the EXISTING players roster. Creates the team, assigns
--- players to it, then seeds 14 played games (Feb–Jun 2026) with
--- results, fabricated per-player stats + attendance, weekly
+-- players to it, then seeds the 14 real MHL1 2026 fixtures with
+-- real results, fabricated per-player stats + attendance, weekly
 -- trainings, and 3 polls (2 closed, 1 active).
 -- Safe-guarded: aborts if teams table is not empty.
 -- Run in: Supabase Dashboard → SQL Editor
@@ -35,22 +35,22 @@ begin
   select email from players
   on conflict (email) do nothing;
 
-  -- ── Games (all played — season over) ──────────────────────
-  insert into games (team_id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes) values
-    (v_team, 'Khalsa Association',         '2026-02-08 18:00+08', 'Sengkang Hockey Stadium', 'home', 'regular', 3, 1, 'win',  null),
-    (v_team, 'Ceylon Sports Club',         '2026-02-15 16:30+08', 'Delta Hockey Pitch',      'away', 'regular', 1, 2, 'loss', null),
-    (v_team, 'Singapore Recreation Club',  '2026-02-22 18:00+08', 'Sengkang Hockey Stadium', 'home', 'regular', 4, 0, 'win',  'Dominant press all game.'),
-    (v_team, 'Indus HC',                   '2026-03-01 17:00+08', 'Boon Lay Hockey Pitch',   'away', 'regular', 2, 2, 'tie',  null),
-    (v_team, 'Crescents HC',               '2026-03-08 18:00+08', 'Sengkang Hockey Stadium', 'home', 'regular', 2, 1, 'win',  null),
-    (v_team, 'Vipers HC',                  '2026-03-15 19:30+08', 'Delta Hockey Pitch',      'away', 'regular', 0, 3, 'loss', 'Short-handed — three key absences.'),
-    (v_team, 'Khalsa Association',         '2026-03-29 17:00+08', 'Delta Hockey Pitch',      'away', 'regular', 5, 2, 'win',  null),
-    (v_team, 'Ceylon Sports Club',         '2026-04-12 18:00+08', 'Sengkang Hockey Stadium', 'home', 'regular', 2, 0, 'win',  null),
-    (v_team, 'Singapore Recreation Club',  '2026-04-19 16:30+08', 'Boon Lay Hockey Pitch',   'away', 'regular', 1, 4, 'loss', null),
-    (v_team, 'Indus HC',                   '2026-04-26 18:00+08', 'Sengkang Hockey Stadium', 'home', 'regular', 3, 2, 'win',  null),
-    (v_team, 'Crescents HC',               '2026-05-10 17:00+08', 'Delta Hockey Pitch',      'away', 'regular', 1, 1, 'tie',  null),
-    (v_team, 'Vipers HC',                  '2026-05-17 18:00+08', 'Sengkang Hockey Stadium', 'home', 'regular', 2, 1, 'win',  null),
-    (v_team, 'Ceylon Sports Club',         '2026-05-31 18:00+08', 'Sengkang Hockey Stadium', 'home', 'playoff', 2, 1, 'win',  'Semi-final.'),
-    (v_team, 'Khalsa Association',         '2026-06-14 19:00+08', 'Sengkang Hockey Stadium', 'away', 'playoff', 1, 2, 'loss', 'Final. Proud season, boys.');
+  -- ── Games: real MHL1 2026 fixtures + results (ORA score first) ──
+  insert into games (team_id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result) values
+    (v_team, 'Team HI',    '2026-04-12 18:00+08', 'Sengkang Hockey Stadium (SK1)', 'home', 'regular', 8, 0, 'win'),
+    (v_team, 'Tornados',   '2026-04-18 18:00+08', 'Sengkang Hockey Stadium (SK1)', 'away', 'regular', 1, 0, 'win'),
+    (v_team, 'OVA-VJC',    '2026-04-19 16:30+08', 'Sengkang Hockey Stadium (SK2)', 'home', 'regular', 3, 2, 'win'),
+    (v_team, 'Hollandse',  '2026-04-25 18:00+08', 'Sengkang Hockey Stadium (SK2)', 'away', 'regular', 6, 1, 'win'),
+    (v_team, 'SAA',        '2026-05-09 18:00+08', 'Sengkang Hockey Stadium (SK2)', 'away', 'regular', 2, 1, 'win'),
+    (v_team, 'Team HI',    '2026-05-10 19:30+08', 'Sengkang Hockey Stadium (SK1)', 'away', 'regular', 6, 0, 'win'),
+    (v_team, 'Tornados',   '2026-05-16 15:00+08', 'Sengkang Hockey Stadium (SK1)', 'home', 'regular', 3, 0, 'win'),
+    (v_team, 'Hollandse',  '2026-05-17 18:00+08', 'Sengkang Hockey Stadium (SK2)', 'home', 'regular', 3, 1, 'win'),
+    (v_team, 'OVA-VJC',    '2026-05-23 19:30+08', 'Sengkang Hockey Stadium (SK2)', 'away', 'regular', 6, 0, 'win'),
+    (v_team, 'SAA',        '2026-05-24 18:00+08', 'Sengkang Hockey Stadium (SK1)', 'home', 'regular', 3, 1, 'win'),
+    (v_team, 'SCC',        '2026-05-30 15:00+08', 'Sengkang Hockey Stadium (SK1)', 'home', 'regular', 3, 3, 'tie'),
+    (v_team, 'Jansenites', '2026-06-13 15:00+08', 'Sengkang Hockey Stadium (SK1)', 'home', 'regular', 0, 0, 'tie'),
+    (v_team, 'SCC',        '2026-06-20 15:00+08', 'Sengkang Hockey Stadium (SK1)', 'away', 'regular', 2, 3, 'loss'),
+    (v_team, 'Jansenites', '2026-06-27 15:00+08', 'Sengkang Hockey Stadium (SK1)', 'away', 'regular', 8, 2, 'win');
 
   -- ── Trainings: Wednesdays 20:00, late Jan → early Jun ─────
   insert into training_sessions (team_id, session_date, location)
