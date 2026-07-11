@@ -17,9 +17,26 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
+
+    // ── Local dev shortcut ──────────────────────────────────────────────
+    // Typing admin / admin maps to real credentials kept in .env.local
+    // (gitignored). Hard-gated to development, so this whole block is
+    // dead-code-eliminated from production builds. Never commit .env.local.
+    let loginEmail = email
+    let loginPassword = password
+    if (
+      process.env.NODE_ENV === 'development' &&
+      email === 'admin' &&
+      password === 'admin' &&
+      process.env.NEXT_PUBLIC_DEV_LOGIN_EMAIL
+    ) {
+      loginEmail = process.env.NEXT_PUBLIC_DEV_LOGIN_EMAIL
+      loginPassword = process.env.NEXT_PUBLIC_DEV_LOGIN_PASSWORD ?? ''
+    }
+
     const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: loginEmail,
+      password: loginPassword,
     })
 
     if (authError) {
@@ -63,7 +80,11 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="card space-y-4 p-6">
+        <form
+          onSubmit={handleSubmit}
+          noValidate={process.env.NODE_ENV === 'development'}
+          className="card space-y-4 p-6"
+        >
           <div>
             <label
               htmlFor="email"
