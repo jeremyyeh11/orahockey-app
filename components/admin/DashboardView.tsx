@@ -6,7 +6,7 @@ import {
   PollIcon,
   BellIcon,
   ChevronRightIcon,
-  PlusIcon,
+  WhistleIcon,
   type IconProps,
 } from '@/components/icons'
 
@@ -17,11 +17,20 @@ export type WeekDay = {
   hasEvent: boolean
 }
 
-export type NextUp = {
-  kind: string
+export type HeroNext = {
+  kind: 'match' | 'training'
+  id: string
   title: string
-  whenLabel: string
-  place?: string | null
+  sub: string
+  attending: number
+} | null
+
+export type SeasonRecord = {
+  w: number
+  d: number
+  l: number
+  pts: number
+  played: number
 } | null
 
 export type DashboardData = {
@@ -30,12 +39,14 @@ export type DashboardData = {
   roleLabel: string
   todayLabel: string
   week: WeekDay[]
+  seasonLabel: string
+  next: HeroNext
+  record: SeasonRecord
   playerCount: number
   adminCount: number
   upcoming: number
   activePolls: number
   playedGames: number
-  next: NextUp
 }
 
 export default function DashboardView({
@@ -44,12 +55,14 @@ export default function DashboardView({
   roleLabel,
   todayLabel,
   week,
+  seasonLabel,
+  next,
+  record,
   playerCount,
   adminCount,
   upcoming,
   activePolls,
   playedGames,
-  next,
 }: DashboardData) {
   return (
     <div className="px-4 pb-4">
@@ -115,69 +128,68 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* Hero stat — active roster */}
+      {/* Hero — season + next event + record */}
       <div className="bg-accent relative mt-5 overflow-hidden rounded-[1.5rem] p-5">
         <div className="absolute -right-6 -top-8 opacity-15">
-          <UsersIcon className="h-40 w-40" strokeWidth={1.5} />
+          {next?.kind === 'training' ? (
+            <WhistleIcon className="h-40 w-40" strokeWidth={1.5} />
+          ) : (
+            <CalendarIcon className="h-40 w-40" strokeWidth={1.5} />
+          )}
         </div>
+
         <div className="relative">
           <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/70">
-            Active roster
+            {seasonLabel}
           </div>
-          <div className="mt-1 flex items-end gap-2">
-            <span className="font-display text-6xl font-extrabold leading-none text-white">
-              {playerCount}
-            </span>
-            <span className="mb-1 text-sm font-medium text-white/80">players</span>
-          </div>
-          <div className="mt-3 text-xs text-white/70">{adminCount} admins · MHL1 season</div>
+
+          {next ? (
+            <>
+              <div className="mt-3 font-display text-2xl font-extrabold leading-tight text-white">
+                {next.title}
+              </div>
+              <div className="mt-1.5 text-sm text-white/80">{next.sub}</div>
+              <div className="mt-3 inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white">
+                {next.attending} attending so far
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mt-3 font-display text-2xl font-extrabold leading-tight text-white">
+                Season complete
+              </div>
+              <div className="mt-1.5 text-sm text-white/80">
+                No upcoming events — add one in Schedule
+              </div>
+            </>
+          )}
+
+          {record && (
+            <div className="mt-4 border-t border-white/15 pt-3 text-xs text-white/70">
+              Season: <span className="font-semibold text-white">{record.w}W</span> ·{' '}
+              <span className="font-semibold text-white">{record.d}D</span> ·{' '}
+              <span className="font-semibold text-white">{record.l}L</span> ·{' '}
+              <span className="font-semibold text-white">{record.pts} pts</span>
+              <span className="text-white/50"> · {record.played} played</span>
+            </div>
+          )}
+
+          <Link
+            href="/admin/schedule"
+            className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-white/90 transition hover:text-white"
+          >
+            View schedule <ChevronRightIcon className="h-3.5 w-3.5" />
+          </Link>
         </div>
-        <Link
-          href="/admin/team"
-          className="relative mt-4 inline-flex items-center gap-1 text-xs font-semibold text-white/90 transition hover:text-white"
-        >
-          Manage team <ChevronRightIcon className="h-3.5 w-3.5" />
-        </Link>
       </div>
 
-      {/* Secondary stats */}
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      {/* Stat tiles */}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <StatTile label="Roster" value={playerCount} sub={`${adminCount} admins`} Icon={UsersIcon} href="/admin/team" />
         <StatTile label="Upcoming" value={upcoming} sub="events" Icon={CalendarIcon} href="/admin/schedule" />
         <StatTile label="Polls" value={activePolls} sub="active" Icon={PollIcon} href="/admin/polls" />
         <StatTile label="Games" value={playedGames} sub="logged" Icon={BarChartIcon} href="/admin/stats" />
       </div>
-
-      {/* Next up */}
-      <h2 className="mt-7 text-sm font-semibold text-white">Next up</h2>
-      {next ? (
-        <div className="card mt-3 flex items-center gap-4 p-4">
-          <div className="bg-accent/15 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-brand-light">
-            <CalendarIcon className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold text-white">{next.title}</div>
-            <div className="truncate text-xs text-slate-400">
-              {next.kind} · {next.whenLabel}
-              {next.place ? ` · ${next.place}` : ''}
-            </div>
-          </div>
-          <ChevronRightIcon className="h-5 w-5 shrink-0 text-slate-500" />
-        </div>
-      ) : (
-        <Link
-          href="/admin/schedule"
-          className="card mt-3 flex items-center gap-4 p-4 transition hover:border-white/15"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-dashed border-white/15 text-slate-400">
-            <PlusIcon className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-white">Nothing scheduled</div>
-            <div className="text-xs text-slate-400">Add a game or training session</div>
-          </div>
-          <ChevronRightIcon className="h-5 w-5 shrink-0 text-slate-500" />
-        </Link>
-      )}
 
       {/* Quick links */}
       <h2 className="mt-7 text-sm font-semibold text-white">Quick links</h2>

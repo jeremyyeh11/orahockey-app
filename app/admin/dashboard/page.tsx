@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import DashboardView, { type WeekDay, type NextUp } from '@/components/admin/DashboardView'
+import DashboardView, { type WeekDay, type HeroNext } from '@/components/admin/DashboardView'
+import { fmtDateTime } from '@/lib/format'
 
 function initials(name: string) {
   return name
@@ -26,14 +27,6 @@ function weekDays(ref: Date) {
   })
 }
 
-function whenLabel(iso: string) {
-  const d = new Date(iso)
-  return `${DOW[dowIndex(d)]} ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d
-    .getHours()
-    .toString()
-    .padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-}
-
 export default async function AdminDashboardPage() {
   const supabase = createClient()
 
@@ -48,55 +41,96 @@ export default async function AdminDashboardPage() {
 
   const [
     { data: me },
+    { data: team },
     { count: playerCount },
     { count: adminCount },
     { count: upcomingGames },
     { count: upcomingTrainings },
     { count: activePolls },
-    { count: playedGames },
-    { data: nextGame },
+    { data: allGames },
     { data: nextTraining },
-    { data: weekGames },
     { data: weekTrainings },
   ] = await Promise.all([
     supabase.from('players').select('full_name, role').eq('auth_user_id', user?.id ?? '').single(),
+    supabase.from('teams').select('league, season').limit(1).maybeSingle(),
     supabase.from('players').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase.from('players').select('*', { count: 'exact', head: true }).eq('role', 'admin'),
     supabase.from('games').select('*', { count: 'exact', head: true }).gte('game_date', now.toISOString()),
     supabase.from('training_sessions').select('*', { count: 'exact', head: true }).gte('session_date', now.toISOString()),
     supabase.from('polls').select('*', { count: 'exact', head: true }).eq('is_active', true),
-    supabase.from('games').select('*', { count: 'exact', head: true }).not('result', 'is', null),
-    supabase.from('games').select('opponent, game_date, location').gte('game_date', now.toISOString()).order('game_date').limit(1).maybeSingle(),
-    supabase.from('training_sessions').select('session_date, location').gte('session_date', now.toISOString()).order('session_date').limit(1).maybeSingle(),
-    supabase.from('games').select('game_date').gte('game_date', weekStart).lt('game_date', weekEnd),
+    supabase.from('games').select('id, opponent, game_date, location, result').order('game_date'),
+    supabase.from('training_sessions').select('id, session_date, location').gte('session_date', now.toISOString()).order('session_date').limit(1).maybeSingle(),
     supabase.from('training_sessions').select('session_date').gte('session_date', weekStart).lt('session_date', weekEnd),
   ])
 
   const name = me?.full_name ?? 'Coach'
+  const games = allGames ?? []
 
+  // Season label comes from the teams table — edit league/season there to change it
+  const seasonLabel = team ? `${team.league} · ${team.season}` : 'Season'
+
+  // Record + league points (3 for a win, 1 for a draw)
+  const played = games.filter((g) => g.result)
+  const w = played.filter((g) => g.result === 'win' || g.result === 'ot_win').length
+  const d = played.filter((g) => g.result === 'tie').length
+  const l = played.filter((g) => g.result === 'loss' || g.result === 'ot_loss').length
+  const record = played.length > 0 ? { w, d, l, pts: w * 3 + d, played: played.length } : null
+
+  // Next event: earliest upcoming game or training
+  const nextGame = games.find((g) => new Date(g.game_date).getTime() >= now.getTime()) ?? null
+  const nextGameTime = nextGame ? new Date(nextGame.game_date).getTime() : Infinity
+  const nextTrainTime = nextTraining ? new Date(nextTraining.session_date).getTime() : Infinity
+
+  let next: HeroNext = null
+  if (nextGameTime !== Infinity || nextTrainTime !== Infinity) {
+    if (nextGameTime <= nextTrainTime) {
+      const matchNo = games.filter((g) => new Date(g.game_date).getTime() < nextGameTime).length + 1
+      next = {
+        kind: 'match',
+        id: nextGame!.id,
+        title: `Match #${matchNo} · ORA vs ${nextGame!.opponent}`,
+        sub: `${fmtDateTime(nextGame!.game_date)}${nextGame!.location ? ` · ${nextGame!.location}` : ''}`,
+        attending: 0,
+      }
+    } else {
+      next = {
+        kind: 'training',
+        id: nextTraining!.id,
+        title: 'Training',
+        sub: `${fmtDateTime(nextTraining!.session_date)}${nextTraining!.location ? ` · ${nextTraining!.location}` : ''}`,
+        attending: 0,
+      }
+    }
+
+    const { count: attending } = await supabase
+      .from('attendance')
+      .select('*', { count: 'exact', head: true })
+      .eq('session_id', next.id)
+      .eq('status', 'attending')
+    next.attending = attending ?? 0
+  }
+
+  const weekStartMs = new Date(weekStart).getTime()
+  const weekEndMs = new Date(weekEnd).getTime()
   const eventDays = new Set(
     [
-      ...(weekGames ?? []).map((g) => g.game_date),
+      ...games
+        .filter((g) => {
+          const t = new Date(g.game_date).getTime()
+          return t >= weekStartMs && t < weekEndMs
+        })
+        .map((g) => g.game_date),
       ...(weekTrainings ?? []).map((t) => t.session_date),
-    ].map((d) => new Date(d).toDateString())
+    ].map((iso) => new Date(iso).toDateString())
   )
   const todayStr = now.toDateString()
 
-  const weekView: WeekDay[] = week.map((d) => ({
-    date: d.getDate(),
-    dow: DOW[dowIndex(d)],
-    isToday: d.toDateString() === todayStr,
-    hasEvent: eventDays.has(d.toDateString()),
+  const weekView: WeekDay[] = week.map((day) => ({
+    date: day.getDate(),
+    dow: DOW[dowIndex(day)],
+    isToday: day.toDateString() === todayStr,
+    hasEvent: eventDays.has(day.toDateString()),
   }))
-
-  const nextGameTime = nextGame ? new Date(nextGame.game_date).getTime() : Infinity
-  const nextTrainTime = nextTraining ? new Date(nextTraining.session_date).getTime() : Infinity
-  const next: NextUp =
-    nextGameTime === Infinity && nextTrainTime === Infinity
-      ? null
-      : nextGameTime <= nextTrainTime
-      ? { kind: 'Game', title: `vs ${nextGame!.opponent}`, whenLabel: whenLabel(nextGame!.game_date), place: nextGame!.location }
-      : { kind: 'Training', title: 'Team training', whenLabel: whenLabel(nextTraining!.session_date), place: nextTraining!.location }
 
   return (
     <DashboardView
@@ -105,12 +139,14 @@ export default async function AdminDashboardPage() {
       roleLabel={me?.role === 'admin' ? 'Coach · Admin' : 'Player'}
       todayLabel={`${DOW[dowIndex(now)]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`}
       week={weekView}
+      seasonLabel={seasonLabel}
+      next={next}
+      record={record}
       playerCount={playerCount ?? 0}
       adminCount={adminCount ?? 0}
       upcoming={(upcomingGames ?? 0) + (upcomingTrainings ?? 0)}
       activePolls={activePolls ?? 0}
-      playedGames={playedGames ?? 0}
-      next={next}
+      playedGames={played.length}
     />
   )
 }
