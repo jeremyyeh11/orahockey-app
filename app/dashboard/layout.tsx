@@ -1,14 +1,15 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import BottomNav, { type NavItem } from '@/components/BottomNav'
+import { HomeIcon, CalendarIcon, PollIcon, BarChartIcon } from '@/components/icons'
 
-const NAV = [
-  { href: '/dashboard',          label: 'Home',     icon: '🏒' },
-  { href: '/dashboard/schedule', label: 'Schedule', icon: '📅' },
-  { href: '/dashboard/polls',    label: 'Polls',    icon: '📋' },
-  { href: '/dashboard/stats',    label: 'Stats',    icon: '📊' },
+const NAV: NavItem[] = [
+  { href: '/dashboard', label: 'Home', Icon: HomeIcon, exact: true },
+  { href: '/dashboard/schedule', label: 'Schedule', Icon: CalendarIcon },
+  { href: '/dashboard/polls', label: 'Polls', Icon: PollIcon },
+  { href: '/dashboard/stats', label: 'Stats', Icon: BarChartIcon },
 ]
 
 export default function DashboardLayout({
@@ -16,7 +17,6 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
   const router = useRouter()
 
   async function handleLogout() {
@@ -29,44 +29,25 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
+    <div className="flex min-h-screen flex-col">
       {/* Top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-surface-border bg-surface-card px-4 py-3">
-        <span className="text-lg font-bold tracking-tight text-white">
-          ORA Hockey
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
+        <span className="font-display text-lg font-bold tracking-tight text-white">
+          ORA <span className="text-brand-light">Hockey</span>
         </span>
         <button
           onClick={handleLogout}
-          className="text-xs text-slate-400 hover:text-white transition"
+          className="text-xs font-medium text-slate-400 transition hover:text-white"
         >
           Logout
         </button>
       </header>
 
-      {/* Page content */}
-      <main className="flex-1 overflow-y-auto pb-20">{children}</main>
+      {/* Page content — padded bottom so it isn't hidden behind the floating nav */}
+      <main className="flex-1 overflow-y-auto pb-28">{children}</main>
 
-      {/* Sticky bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-surface-border bg-surface-card">
-        {NAV.map(({ href, label, icon }) => {
-          const active =
-            href === '/dashboard'
-              ? pathname === '/dashboard'
-              : pathname.startsWith(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs transition ${
-                active ? 'text-brand-light' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <span className="text-lg leading-none">{icon}</span>
-              <span>{label}</span>
-            </Link>
-          )
-        })}
-      </nav>
+      {/* Floating pill nav */}
+      <BottomNav items={NAV} />
     </div>
   )
 }
