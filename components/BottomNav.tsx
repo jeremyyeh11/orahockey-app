@@ -22,7 +22,7 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname()
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+12px)]">
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+24px)]">
       <nav className="menu-dock flex items-center gap-0.5 p-1.5">
         {items.map((item) => {
           const active = isActive(item, pathname)
