@@ -71,6 +71,25 @@ Must reference only UI-visible elements (Schedule tab, match detail modal, team 
 - *RLS: voting restricted to team-list members needs a policy; viewing open to all authenticated. Auto-create likely needs a server function / trigger on match end.*
 - *Tie-breaking / shared places for POTM (the `potm` table already allows shared places) — how does the rank tally resolve ties?*
 
+## 6. Self-serve player onboarding via whitelist + forced password reset
+
+Replace the manual (Supabase-dashboard) onboarding with an in-app flow driven by the existing `player_whitelist` table.
+
+- **Admin adds email to whitelist:** from the admin Squad (or a dedicated admin control), an admin adds a player's email to the `player_whitelist` table. This is the gate — only whitelisted emails can self-register.
+- **App assigns a standard password:** when the whitelist entry is created, the app (server action / edge function) creates the Supabase auth user for that email with a standard temporary password `orahockey`.
+- **New user signs in:** the user goes to `/login`, enters their email and the standard password `orahockey`.
+- **Triggers password reset:** because the login used the standard temporary password, the app immediately triggers a **password reset** flow (Supabase `resetPasswordForEmail` / update flow) so the user sets their own password on first login. They cannot continue on the temporary password.
+- **Player row auto-created:** on whitelist-based signup, a `players` row is created/linked to the new auth user (role defaults to `player`), removing the manual `auth_user_id` linking step.
+
+Must reference only UI-visible elements (login page, admin Squad / whitelist control). Internal data shape TBD.
+
+*Open questions to resolve at build time:*
+- *How is the auth user created from the app? Needs the service-role key server-side (admin client) — confirm where it lives and that it is not exposed to the client.*
+- *Detecting "used standard password" to force reset: compare against the known `orahockey` value, or flag the whitelist/user as `needs_password_reset` until changed. Decide the signal.*
+- *The `player_whitelist` table currently has no `used` / `claimed` flag — add one so a whitelisted email can't be re-used and we know signup completed.*
+- *RLS: the signup server action must verify the email is whitelisted before creating the auth user (the whitelist is currently admin-only readable — broaden for the signup check).*
+- *Edge: what if the admin whitelists an email that already has an auth user? Decide (link existing vs reject).*
+
 ---
 
 ## Archived
