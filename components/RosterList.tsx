@@ -26,21 +26,39 @@ export function preferredName(player: { full_name: string; preferred_name: strin
 /** Splits a name into parts: before, preferred, after — keeping original word order */
 export function splitName(player: { full_name: string; preferred_name: string | null }): { before: string; preferred: string; after: string } {
   const preferred = preferredName(player)
-  const words = player.full_name.trim().split(/\s+/)
+  const full = player.full_name.trim()
+  const words = full.split(/\s+/)
 
-  // Find the preferred name as a whole word (case-insensitive)
-  const idx = words.findIndex(w => w.toUpperCase() === preferred.toUpperCase())
-
-  if (idx === -1) {
-    // Preferred name not found in full name — show full name with preferred prepended
-    return { before: '', preferred, after: player.full_name.toUpperCase() }
+  // First: try exact whole-word match (case-insensitive)
+  const wordIdx = words.findIndex(w => w.toUpperCase() === preferred.toUpperCase())
+  if (wordIdx !== -1) {
+    return {
+      before: words.slice(0, wordIdx).join(' ').toUpperCase(),
+      preferred,
+      after: words.slice(wordIdx + 1).join(' ').toUpperCase(),
+    }
   }
 
-  return {
-    before: words.slice(0, idx).join(' ').toUpperCase(),
-    preferred,
-    after: words.slice(idx + 1).join(' ').toUpperCase(),
+  // Second: try substring match within a word (e.g. "KEAEN" in "KEAEN-SETH")
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i].toUpperCase()
+    const p = preferred.toUpperCase()
+    const pos = w.indexOf(p)
+    if (pos !== -1) {
+      const beforeWord = words.slice(0, i).join(' ')
+      const wordBefore = words[i].slice(0, pos)
+      const wordAfter = words[i].slice(pos + p.length)
+      const afterParts = [wordAfter, ...words.slice(i + 1)].filter(s => s.length > 0)
+      return {
+        before: [beforeWord, wordBefore].filter(s => s.length > 0).join(' ').toUpperCase(),
+        preferred,
+        after: afterParts.join(' ').toUpperCase(),
+      }
+    }
   }
+
+  // Not found at all — show full name with preferred prepended
+  return { before: '', preferred, after: full.toUpperCase() }
 }
 
 export function sortPositions(pos: string[] | null | undefined) {
