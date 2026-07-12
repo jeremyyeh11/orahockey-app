@@ -193,9 +193,20 @@ export function computeSeason({
   const topScorers = Object.values(rows)
     .filter((r) => r.goals > 0)
     .sort((a, b) => b.goals - a.goals || b.assists - a.assists)
-    .slice(0, 3)
 
-  return { seasonGames, leaderboard, pots, topScorers }
+  // Group by tied goal count, take top 3 distinct values
+  const topScorerGroups: LeaderboardRow[][] = []
+  for (const r of topScorers) {
+    const last = topScorerGroups[topScorerGroups.length - 1]
+    if (last && last[0].goals === r.goals) {
+      last.push(r)
+    } else {
+      if (topScorerGroups.length >= 3) break
+      topScorerGroups.push([r])
+    }
+  }
+
+  return { seasonGames, leaderboard, pots, topScorerGroups }
 }
 
 export function SeasonSelect({
@@ -247,23 +258,23 @@ export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
   )
 }
 
-export function TopScorersCard({ scorers }: { scorers: LeaderboardRow[] }) {
-  if (scorers.length === 0) return null
+export function TopScorersCard({ groups }: { groups: LeaderboardRow[][] }) {
+  if (groups.length === 0) return null
   return (
     <div className="card overflow-hidden">
       <div className="border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
         Top Scorers
       </div>
-      {scorers.map((r, i) => (
+      {groups.map((grp, i) => (
         <div
-          key={r.player.id}
+          key={i}
           className="flex items-center gap-2 border-b border-white/5 px-3 py-2 last:border-0"
         >
           <span className="w-5 text-center text-sm">{MEDALS[i]}</span>
           <span className="min-w-0 flex-1 truncate text-xs font-medium text-white">
-            {preferredName(r.player)}
+            {grp.map((r) => preferredName(r.player)).join(' / ')}
           </span>
-          <span className="shrink-0 text-xs font-semibold text-brand-light">{r.goals}</span>
+          <span className="shrink-0 text-xs font-semibold text-brand-light">{grp[0].goals}</span>
         </div>
       ))}
     </div>

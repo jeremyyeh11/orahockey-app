@@ -38,7 +38,7 @@ export default function SquadClient({
     seasons[0] ?? String(new Date().getFullYear())
   )
 
-  const { seasonGames, leaderboard, pots, topScorers } = computeSeason({
+  const { seasonGames, leaderboard, pots, topScorerGroups } = computeSeason({
     players,
     games,
     stats,
@@ -91,7 +91,7 @@ export default function SquadClient({
       {/* POTS race + Top scorers — side by side */}
       <div className="mb-4 grid grid-cols-2 gap-3">
         <PotsCard pots={pots} />
-        <TopScorersCard scorers={topScorers} />
+        <TopScorersCard groups={topScorerGroups} />
       </div>
 
       {/* Roster with inline stats */}
