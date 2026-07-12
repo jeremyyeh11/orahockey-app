@@ -58,7 +58,7 @@ function statValue(row: LeaderboardRow, col: string): number {
     case 'A': return row.assists
     case 'CS': return row.cleanSheets
     case 'POTM': return row.potmWins
-    case 'Caps': return row.caps
+    case 'CAPS': return row.caps
     default: return 0
   }
 }
@@ -80,7 +80,7 @@ function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean;
   const cols: string[] = []
   if (showGoals) cols.push('FG', 'PC', 'PS', 'A')
   if (showCS) cols.push('CS')
-  cols.push('POTM', 'Caps')
+  cols.push('POTM', 'CAPS')
 
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 mt-1.5 text-[11px]">
@@ -100,7 +100,7 @@ function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean;
 function StatHeader() {
   return (
     <div className="flex items-center px-4 pb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-      <span className="flex-1">FG  PC  PS  A  CS  POTM  Caps</span>
+      <span className="flex-1">FG  PC  PS  A  CS  POTM  CAPS</span>
       <span className="w-12 text-center">Cards</span>
     </div>
   )
