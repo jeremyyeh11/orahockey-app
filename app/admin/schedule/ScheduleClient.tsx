@@ -13,26 +13,7 @@ import {
 } from './actions'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fmtTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/lib/format'
-
-export type Game = {
-  id: string
-  opponent: string
-  game_date: string
-  location: string | null
-  home_away: 'home' | 'away' | null
-  game_type: 'regular' | 'playoff' | 'exhibition'
-  goals_for: number | null
-  goals_against: number | null
-  result: string | null
-  notes: string | null
-}
-
-export type Training = {
-  id: string
-  session_date: string
-  location: string | null
-  notes: string | null
-}
+import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
 
 type EventItem =
   | { kind: 'game'; date: string; game: Game }
@@ -58,18 +39,25 @@ export default function ScheduleClient({
   attending,
   myStatus,
   now,
+  roster,
+  attendanceBySession,
+  myPlayerId,
 }: {
   games: Game[]
   trainings: Training[]
   attending: Record<string, number>
   myStatus: Record<string, MyStatus>
   now: string
+  roster: PlayerLite[]
+  attendanceBySession: Record<string, AttendanceRow[]>
+  myPlayerId: string
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
-  const [gameModal, setGameModal] = useState<{ game: Game | null } | null>(null)
-  const [trainingModal, setTrainingModal] = useState<{ training: Training | null } | null>(null)
+  const [selectedItem, setSelectedItem] = useState<EventItem | null>(null)
+  const [addModal, setAddModal] = useState<'game' | 'training' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [respondingId, setRespondingId] = useState<string | null>(null)
 
   const items: EventItem[] = [
     ...(filter !== 'trainings' ? games.map((g) => ({ kind: 'game' as const, date: g.game_date, game: g })) : []),
@@ -93,13 +81,55 @@ export default function ScheduleClient({
     l: played.filter((g) => g.result === 'loss' || g.result === 'ot_loss').length,
   }
 
-  function closeModals() {
-    setGameModal(null)
-    setTrainingModal(null)
-    setError(null)
+  function respond(item: EventItem, status: MyStatus) {
+    const id = item.kind === 'game' ? item.game.id : item.training.id
+    setRespondingId(id)
+    startTransition(async () => {
+      try {
+        await setAttendance(id, item.kind, status)
+      } finally {
+        setRespondingId(null)
+      }
+    })
   }
 
-  function submitGame(e: React.FormEvent<HTMLFormElement>) {
+  function handleSaveGame(id: string, data: GameInput) {
+    startTransition(async () => {
+      try {
+        await updateGame(id, data)
+        setSelectedItem(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
+  }
+
+  function handleSaveTraining(id: string, data: TrainingInput) {
+    startTransition(async () => {
+      try {
+        await updateTraining(id, data)
+        setSelectedItem(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
+  }
+
+  function handleDelete() {
+    if (!selectedItem) return
+    if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
+    startTransition(async () => {
+      try {
+        if (selectedItem.kind === 'game') await deleteGame(selectedItem.game.id)
+        if (selectedItem.kind === 'training') await deleteTraining(selectedItem.training.id)
+        setSelectedItem(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
+  }
+
+  function submitAddGame(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const gf = fd.get('goals_for') as string
@@ -117,19 +147,15 @@ export default function ScheduleClient({
     setError(null)
     startTransition(async () => {
       try {
-        if (gameModal?.game) {
-          await updateGame(gameModal.game.id, data)
-        } else {
-          await addGame(data)
-        }
-        closeModals()
+        await addGame(data)
+        setAddModal(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
       }
     })
   }
 
-  function submitTraining(e: React.FormEvent<HTMLFormElement>) {
+  function submitAddTraining(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const data: TrainingInput = {
@@ -140,39 +166,8 @@ export default function ScheduleClient({
     setError(null)
     startTransition(async () => {
       try {
-        if (trainingModal?.training) {
-          await updateTraining(trainingModal.training.id, data)
-        } else {
-          await addTraining(data)
-        }
-        closeModals()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      }
-    })
-  }
-
-  const [respondingId, setRespondingId] = useState<string | null>(null)
-
-  function respond(item: EventItem, status: MyStatus) {
-    const id = item.kind === 'game' ? item.game.id : item.training.id
-    setRespondingId(id)
-    startTransition(async () => {
-      try {
-        await setAttendance(id, item.kind, status)
-      } finally {
-        setRespondingId(null)
-      }
-    })
-  }
-
-  function handleDelete() {
-    if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
-    startTransition(async () => {
-      try {
-        if (gameModal?.game) await deleteGame(gameModal.game.id)
-        if (trainingModal?.training) await deleteTraining(trainingModal.training.id)
-        closeModals()
+        await addTraining(data)
+        setAddModal(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
       }
@@ -186,13 +181,13 @@ export default function ScheduleClient({
         <h1 className="text-xl font-bold text-white">Schedule</h1>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setTrainingModal({ training: null })}
+            onClick={() => setAddModal('training')}
             className="rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
           >
             + Training
           </button>
           <button
-            onClick={() => setGameModal({ game: null })}
+            onClick={() => setAddModal('game')}
             className="bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
           >
             + Game
@@ -235,7 +230,7 @@ export default function ScheduleClient({
         ))}
       </div>
 
-      {/* Upcoming — tap the event to edit, buttons below to respond as a player */}
+      {/* Upcoming */}
       {upcoming.length > 0 && (
         <>
           <h2 className="mb-2 text-sm font-semibold text-white">Upcoming</h2>
@@ -248,18 +243,8 @@ export default function ScheduleClient({
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() =>
-                      item.kind === 'game'
-                        ? setGameModal({ game: item.game })
-                        : setTrainingModal({ training: item.training })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        item.kind === 'game'
-                          ? setGameModal({ game: item.game })
-                          : setTrainingModal({ training: item.training })
-                      }
-                    }}
+                    onClick={() => setSelectedItem(item)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
                     className="cursor-pointer"
                   >
                     <EventRow item={item} attending={attending} />
@@ -312,57 +297,48 @@ export default function ScheduleClient({
             key={`${item.kind}-${item.kind === 'game' ? item.game.id : item.training.id}`}
             item={item}
             attending={attending}
-            onEdit={() =>
-              item.kind === 'game'
-                ? setGameModal({ game: item.game })
-                : setTrainingModal({ training: item.training })
-            }
+            onClick={() => setSelectedItem(item)}
           />
         ))}
       </div>
 
-      {/* Game modal */}
-      {gameModal && (
-        <Modal title={gameModal.game ? 'Edit Game' : 'Add Game'} onClose={closeModals}>
-          <form onSubmit={submitGame} className="space-y-4">
+      {/* Event Detail Modal */}
+      {selectedItem && (
+        <EventDetailModal
+          item={selectedItem}
+          isAdmin={true}
+          myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
+          attendanceBySession={attendanceBySession}
+          roster={roster}
+          myPlayerId={myPlayerId}
+          onClose={() => { setSelectedItem(null); setError(null) }}
+          onSaveGame={handleSaveGame}
+          onSaveTraining={handleSaveTraining}
+          onDelete={handleDelete}
+          isPending={isPending}
+        />
+      )}
+
+      {/* Add Game Modal */}
+      {addModal === 'game' && (
+        <Modal title="Add Game" onClose={() => { setAddModal(null); setError(null) }}>
+          <form onSubmit={submitAddGame} className="space-y-4">
             <div>
               <label className={labelCls}>Opponent *</label>
-              <input
-                name="opponent"
-                type="text"
-                required
-                defaultValue={gameModal.game?.opponent}
-                className={inputCls}
-                placeholder="Tornados"
-              />
+              <input name="opponent" type="text" required className={inputCls} placeholder="Tornados" />
             </div>
-
             <div>
               <label className={labelCls}>Date &amp; time *</label>
-              <input
-                name="game_date"
-                type="datetime-local"
-                required
-                defaultValue={gameModal.game ? toDatetimeLocal(gameModal.game.game_date) : ''}
-                className={inputCls}
-              />
+              <input name="game_date" type="datetime-local" required className={inputCls} />
             </div>
-
             <div>
               <label className={labelCls}>Location</label>
-              <input
-                name="location"
-                type="text"
-                defaultValue={gameModal.game?.location ?? ''}
-                className={inputCls}
-                placeholder="Sengkang Hockey Stadium"
-              />
+              <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium" />
             </div>
-
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className={labelCls}>Home / Away</label>
-                <select name="home_away" defaultValue={gameModal.game?.home_away ?? ''} className={inputCls}>
+                <select name="home_away" className={inputCls} defaultValue="">
                   <option value="">—</option>
                   <option value="home">Home</option>
                   <option value="away">Away</option>
@@ -370,107 +346,49 @@ export default function ScheduleClient({
               </div>
               <div className="flex-1">
                 <label className={labelCls}>Type</label>
-                <select name="game_type" defaultValue={gameModal.game?.game_type ?? 'regular'} className={inputCls}>
+                <select name="game_type" className={inputCls} defaultValue="regular">
                   <option value="regular">Regular</option>
                   <option value="playoff">Playoff</option>
                   <option value="exhibition">Exhibition</option>
                 </select>
               </div>
             </div>
-
             <div>
               <label className={labelCls}>Score (leave blank if not played yet)</label>
               <div className="flex items-center gap-3">
-                <input
-                  name="goals_for"
-                  type="number"
-                  min="0"
-                  max="99"
-                  defaultValue={gameModal.game?.goals_for ?? ''}
-                  className={inputCls}
-                  placeholder="Us"
-                />
+                <input name="goals_for" type="number" min="0" max="99" className={inputCls} placeholder="Us" />
                 <span className="text-slate-500">–</span>
-                <input
-                  name="goals_against"
-                  type="number"
-                  min="0"
-                  max="99"
-                  defaultValue={gameModal.game?.goals_against ?? ''}
-                  className={inputCls}
-                  placeholder="Them"
-                />
+                <input name="goals_against" type="number" min="0" max="99" className={inputCls} placeholder="Them" />
               </div>
             </div>
-
             <div>
               <label className={labelCls}>Notes</label>
-              <input
-                name="notes"
-                type="text"
-                defaultValue={gameModal.game?.notes ?? ''}
-                className={inputCls}
-                placeholder="Optional"
-              />
+              <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-
             {error && <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-
-            <ModalButtons
-              isPending={isPending}
-              onCancel={closeModals}
-              onDelete={gameModal.game ? handleDelete : undefined}
-            />
+            <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
         </Modal>
       )}
 
-      {/* Training modal */}
-      {trainingModal && (
-        <Modal title={trainingModal.training ? 'Edit Training' : 'Add Training'} onClose={closeModals}>
-          <form onSubmit={submitTraining} className="space-y-4">
+      {/* Add Training Modal */}
+      {addModal === 'training' && (
+        <Modal title="Add Training" onClose={() => { setAddModal(null); setError(null) }}>
+          <form onSubmit={submitAddTraining} className="space-y-4">
             <div>
               <label className={labelCls}>Date &amp; time *</label>
-              <input
-                name="session_date"
-                type="datetime-local"
-                required
-                defaultValue={
-                  trainingModal.training ? toDatetimeLocal(trainingModal.training.session_date) : ''
-                }
-                className={inputCls}
-              />
+              <input name="session_date" type="datetime-local" required className={inputCls} />
             </div>
-
             <div>
               <label className={labelCls}>Location</label>
-              <input
-                name="location"
-                type="text"
-                defaultValue={trainingModal.training?.location ?? ''}
-                className={inputCls}
-                placeholder="Sengkang Hockey Stadium — Pitch 2"
-              />
+              <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium — Pitch 2" />
             </div>
-
             <div>
               <label className={labelCls}>Notes</label>
-              <input
-                name="notes"
-                type="text"
-                defaultValue={trainingModal.training?.notes ?? ''}
-                className={inputCls}
-                placeholder="Optional"
-              />
+              <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-
             {error && <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-
-            <ModalButtons
-              isPending={isPending}
-              onCancel={closeModals}
-              onDelete={trainingModal.training ? handleDelete : undefined}
-            />
+            <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
         </Modal>
       )}
@@ -486,13 +404,10 @@ function EventRow({ item, attending }: { item: EventItem; attending: Record<stri
 
   return (
     <div className="flex w-full items-center gap-3">
-      {/* Date block */}
       <div className="flex w-11 shrink-0 flex-col items-center justify-center leading-tight">
         <span className="text-xl font-bold text-white">{block.day}</span>
         <span className="text-[10px] uppercase tracking-wide text-slate-400">{block.mon}</span>
       </div>
-
-      {/* Details */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-semibold text-white">
@@ -512,8 +427,6 @@ function EventRow({ item, attending }: { item: EventItem; attending: Record<stri
         </div>
         {going != null && <div className="mt-0.5 text-[11px] text-slate-500">{going} attending</div>}
       </div>
-
-      {/* Result / score */}
       {isGame && item.game.result && (
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span
@@ -535,15 +448,15 @@ function EventRow({ item, attending }: { item: EventItem; attending: Record<stri
 function EventCard({
   item,
   attending,
-  onEdit,
+  onClick,
 }: {
   item: EventItem
   attending: Record<string, number>
-  onEdit: () => void
+  onClick: () => void
 }) {
   return (
     <button
-      onClick={onEdit}
+      onClick={onClick}
       className="card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
     >
       <EventRow item={item} attending={attending} />
@@ -551,15 +464,7 @@ function EventCard({
   )
 }
 
-function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string
-  onClose: () => void
-  children: React.ReactNode
-}) {
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
@@ -572,43 +477,23 @@ function Modal({
   )
 }
 
-function ModalButtons({
-  isPending,
-  onCancel,
-  onDelete,
-}: {
-  isPending: boolean
-  onCancel: () => void
-  onDelete?: () => void
-}) {
+function ModalButtons({ isPending, onCancel }: { isPending: boolean; onCancel: () => void }) {
   return (
-    <div className="space-y-3 pt-1">
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-        >
-          {isPending ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-      {onDelete && (
-        <button
-          type="button"
-          onClick={onDelete}
-          disabled={isPending}
-          className="w-full rounded-lg border border-red-900/60 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-50"
-        >
-          Delete
-        </button>
-      )}
+    <div className="flex gap-3 pt-1">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        disabled={isPending}
+        className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+      >
+        {isPending ? 'Saving…' : 'Save'}
+      </button>
     </div>
   )
 }

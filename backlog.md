@@ -13,26 +13,6 @@
 
 ---
 
-## 1. Match / Event detail view
-
-Replace the current edit modal that appears when an event is clicked on the **Schedule** tab (player and admin) with a read-first **detail modal**. Tapping any event/fixture opens a modal showing full details (opponent, venue, date/time, competition, result if played, attendance status).
-
-**View mode (default):**
-- Read-only display of the event details.
-- Admins see an **Edit** button. Players do not.
-- Attendance voting is available to players from within this modal.
-- Show the attending / maybe / not attending / hasn't responded breakdown, in that order, listing other players per state.
-- A section for **Additional Information** — read-only to players. Admins can add/modify it via the Edit button.
-
-**Edit mode (admins only, via Edit button):**
-- Clicking **Edit** converts the read fields into editable fields. The Edit button is replaced by a **Save** button (persists changes) and a **Discard changes** button (reverts without saving) sitting next to it.
-
-**Reusable component:**
-- The modal's read→edit interaction pattern (read view, Edit→Save/Discard conversion, field styling) must be saved as a generic, non-event-specific component so it can be reused as a template for other entities such as the player profile page.
-
-Must reference only UI-visible elements (Schedule tab, fixture cards, modal). Internal data shape TBD.
-
-
 ## 2. Player profile page
 
 Add an individual **player profile** page reachable from the **Squad** tab (player and admin), built using the same reusable modal/panel template defined for the event detail view above.
@@ -49,6 +29,10 @@ Must reference only UI-visible elements (Squad tab, player rows/cards, modal/pan
 ---
 
 ## Archived
+
+### 1. Match / Event detail view ✓ July 2026
+
+Replaced the edit modal on the Schedule tab with a read-first detail modal. Tapping any event opens a modal showing full details (opponent, venue, date/time, competition, result if played). Players can vote attendance from inside the modal. Shows attendance breakdown (attending/maybe/not/hasn't responded) with player names. Additional Information section (notes) shown read-only to players. Admins get Edit→Save/Discard conversion. Created reusable ReadEditModal component for reuse in player profile page.
 
 ### 1. Merge stats page into team page ✓ July 2026
 

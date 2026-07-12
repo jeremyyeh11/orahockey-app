@@ -3,25 +3,9 @@
 import { useState, useTransition } from 'react'
 import { setAttendance } from './actions'
 import { fmtTime, dateBlock } from '@/lib/format'
-
-export type Game = {
-  id: string
-  opponent: string
-  game_date: string
-  location: string | null
-  home_away: 'home' | 'away' | null
-  game_type: 'regular' | 'playoff' | 'exhibition'
-  goals_for: number | null
-  goals_against: number | null
-  result: string | null
-}
-
-export type Training = {
-  id: string
-  session_date: string
-  location: string | null
-  notes: string | null
-}
+import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
+import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
+import { updateGame, updateTraining, deleteGame, deleteTraining } from '@/app/admin/schedule/actions'
 
 type EventItem =
   | { kind: 'game'; date: string; game: Game }
@@ -48,15 +32,22 @@ export default function ScheduleClient({
   trainings,
   myStatus,
   now,
+  roster,
+  attendanceBySession,
+  myPlayerId,
 }: {
   games: Game[]
   trainings: Training[]
   myStatus: Record<string, MyStatus>
   now: string
+  roster: PlayerLite[]
+  attendanceBySession: Record<string, AttendanceRow[]>
+  myPlayerId: string
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
   const [isPending, startTransition] = useTransition()
   const [pendingId, setPendingId] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<EventItem | null>(null)
 
   const items: EventItem[] = [
     ...(filter !== 'trainings' ? games.map((g) => ({ kind: 'game' as const, date: g.game_date, game: g })) : []),
@@ -81,6 +72,42 @@ export default function ScheduleClient({
         await setAttendance(id, item.kind, status)
       } finally {
         setPendingId(null)
+      }
+    })
+  }
+
+  function handleSaveGame(id: string, data: GameInput) {
+    startTransition(async () => {
+      try {
+        await updateGame(id, data)
+        setSelectedItem(null)
+      } catch (err) {
+        console.error(err)
+      }
+    })
+  }
+
+  function handleSaveTraining(id: string, data: TrainingInput) {
+    startTransition(async () => {
+      try {
+        await updateTraining(id, data)
+        setSelectedItem(null)
+      } catch (err) {
+        console.error(err)
+      }
+    })
+  }
+
+  function handleDelete() {
+    if (!selectedItem) return
+    if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
+    startTransition(async () => {
+      try {
+        if (selectedItem.kind === 'game') await deleteGame(selectedItem.game.id)
+        if (selectedItem.kind === 'training') await deleteTraining(selectedItem.training.id)
+        setSelectedItem(null)
+      } catch (err) {
+        console.error(err)
       }
     })
   }
@@ -122,7 +149,15 @@ export default function ScheduleClient({
               const mine = myStatus[id]
               return (
                 <div key={`${item.kind}-${id}`} className="card px-4 py-3">
-                  <EventRow item={item} />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedItem(item)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
+                    className="cursor-pointer"
+                  >
+                    <EventRow item={item} />
+                  </div>
                   <div className="mt-3 flex gap-2 border-t border-white/5 pt-3">
                     {(
                       [
@@ -168,12 +203,36 @@ export default function ScheduleClient({
           const id = item.kind === 'game' ? item.game.id : item.training.id
           const mine = myStatus[id]
           return (
-            <div key={`${item.kind}-${id}`} className="card flex items-center gap-3 px-4 py-3">
+            <div
+              key={`${item.kind}-${id}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedItem(item)}
+              onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
+              className="card flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:border-white/15"
+            >
               <EventRow item={item} mine={mine} />
             </div>
           )
         })}
       </div>
+
+      {/* Event Detail Modal */}
+      {selectedItem && (
+        <EventDetailModal
+          item={selectedItem}
+          isAdmin={false}
+          myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
+          attendanceBySession={attendanceBySession}
+          roster={roster}
+          myPlayerId={myPlayerId}
+          onClose={() => setSelectedItem(null)}
+          onSaveGame={handleSaveGame}
+          onSaveTraining={handleSaveTraining}
+          onDelete={handleDelete}
+          isPending={isPending}
+        />
+      )}
     </div>
   )
 }

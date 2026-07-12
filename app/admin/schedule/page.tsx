@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
+import type { AttendanceRow, RosterPlayer } from '@/app/dashboard/schedule/page'
 
 export default async function AdminSchedulePage() {
   const supabase = createClient()
@@ -14,15 +15,21 @@ export default async function AdminSchedulePage() {
     { data: trainings, error: trainingsError },
     { data: att },
     { data: me },
+    { data: roster },
   ] = await Promise.all([
     supabase.from('games').select('*').order('game_date', { ascending: false }),
     supabase.from('training_sessions').select('*').order('session_date', { ascending: false }),
-    supabase.from('attendance').select('session_id, status').eq('status', 'attending'),
+    supabase.from('attendance').select('player_id, session_id, status, player:players(full_name, preferred_name)'),
     supabase
       .from('players')
       .select('id, attendance(session_id, status)')
       .eq('auth_user_id', user?.id ?? '')
       .single(),
+    supabase
+      .from('players')
+      .select('id, full_name, preferred_name')
+      .eq('is_active', true)
+      .order('full_name', { ascending: true }),
   ])
 
   const error = gamesError ?? trainingsError
@@ -36,12 +43,21 @@ export default async function AdminSchedulePage() {
 
   const attending: Record<string, number> = {}
   for (const a of att ?? []) {
-    attending[a.session_id] = (attending[a.session_id] ?? 0) + 1
+    if (a.status === 'attending') {
+      attending[a.session_id] = (attending[a.session_id] ?? 0) + 1
+    }
   }
 
   const myStatus: Record<string, 'attending' | 'not_attending' | 'maybe'> = {}
   for (const a of me?.attendance ?? []) {
     myStatus[a.session_id] = a.status
+  }
+
+  // Build attendance breakdown per session
+  const attendanceBySession: Record<string, AttendanceRow[]> = {}
+  for (const a of (att ?? []) as unknown as AttendanceRow[]) {
+    if (!attendanceBySession[a.session_id]) attendanceBySession[a.session_id] = []
+    attendanceBySession[a.session_id].push(a)
   }
 
   return (
@@ -51,6 +67,9 @@ export default async function AdminSchedulePage() {
       attending={attending}
       myStatus={myStatus}
       now={getNow().toISOString()}
+      roster={(roster ?? []) as RosterPlayer[]}
+      attendanceBySession={attendanceBySession}
+      myPlayerId={me?.id ?? ''}
     />
   )
 }
