@@ -23,11 +23,24 @@ export function preferredName(player: { full_name: string; preferred_name: strin
   return (player.preferred_name?.trim() || defaultPreferredName(player.full_name)).toUpperCase()
 }
 
-/** Splits a name into [preferred, rest] for display */
-export function splitName(player: { full_name: string; preferred_name: string | null }): [string, string] {
+/** Splits a name into parts: before, preferred, after — keeping original word order */
+export function splitName(player: { full_name: string; preferred_name: string | null }): { before: string; preferred: string; after: string } {
   const preferred = preferredName(player)
-  const rest = player.full_name.replace(preferred, '').trim().toUpperCase()
-  return [preferred, rest]
+  const words = player.full_name.trim().split(/\s+/)
+
+  // Find the preferred name as a whole word (case-insensitive)
+  const idx = words.findIndex(w => w.toUpperCase() === preferred.toUpperCase())
+
+  if (idx === -1) {
+    // Preferred name not found in full name — show full name with preferred prepended
+    return { before: '', preferred, after: player.full_name.toUpperCase() }
+  }
+
+  return {
+    before: words.slice(0, idx).join(' ').toUpperCase(),
+    preferred,
+    after: words.slice(idx + 1).join(' ').toUpperCase(),
+  }
 }
 
 export function sortPositions(pos: string[] | null | undefined) {
@@ -169,11 +182,12 @@ export default function RosterList<T extends RosterPlayer>({
             <div className="relative min-w-0 pr-16">
               <div className="truncate font-semibold text-white">
                 {(() => {
-                  const [preferred, rest] = splitName(player)
+                  const { before, preferred, after } = splitName(player)
                   return (
                     <>
+                      {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before} </span>}
                       <span>{preferred}</span>
-                      {rest && <span className="text-sm font-normal tracking-wide text-slate-400"> {rest}</span>}
+                      {after && <span className="text-sm font-normal tracking-wide text-slate-400"> {after}</span>}
                     </>
                   )
                 })()}

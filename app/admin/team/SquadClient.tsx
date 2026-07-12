@@ -318,11 +318,12 @@ export default function SquadClient({
                       <div className="flex items-center gap-2">
                         <div className="min-w-0 flex-1 truncate text-sm font-medium text-white">
                           {(() => {
-                            const [preferred, rest] = splitName(p)
+                            const { before, preferred, after } = splitName(p)
                             return (
                               <>
+                                {before && <span className="text-xs font-normal tracking-wide text-slate-400">{before} </span>}
                                 <span>{preferred}</span>
-                                {rest && <span className="text-xs font-normal tracking-wide text-slate-400"> {rest}</span>}
+                                {after && <span className="text-xs font-normal tracking-wide text-slate-400"> {after}</span>}
                               </>
                             )
                           })()}
