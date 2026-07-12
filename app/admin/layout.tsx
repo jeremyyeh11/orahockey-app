@@ -41,9 +41,7 @@ export default function AdminLayout({
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
         <span className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full">
-            <img src="/crest-white.png" alt="ORA Hockey" className="h-full w-full object-cover" />
-          </div>
+          <img src="/crest-white.png" alt="ORA Hockey" className="h-8 w-8 object-contain" />
           <span className="font-display text-lg font-bold tracking-tight text-white">
             ORA <span className="text-brand-light">Hockey</span>
             <AdminBadge />
