@@ -24,6 +24,28 @@ Add an individual **player profile** page reachable from the **Squad** tab (play
 
 Must reference only UI-visible elements (Squad tab, player rows/cards, modal/panel template). Internal data shape TBD.
 
+## 4. Update match result
+
+Let players record a played match's result and goals/cards after the match, separate from match creation.
+
+- **Separate score from creation:** when an admin creates a new match (the **Add Game** action on the Schedule tab), the score fields are NOT part of the creation form. The result is entered later through the flow below.
+- **Update result button:** on the match detail view (the detail modal opened from the Schedule tab), add an **Update result** button inline with the match title, aligned right. Show it for matches only (not training sessions). The button is disabled (greyed out) until the match's date/time has passed.
+- **Result entry UI** (opens on tap):
+  - The score (us – them) shows at the top, **read-only**. It is derived from the goal rows entered below, not typed directly.
+  - Below it: a **+ Goal** button and a **+ Card** button.
+  - **+ Goal** adds a row to a goals table: select **scorer** (from the match team list only) and **assist**.
+    - The assist dropdown lists, in order: `PC` (penalty corner), `PS` (penalty stroke), then players (from the match team list only).
+  - **+ Card** adds a row to a cards table: select **player** (from the match team list only) and **card type**.
+  - **All players** (not just admins) can add goals and cards for a played match.
+
+Must reference only UI-visible elements (Schedule tab, Add Game, match detail modal, match team list). Internal data shape TBD.
+
+*Open questions to resolve at build time:*
+- *Goals/cards are not currently stored as per-event rows — `player_stats` holds goals_fg/goals_pc/goals_ps + assists, and there is no cards table. This needs a goals (and cards) table + a migration, like `005_match_team_lists.sql`. Confirm whether the stored `games` score is computed from goal rows or still maintained separately.*
+- *RLS: opening result entry to all players requires a new policy (authenticated users may insert goal/card rows for played matches). Admin-only event editing stays unchanged.*
+- *Confirm card types (yellow / red / second yellow?).*
+- *If the match team list is not yet published ("To be announced"), can players still pick scorers? Edge case to decide.*
+
 ---
 
 ## Archived
