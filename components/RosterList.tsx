@@ -106,17 +106,7 @@ function StatHeader() {
   )
 }
 
-// Sort: user's row first, then by position (GK > DEF > MID > FWD), then alphabetical
-const SORT_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 }
-
-function playerSortKey(player: RosterPlayer, myPlayerId: string | null): string {
-  const positions = player.position ?? []
-  // Use the highest-priority position (lowest sort order)
-  const minPos = positions.length > 0
-    ? Math.min(...positions.map((p) => SORT_ORDER[p] ?? 9))
-    : 9
-  return `${minPos}_${player.full_name.toLowerCase()}`
-}
+// Sort: user's row first, then alphabetical
 
 export default function RosterList<T extends RosterPlayer>({
   players,
@@ -133,8 +123,8 @@ export default function RosterList<T extends RosterPlayer>({
     // User's row always first
     if (a.id === myPlayerId && b.id !== myPlayerId) return -1
     if (b.id === myPlayerId && a.id !== myPlayerId) return 1
-    // Then by position (GK > DEF > MID > FWD), then alphabetical
-    return playerSortKey(a, myPlayerId).localeCompare(playerSortKey(b, myPlayerId))
+    // Then alphabetical
+    return a.full_name.toLowerCase().localeCompare(b.full_name.toLowerCase())
   })
 
   return (
