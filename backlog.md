@@ -1,4 +1,4 @@
-# ORA Hockey — Changelog / Feature Queue
+# ORA Hockey — Backlog / Feature Queue
 
 > **How this works:**
 > - Work starts from **#1** at the top of Backlog. Complete items in order.
