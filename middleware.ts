@@ -1,7 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Role lookups hit the DB, so cache the result in a short-lived cookie.
+// Value is `${userId}:${role}` so a different login never reuses it.
+const ROLE_COOKIE = 'ora-role'
+const ROLE_COOKIE_MAX_AGE = 600 // seconds
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -30,19 +37,22 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
-
-  const isProtected =
-    pathname.startsWith('/dashboard') || pathname.startsWith('/admin')
-
-  if (isProtected && !user) {
+  if (!user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Role-based routing: send authenticated users to the right area
-  if (user && isProtected) {
+  // Role: cookie cache first, DB only on a miss
+  let role: string | undefined
+  let refreshRoleCookie = false
+
+  const cached = request.cookies.get(ROLE_COOKIE)?.value
+  if (cached && cached.startsWith(`${user.id}:`)) {
+    role = cached.slice(user.id.length + 1)
+  }
+
+  if (!role) {
     let { data: player } = await supabase
       .from('players')
       .select('role')
@@ -60,31 +70,44 @@ export async function middleware(request: NextRequest) {
       player = linked
     }
 
-    const role = player?.role ?? 'player'
-
-    // Admins can opt into the player view from the admin control panel
-    const viewAsPlayer = request.cookies.get('ora-view')?.value === 'player'
-
-    // Admin trying to access player dashboard → redirect to admin
-    if (role === 'admin' && pathname.startsWith('/dashboard') && !viewAsPlayer) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/admin/dashboard'
-      return NextResponse.redirect(url)
-    }
-
-    // Player trying to access admin area → redirect to player dashboard
-    if (role !== 'admin' && pathname.startsWith('/admin')) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
+    role = player?.role ?? 'player'
+    refreshRoleCookie = true
   }
 
-  return supabaseResponse
+  const withRoleCookie = (res: NextResponse) => {
+    if (refreshRoleCookie) {
+      res.cookies.set(ROLE_COOKIE, `${user.id}:${role}`, {
+        path: '/',
+        maxAge: ROLE_COOKIE_MAX_AGE,
+        httpOnly: true,
+        sameSite: 'lax',
+      })
+    }
+    return res
+  }
+
+  // Admins can opt into the player view from the admin control panel
+  const viewAsPlayer = request.cookies.get('ora-view')?.value === 'player'
+
+  // Admin trying to access player dashboard → redirect to admin
+  if (role === 'admin' && pathname.startsWith('/dashboard') && !viewAsPlayer) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin/dashboard'
+    return withRoleCookie(NextResponse.redirect(url))
+  }
+
+  // Player trying to access admin area → redirect to player dashboard
+  if (role !== 'admin' && pathname.startsWith('/admin')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return withRoleCookie(NextResponse.redirect(url))
+  }
+
+  return withRoleCookie(supabaseResponse)
 }
 
+// Auth + role routing only matter on the app areas; running middleware on
+// every route added two network round-trips to each request and prefetch.
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/dashboard/:path*', '/dashboard', '/admin/:path*', '/admin'],
 }

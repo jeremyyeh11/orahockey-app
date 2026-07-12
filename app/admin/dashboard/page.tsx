@@ -45,27 +45,33 @@ export default async function AdminDashboardPage() {
     { data: team },
     { count: playerCount },
     { count: adminCount },
-    { count: upcomingGames },
-    { count: upcomingTrainings },
     { count: activePolls },
     { data: allGames },
-    { data: nextTraining },
-    { data: weekTrainings },
+    { data: allTrainings },
   ] = await Promise.all([
     supabase.from('players').select('full_name, role').eq('auth_user_id', user?.id ?? '').single(),
     supabase.from('teams').select('league, season').limit(1).maybeSingle(),
     supabase.from('players').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase.from('players').select('*', { count: 'exact', head: true }).eq('role', 'admin'),
-    supabase.from('games').select('*', { count: 'exact', head: true }).gte('game_date', now.toISOString()),
-    supabase.from('training_sessions').select('*', { count: 'exact', head: true }).gte('session_date', now.toISOString()),
     supabase.from('polls').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase.from('games').select('id, opponent, game_date, location, result').order('game_date'),
-    supabase.from('training_sessions').select('id, session_date, location').gte('session_date', now.toISOString()).order('session_date').limit(1).maybeSingle(),
-    supabase.from('training_sessions').select('session_date').gte('session_date', weekStart).lt('session_date', weekEnd),
+    supabase.from('training_sessions').select('id, session_date, location').order('session_date'),
   ])
 
   const name = me?.full_name ?? 'Coach'
   const games = allGames ?? []
+  const trainings = allTrainings ?? []
+
+  // Derived from the two base lists instead of separate count queries
+  const nowMs = now.getTime()
+  const upcomingGames = games.filter((g) => new Date(g.game_date).getTime() >= nowMs).length
+  const futureTrainings = trainings.filter((t) => new Date(t.session_date).getTime() >= nowMs)
+  const upcomingTrainings = futureTrainings.length
+  const nextTraining = futureTrainings[0] ?? null
+  const weekTrainings = trainings.filter((t) => {
+    const time = new Date(t.session_date).getTime()
+    return time >= new Date(weekStart).getTime() && time < new Date(weekEnd).getTime()
+  })
 
   // Season label comes from the teams table — edit league/season there to change it
   const seasonLabel = team ? `${team.league} · ${team.season}` : 'Season'
