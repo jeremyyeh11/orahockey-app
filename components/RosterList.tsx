@@ -29,15 +29,11 @@ function InlineStats({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
   if (items.length === 0) return null
 
   return (
-    <div className="mt-1.5 flex flex-wrap gap-1.5">
-      {items.map((s) => (
-        <span
-          key={s.label}
-          className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-            isMe ? 'bg-white/15 text-white' : 'bg-white/[0.07] text-slate-400'
-          }`}
-        >
-          {s.value} {s.label}
+    <div className={`mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] ${isMe ? 'text-white/80' : 'text-slate-400'}`}>
+      {items.map((s, i) => (
+        <span key={s.label}>
+          {i > 0 && <span className="mr-3 text-slate-600">·</span>}
+          <span className="font-semibold">{s.value}</span> {s.label}
         </span>
       ))}
     </div>
