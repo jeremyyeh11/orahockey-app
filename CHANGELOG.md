@@ -11,20 +11,10 @@
 
 ## Backlog
 
-### 1. Merge stats page into team page
-
-**Prompt:** Merge the Stats page into the Team page. Rename the combined page to "Squad". Remove the old Stats page (both player-facing and admin views) and their nav links.
-
-**Requirements:**
-- Preserve the existing Squad (formerly Team) page layout — the roster cards, top-bar, bottom nav, and overall visual structure stay the same.
-- Add a **season selector dropdown** at the top of the page. When a season is selected, only show players who were active/registered for that season.
-- Display each player's stats **inline inside their roster card**, below their name and position badges. Stats should be compact and legible on mobile — not in a separate table.
-- Place the **Player of the Season (POTS) race card** at the top of the page, above the squad list.
-- **"My" stats** (personal season summary cards and per-game breakdown) must NOT appear on this page — they will be a separate feature later.
-- Update the bottom navigation: remove the Stats tab. Change "Team" to "Squad".
-
 ---
 
 ## Archived
 
-_Completed features live here, moved from Backlog._
+### 1. Merge stats page into team page ✓ July 2026
+
+Merged the Stats page into the Team page (now "Squad"). Removed old Stats pages and nav links for both player and admin views.

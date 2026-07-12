@@ -44,7 +44,7 @@ export async function saveGameStats(gameId: string, rows: StatRow[]) {
     if (error) throw new Error(error.message)
   }
 
-  revalidatePath('/admin/stats')
-  revalidatePath('/dashboard/stats')
+  revalidatePath('/admin/team')
+  revalidatePath('/dashboard/team')
   revalidatePath('/dashboard')
 }

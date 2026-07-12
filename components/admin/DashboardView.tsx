@@ -188,15 +188,14 @@ export default function DashboardView({
         <StatTile label="Roster" value={playerCount} sub={`${adminCount} admins`} Icon={UsersIcon} href="/admin/team" />
         <StatTile label="Upcoming" value={upcoming} sub="events" Icon={CalendarIcon} href="/admin/schedule" />
         <StatTile label="Polls" value={activePolls} sub="active" Icon={PollIcon} href="/admin/polls" />
-        <StatTile label="Games" value={playedGames} sub="logged" Icon={BarChartIcon} href="/admin/stats" />
+        <StatTile label="Games" value={playedGames} sub="logged" Icon={BarChartIcon} href="/admin/team" />
       </div>
 
       {/* Quick links */}
       <h2 className="mt-7 text-sm font-semibold text-white">Quick links</h2>
       <div className="mt-3 space-y-2">
-        <QuickLink href="/admin/team" label="Team sheet" Icon={UsersIcon} />
+        <QuickLink href="/admin/team" label="Squad & stats" Icon={UsersIcon} />
         <QuickLink href="/admin/schedule" label="Schedule" Icon={CalendarIcon} />
-        <QuickLink href="/admin/stats" label="Enter stats" Icon={BarChartIcon} />
         <QuickLink href="/admin/polls" label="Polls" Icon={PollIcon} />
       </div>
     </div>

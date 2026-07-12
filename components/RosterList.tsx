@@ -1,5 +1,7 @@
 'use client'
 
+import type { LeaderboardRow } from './SeasonStats'
+
 export type RosterPlayer = {
   id: string
   full_name: string
@@ -16,23 +18,54 @@ export function sortPositions(pos: string[] | null | undefined) {
   )
 }
 
+function InlineStats({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+  const items: { label: string; value: number }[] = []
+  if (row.goals > 0) items.push({ label: 'G', value: row.goals })
+  if (row.assists > 0) items.push({ label: 'A', value: row.assists })
+  if (row.cleanSheets > 0) items.push({ label: 'CS', value: row.cleanSheets })
+  if (row.potmWins > 0) items.push({ label: 'POTM', value: row.potmWins })
+  if (row.caps > 0) items.push({ label: 'Caps', value: row.caps })
+
+  if (items.length === 0) return null
+
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {items.map((s) => (
+        <span
+          key={s.label}
+          className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+            isMe ? 'bg-white/15 text-white' : 'bg-white/[0.07] text-slate-400'
+          }`}
+        >
+          {s.value} {s.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 /**
- * Roster cards shared by the admin Team page (tappable → edit) and the
- * player Team page (read-only). The signed-in player's row is highlighted.
+ * Roster cards shared by the admin Squad page (tappable → edit) and the
+ * player Squad page (read-only). The signed-in player's row is highlighted.
+ * When statsMap is provided, compact season stats are shown inline below
+ * the position badges.
  */
 export default function RosterList<T extends RosterPlayer>({
   players,
   myPlayerId,
   onSelect,
+  statsMap,
 }: {
   players: T[]
   myPlayerId: string | null
   onSelect?: (player: T) => void
+  statsMap?: Map<string, LeaderboardRow>
 }) {
   return (
     <div className="space-y-2">
       {players.map((player) => {
         const isMe = player.id === myPlayerId
+        const stats = statsMap?.get(player.id)
         // Own row gets the dashboard hero treatment: solid green, white text
         const cardCls = `relative block w-full overflow-hidden rounded-xl px-4 py-3 text-left transition ${
           isMe ? 'bg-accent ring-1 ring-white/10' : 'border border-surface-border bg-surface-card'
@@ -64,6 +97,7 @@ export default function RosterList<T extends RosterPlayer>({
                   </span>
                 ))}
               </div>
+              {stats && <InlineStats row={stats} isMe={isMe} />}
             </div>
           </>
         )

@@ -1,36 +1,58 @@
 import { createClient } from '@/lib/supabase/server'
-import RosterList from '@/components/RosterList'
+import SquadClient from './SquadClient'
 
-export default async function PlayerTeamPage() {
+export default async function PlayerSquadPage() {
   const supabase = createClient()
 
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [{ data: me }, { data: players, error }] = await Promise.all([
+  const [
+    { data: me },
+    { data: players, error },
+    { data: stats },
+    { data: games },
+    { data: potm },
+    { data: att },
+  ] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     supabase
       .from('players')
       .select('id, full_name, jersey_number, position, is_active')
-      .eq('is_active', true)
       .order('jersey_number', { ascending: true, nullsFirst: false })
       .order('full_name', { ascending: true }),
+    supabase
+      .from('player_stats')
+      .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists, clean_sheet'),
+    supabase
+      .from('games')
+      .select('id, game_date, result')
+      .order('game_date', { ascending: false }),
+    supabase.from('potm').select('game_id, player_id, place'),
+    supabase
+      .from('attendance')
+      .select('player_id, session_id')
+      .eq('session_type', 'game')
+      .eq('status', 'attending'),
   ])
 
   if (error) {
     return (
       <div className="p-4">
-        <p className="text-sm text-red-400">Error loading team: {error.message}</p>
+        <p className="text-sm text-red-400">Error loading squad: {error.message}</p>
       </div>
     )
   }
 
   return (
-    <div className="p-4">
-      <h1 className="mb-1 text-xl font-bold text-white">Team</h1>
-      <p className="mb-4 text-sm text-slate-400">{players?.length ?? 0} players</p>
-      <RosterList players={players ?? []} myPlayerId={me?.id ?? null} />
-    </div>
+    <SquadClient
+      players={players ?? []}
+      games={games ?? []}
+      stats={stats ?? []}
+      potm={potm ?? []}
+      attendance={att ?? []}
+      myPlayerId={me?.id ?? null}
+    />
   )
 }
