@@ -231,7 +231,7 @@ export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
         >
           <span className="w-6 text-center text-base">{MEDALS[i]}</span>
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
-            {r.player.full_name}
+            {r.player.preferred_name?.trim() || r.player.full_name}
           </span>
           <span className="shrink-0 text-sm font-semibold text-brand-light">{r.potsPts} pts</span>
         </div>
