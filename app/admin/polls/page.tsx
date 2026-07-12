@@ -4,10 +4,19 @@ import PollsClient from './PollsClient'
 export default async function AdminPollsPage() {
   const supabase = createClient()
 
-  const { data: polls, error } = await supabase
-    .from('polls')
-    .select('id, question, is_active, closes_at, created_at, poll_options(id, label, sort_order), poll_votes(id, poll_option_id)')
-    .order('created_at', { ascending: false })
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const [{ data: me }, { data: polls, error }] = await Promise.all([
+    supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
+    supabase
+      .from('polls')
+      .select(
+        'id, question, is_active, closes_at, created_at, poll_options(id, label, sort_order), poll_votes(id, poll_option_id, player_id)'
+      )
+      .order('created_at', { ascending: false }),
+  ])
 
   if (error) {
     return (
@@ -17,5 +26,5 @@ export default async function AdminPollsPage() {
     )
   }
 
-  return <PollsClient polls={polls ?? []} />
+  return <PollsClient polls={polls ?? []} myPlayerId={me?.id ?? null} />
 }

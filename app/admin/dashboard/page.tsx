@@ -144,7 +144,7 @@ export default async function AdminDashboardPage() {
     <DashboardView
       name={name}
       initials={initials(name)}
-      roleLabel={me?.role === 'admin' ? 'Coach · Admin' : 'Player'}
+      roleLabel={me?.role === 'admin' ? 'Admin' : 'Player'}
       todayLabel={`${DOW[dowIndex(now)]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`}
       week={weekView}
       seasonLabel={seasonLabel}

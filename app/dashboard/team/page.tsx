@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import TeamClient from './TeamClient'
+import RosterList from '@/components/RosterList'
 
-export default async function AdminTeamPage() {
+export default async function PlayerTeamPage() {
   const supabase = createClient()
 
   const {
@@ -12,7 +12,8 @@ export default async function AdminTeamPage() {
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     supabase
       .from('players')
-      .select('id, full_name, email, jersey_number, position, role, is_active, auth_user_id')
+      .select('id, full_name, jersey_number, position, is_active')
+      .eq('is_active', true)
       .order('jersey_number', { ascending: true, nullsFirst: false })
       .order('full_name', { ascending: true }),
   ])
@@ -20,10 +21,16 @@ export default async function AdminTeamPage() {
   if (error) {
     return (
       <div className="p-4">
-        <p className="text-red-400 text-sm">Error loading players: {error.message}</p>
+        <p className="text-sm text-red-400">Error loading team: {error.message}</p>
       </div>
     )
   }
 
-  return <TeamClient players={players ?? []} myPlayerId={me?.id ?? null} />
+  return (
+    <div className="p-4">
+      <h1 className="mb-1 text-xl font-bold text-white">Team</h1>
+      <p className="mb-4 text-sm text-slate-400">{players?.length ?? 0} players</p>
+      <RosterList players={players ?? []} myPlayerId={me?.id ?? null} />
+    </div>
+  )
 }

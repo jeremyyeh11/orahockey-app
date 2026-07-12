@@ -5,12 +5,25 @@ import { getNow } from '@/lib/preview'
 export default async function AdminSchedulePage() {
   const supabase = createClient()
 
-  const [{ data: games, error: gamesError }, { data: trainings, error: trainingsError }, { data: att }] =
-    await Promise.all([
-      supabase.from('games').select('*').order('game_date', { ascending: false }),
-      supabase.from('training_sessions').select('*').order('session_date', { ascending: false }),
-      supabase.from('attendance').select('session_id, status').eq('status', 'attending'),
-    ])
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const [
+    { data: games, error: gamesError },
+    { data: trainings, error: trainingsError },
+    { data: att },
+    { data: me },
+  ] = await Promise.all([
+    supabase.from('games').select('*').order('game_date', { ascending: false }),
+    supabase.from('training_sessions').select('*').order('session_date', { ascending: false }),
+    supabase.from('attendance').select('session_id, status').eq('status', 'attending'),
+    supabase
+      .from('players')
+      .select('id, attendance(session_id, status)')
+      .eq('auth_user_id', user?.id ?? '')
+      .single(),
+  ])
 
   const error = gamesError ?? trainingsError
   if (error) {
@@ -26,11 +39,17 @@ export default async function AdminSchedulePage() {
     attending[a.session_id] = (attending[a.session_id] ?? 0) + 1
   }
 
+  const myStatus: Record<string, 'attending' | 'not_attending' | 'maybe'> = {}
+  for (const a of me?.attendance ?? []) {
+    myStatus[a.session_id] = a.status
+  }
+
   return (
     <ScheduleClient
       games={games ?? []}
       trainings={trainings ?? []}
       attending={attending}
+      myStatus={myStatus}
       now={getNow().toISOString()}
     />
   )

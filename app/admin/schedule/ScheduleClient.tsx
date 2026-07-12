@@ -11,6 +11,7 @@ import {
   type GameInput,
   type TrainingInput,
 } from './actions'
+import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fmtTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/lib/format'
 
 export type Game = {
@@ -37,6 +38,8 @@ type EventItem =
   | { kind: 'game'; date: string; game: Game }
   | { kind: 'training'; date: string; training: Training }
 
+type MyStatus = 'attending' | 'not_attending' | 'maybe'
+
 const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   win: { label: 'W', cls: 'bg-green-900/60 text-green-300' },
   loss: { label: 'L', cls: 'bg-red-900/60 text-red-300' },
@@ -53,11 +56,13 @@ export default function ScheduleClient({
   games,
   trainings,
   attending,
+  myStatus,
   now,
 }: {
   games: Game[]
   trainings: Training[]
   attending: Record<string, number>
+  myStatus: Record<string, MyStatus>
   now: string
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
@@ -147,6 +152,20 @@ export default function ScheduleClient({
     })
   }
 
+  const [respondingId, setRespondingId] = useState<string | null>(null)
+
+  function respond(item: EventItem, status: MyStatus) {
+    const id = item.kind === 'game' ? item.game.id : item.training.id
+    setRespondingId(id)
+    startTransition(async () => {
+      try {
+        await setAttendance(id, item.kind, status)
+      } finally {
+        setRespondingId(null)
+      }
+    })
+  }
+
   function handleDelete() {
     if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
     startTransition(async () => {
@@ -216,23 +235,64 @@ export default function ScheduleClient({
         ))}
       </div>
 
-      {/* Upcoming */}
+      {/* Upcoming — tap the event to edit, buttons below to respond as a player */}
       {upcoming.length > 0 && (
         <>
           <h2 className="mb-2 text-sm font-semibold text-white">Upcoming</h2>
           <div className="mb-6 space-y-2">
-            {upcoming.map((item) => (
-              <EventCard
-                key={`${item.kind}-${item.kind === 'game' ? item.game.id : item.training.id}`}
-                item={item}
-                attending={attending}
-                onEdit={() =>
-                  item.kind === 'game'
-                    ? setGameModal({ game: item.game })
-                    : setTrainingModal({ training: item.training })
-                }
-              />
-            ))}
+            {upcoming.map((item) => {
+              const id = item.kind === 'game' ? item.game.id : item.training.id
+              const mine = myStatus[id]
+              return (
+                <div key={`${item.kind}-${id}`} className="card px-4 py-3">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() =>
+                      item.kind === 'game'
+                        ? setGameModal({ game: item.game })
+                        : setTrainingModal({ training: item.training })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        item.kind === 'game'
+                          ? setGameModal({ game: item.game })
+                          : setTrainingModal({ training: item.training })
+                      }
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <EventRow item={item} attending={attending} />
+                  </div>
+                  <div className="mt-3 flex gap-2 border-t border-white/5 pt-3">
+                    {(
+                      [
+                        ['attending', "I'm in"],
+                        ['maybe', 'Maybe'],
+                        ['not_attending', 'Out'],
+                      ] as const
+                    ).map(([status, label]) => (
+                      <button
+                        key={status}
+                        onClick={() => respond(item, status)}
+                        disabled={isPending && respondingId === id}
+                        className={`flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
+                          mine === status
+                            ? status === 'attending'
+                              ? 'bg-accent text-white ring-1 ring-white/10'
+                              : status === 'maybe'
+                              ? 'bg-amber-900/60 text-amber-300'
+                              : 'bg-slate-700 text-slate-300'
+                            : 'border border-surface-border text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </>
       )}
@@ -418,25 +478,14 @@ export default function ScheduleClient({
   )
 }
 
-function EventCard({
-  item,
-  attending,
-  onEdit,
-}: {
-  item: EventItem
-  attending: Record<string, number>
-  onEdit: () => void
-}) {
+function EventRow({ item, attending }: { item: EventItem; attending: Record<string, number> }) {
   const isGame = item.kind === 'game'
   const id = isGame ? item.game.id : item.training.id
   const block = dateBlock(item.date)
   const going = attending[id]
 
   return (
-    <button
-      onClick={onEdit}
-      className="card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
-    >
+    <div className="flex w-full items-center gap-3">
       {/* Date block */}
       <div className="flex w-11 shrink-0 flex-col items-center justify-center leading-tight">
         <span className="text-xl font-bold text-white">{block.day}</span>
@@ -479,6 +528,25 @@ function EventCard({
           </span>
         </div>
       )}
+    </div>
+  )
+}
+
+function EventCard({
+  item,
+  attending,
+  onEdit,
+}: {
+  item: EventItem
+  attending: Record<string, number>
+  onEdit: () => void
+}) {
+  return (
+    <button
+      onClick={onEdit}
+      className="card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
+    >
+      <EventRow item={item} attending={attending} />
     </button>
   )
 }

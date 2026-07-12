@@ -67,7 +67,8 @@ Do not skip this step. Every session that modifies code must end with a commit +
 - Auth + middleware: ✅ done
 - Login page: ✅ done (dev shortcut: admin/admin maps to `NEXT_PUBLIC_DEV_LOGIN_*` in `.env.local`, dev builds only)
 - Admin pages: ✅ built (Dashboard, Team, Schedule, Stats, Polls, Profile)
-- Player pages: ✅ built (Home, Schedule + attendance, Stats, Polls + voting)
+- Player pages: ✅ built (Home, Team roster, Schedule + attendance, Stats, Polls + voting)
+- Admins are players too: admin Schedule has own-attendance buttons, admin Polls has voting
 - Seed data: ✅ 2026 season backlog seeded (`supabase/seed/2026_season.sql`) — 14 played games,
   20 trainings, attendance, stats, polls, using the real 24-player roster
 - Admin control panel: ✅ double-tap the ADMIN badge in the top bar — switch to player view

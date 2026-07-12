@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { createPoll, setPollActive, deletePoll } from './actions'
+import { votePoll } from '@/app/dashboard/polls/actions'
 import { fmtDateTime, fromDatetimeLocal } from '@/lib/format'
 
 export type Poll = {
@@ -11,14 +12,20 @@ export type Poll = {
   closes_at: string | null
   created_at: string
   poll_options: { id: string; label: string; sort_order: number }[]
-  poll_votes: { id: string; poll_option_id: string }[]
+  poll_votes: { id: string; poll_option_id: string; player_id: string }[]
 }
 
 const inputCls =
   'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
-export default function PollsClient({ polls }: { polls: Poll[] }) {
+export default function PollsClient({
+  polls,
+  myPlayerId,
+}: {
+  polls: Poll[]
+  myPlayerId: string | null
+}) {
   const [showModal, setShowModal] = useState(false)
   const [options, setOptions] = useState<string[]>(['', ''])
   const [error, setError] = useState<string | null>(null)
@@ -94,6 +101,7 @@ export default function PollsClient({ polls }: { polls: Poll[] }) {
               <PollCard
                 key={poll.id}
                 poll={poll}
+                myPlayerId={myPlayerId}
                 isPending={isPending}
                 onToggle={() => handleToggle(poll)}
                 onDelete={() => handleDelete(poll)}
@@ -111,6 +119,7 @@ export default function PollsClient({ polls }: { polls: Poll[] }) {
               <PollCard
                 key={poll.id}
                 poll={poll}
+                myPlayerId={myPlayerId}
                 isPending={isPending}
                 onToggle={() => handleToggle(poll)}
                 onDelete={() => handleDelete(poll)}
@@ -211,17 +220,39 @@ export default function PollsClient({ polls }: { polls: Poll[] }) {
 
 function PollCard({
   poll,
+  myPlayerId,
   isPending,
   onToggle,
   onDelete,
 }: {
   poll: Poll
+  myPlayerId: string | null
   isPending: boolean
   onToggle: () => void
   onDelete: () => void
 }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [voteError, setVoteError] = useState<string | null>(null)
+  const [isVoting, startVoting] = useTransition()
+
   const total = poll.poll_votes.length
   const sorted = [...poll.poll_options].sort((a, b) => a.sort_order - b.sort_order)
+  const myVote = myPlayerId
+    ? poll.poll_votes.find((v) => v.player_id === myPlayerId)?.poll_option_id ?? null
+    : null
+  const canVote = poll.is_active && myVote == null
+
+  function handleVote() {
+    if (!selected) return
+    setVoteError(null)
+    startVoting(async () => {
+      try {
+        await votePoll(poll.id, selected)
+      } catch (err) {
+        setVoteError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
+  }
 
   return (
     <div className="card p-4">
@@ -245,21 +276,60 @@ function PollCard({
         {sorted.map((opt) => {
           const count = poll.poll_votes.filter((v) => v.poll_option_id === opt.id).length
           const pct = total > 0 ? Math.round((count / total) * 100) : 0
+          const isMine = myVote === opt.id
           return (
             <div key={opt.id}>
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-slate-300">{opt.label}</span>
+                <span className={isMine ? 'font-semibold text-brand-light' : 'text-slate-300'}>
+                  {opt.label}
+                  {isMine && ' · your vote'}
+                </span>
                 <span className="text-slate-500">
                   {count} · {pct}%
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-                <div className="h-full rounded-full bg-brand-light/80" style={{ width: `${pct}%` }} />
+                <div
+                  className={`h-full rounded-full ${isMine ? 'bg-brand-light' : 'bg-brand-light/80'}`}
+                  style={{ width: `${pct}%` }}
+                />
               </div>
             </div>
           )
         })}
       </div>
+
+      {/* Cast your own vote (admins are players too) */}
+      {canVote && (
+        <div className="mt-4 border-t border-white/5 pt-3">
+          <div className="mb-2 text-xs font-medium text-slate-400">Your vote</div>
+          <div className="flex flex-wrap gap-1.5">
+            {sorted.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setSelected(opt.id)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                  selected === opt.id
+                    ? 'border-brand bg-brand/20 text-white'
+                    : 'border-surface-border text-slate-400 hover:text-white'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <button
+              onClick={handleVote}
+              disabled={!selected || isVoting}
+              className="bg-accent rounded-full px-4 py-1.5 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
+            >
+              {isVoting ? 'Voting…' : 'Vote'}
+            </button>
+          </div>
+          {voteError && (
+            <p className="mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-400">{voteError}</p>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="mt-4 flex gap-2 border-t border-white/5 pt-3">

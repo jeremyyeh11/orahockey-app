@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import BottomNav, { type NavItem } from '@/components/BottomNav'
-import { HomeIcon, CalendarIcon, PollIcon, BarChartIcon } from '@/components/icons'
+import { HomeIcon, UsersIcon, CalendarIcon, PollIcon, BarChartIcon } from '@/components/icons'
 
 const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Home', Icon: HomeIcon, exact: true },
+  { href: '/dashboard/team', label: 'Team', Icon: UsersIcon },
   { href: '/dashboard/schedule', label: 'Schedule', Icon: CalendarIcon },
   { href: '/dashboard/polls', label: 'Polls', Icon: PollIcon },
   { href: '/dashboard/stats', label: 'Stats', Icon: BarChartIcon },

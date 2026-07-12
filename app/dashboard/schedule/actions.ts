@@ -39,4 +39,5 @@ export async function setAttendance(
   revalidatePath('/dashboard/schedule')
   revalidatePath('/dashboard')
   revalidatePath('/admin/schedule')
+  revalidatePath('/admin/dashboard')
 }

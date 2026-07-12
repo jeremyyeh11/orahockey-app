@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef } from 'react'
 import { addPlayer, updatePlayer, togglePlayerActive, importPlayers } from './actions'
+import RosterList, { POSITION_COLORS } from '@/components/RosterList'
 
 type Player = {
   id: string
@@ -24,14 +25,13 @@ type FormData = {
 
 const POSITIONS = ['FWD', 'MID', 'DEF', 'GK'] as const
 
-const POSITION_COLORS: Record<string, string> = {
-  FWD: 'bg-orange-900/50 text-orange-300',
-  MID: 'bg-green-900/50 text-green-300',
-  DEF: 'bg-blue-900/50 text-blue-300',
-  GK: 'bg-purple-900/50 text-purple-300',
-}
-
-export default function TeamClient({ players }: { players: Player[] }) {
+export default function TeamClient({
+  players,
+  myPlayerId,
+}: {
+  players: Player[]
+  myPlayerId: string | null
+}) {
   const [showModal, setShowModal] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [selectedPositions, setSelectedPositions] = useState<string[]>([])
@@ -206,55 +206,12 @@ export default function TeamClient({ players }: { players: Player[] }) {
         </label>
       )}
 
-      {/* Player list */}
-      <div className="space-y-2">
-        {visible.length === 0 && (
-          <p className="text-slate-500 text-sm py-4 text-center">No players yet. Add one above.</p>
-        )}
-        {visible.map(player => (
-          <div
-            key={player.id}
-            className={`rounded-xl border border-surface-border bg-surface-card px-4 py-3 flex items-stretch gap-3 transition ${
-              !player.is_active ? 'opacity-50' : ''
-            }`}
-          >
-            {/* Jersey # — sized to match name+position block height */}
-            <div className="shrink-0 w-9 flex items-center justify-center font-bold text-slate-400 text-2xl leading-none">
-              {player.jersey_number != null ? `#${player.jersey_number}` : '—'}
-            </div>
-
-            {/* Name + position badges */}
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
-              <div className="font-semibold text-white truncate">{player.full_name}</div>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                {player.position?.map(pos => (
-                  <span key={pos} className={`rounded px-1.5 py-0.5 text-xs font-medium ${POSITION_COLORS[pos] ?? 'bg-slate-700 text-slate-300'}`}>
-                    {pos}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: meta (admin/linked) + Edit */}
-            <div className="shrink-0 flex flex-col items-end justify-between">
-              <div className="flex items-center gap-1.5">
-                {player.role === 'admin' && (
-                  <span className="text-[10px] text-slate-500">admin</span>
-                )}
-                <span className={`text-[10px] ${player.auth_user_id ? 'text-green-700' : 'text-slate-700'}`}>
-                  {player.auth_user_id ? '● linked' : '○ unlinked'}
-                </span>
-              </div>
-              <button
-                onClick={() => openEdit(player)}
-                className="text-xs text-slate-400 hover:text-white transition px-2 py-1 rounded hover:bg-slate-700"
-              >
-                Edit
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Player list — tap a card to edit */}
+      {visible.length === 0 ? (
+        <p className="text-slate-500 text-sm py-4 text-center">No players yet. Add one above.</p>
+      ) : (
+        <RosterList players={visible} myPlayerId={myPlayerId} onSelect={openEdit} />
+      )}
 
       {/* Modal */}
       {showModal && (
