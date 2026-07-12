@@ -124,18 +124,40 @@ export function computeSeason({
     if (r) r.caps += 1
   }
 
-  // Mock card data — temporary, will be replaced with real data later
-  const playerIds = Object.keys(rows)
-  const mockSeed = parseInt(season) || 2026
-  playerIds.forEach((id, idx) => {
+  // Real card data (green/yellow/red) — hardcoded from 2026 season totals
+  const CARD_DATA: Record<string, { green: number; yellow: number; red: number }> = {
+    'Akash':      { green: 0, yellow: 0, red: 0 },
+    'Alton':      { green: 0, yellow: 0, red: 0 },
+    'Ashwin':     { green: 0, yellow: 0, red: 0 },
+    'Balraj':     { green: 0, yellow: 0, red: 0 },
+    'Boon Kai':   { green: 0, yellow: 0, red: 0 },
+    'Faris':      { green: 0, yellow: 0, red: 0 },
+    'Hafiz':      { green: 0, yellow: 0, red: 0 },
+    'Hiren':      { green: 2, yellow: 0, red: 0 },
+    'Ian':        { green: 0, yellow: 0, red: 0 },
+    'Ish':        { green: 0, yellow: 1, red: 0 },
+    'Jasmeet':    { green: 1, yellow: 0, red: 0 },
+    'Jaspal':     { green: 1, yellow: 0, red: 0 },
+    'Jaydon':     { green: 0, yellow: 1, red: 0 },
+    'Jeremy':     { green: 1, yellow: 0, red: 0 },
+    'Joash':      { green: 0, yellow: 0, red: 0 },
+    'Jorim':      { green: 1, yellow: 0, red: 0 },
+    'Joshua':     { green: 0, yellow: 0, red: 0 },
+    'Kang':       { green: 0, yellow: 0, red: 0 },
+    'Kevin Saji': { green: 0, yellow: 0, red: 0 },
+    'Matteus':    { green: 0, yellow: 0, red: 0 },
+    'Peh Yu':     { green: 1, yellow: 0, red: 0 },
+    'Raziq':      { green: 0, yellow: 0, red: 0 },
+    'Rifqi':      { green: 1, yellow: 0, red: 0 },
+    'Ryan Naidu': { green: 0, yellow: 0, red: 0 },
+    'Ryan Vir':   { green: 1, yellow: 0, red: 0 },
+  }
+
+  for (const id of Object.keys(rows)) {
     const r = rows[id]
-    const seed = (mockSeed + idx * 37) % 100
-    r.cards = {
-      green: seed % 7,
-      yellow: (seed * 3) % 4,
-      red: seed % 13 === 0 ? 1 : 0,
-    }
-  })
+    const player = players.find((p) => p.id === id)
+    r.cards = player ? (CARD_DATA[player.full_name] ?? { green: 0, yellow: 0, red: 0 }) : { green: 0, yellow: 0, red: 0 }
+  }
 
   const leaderboard = Object.values(rows)
     .filter((r) => r.goals > 0 || r.assists > 0 || r.cleanSheets > 0 || r.potsPts > 0 || r.caps > 0)
