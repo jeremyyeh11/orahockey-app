@@ -122,7 +122,7 @@ export default function PollsClient({ polls }: { polls: Poll[] }) {
 
       {/* Create modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
+        <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setShowModal(false)} />
           <div className="relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />

@@ -32,18 +32,21 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
               href={item.href}
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
-              className={`flex h-10 items-center justify-center rounded-full transition-all duration-200 ${
+              className={`flex h-10 items-center rounded-full transition-colors duration-300 ${
                 active
-                  ? 'bg-accent gap-1.5 px-3.5 text-white ring-1 ring-white/10'
-                  : 'w-10 text-slate-400 hover:text-white'
+                  ? 'bg-brand px-3.5 text-white ring-1 ring-white/10'
+                  : 'px-[11px] text-slate-400 hover:text-white'
               }`}
             >
               <item.Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.25 : 2} />
-              {active && (
-                <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">
-                  {item.label}
-                </span>
-              )}
+              {/* Label expands/collapses so the pill morphs smoothly between tabs */}
+              <span
+                className={`overflow-hidden whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide transition-all duration-300 ease-out ${
+                  active ? 'ml-1.5 max-w-[8rem] opacity-100' : 'ml-0 max-w-0 opacity-0'
+                }`}
+              >
+                {item.label}
+              </span>
             </Link>
           )
         })}
