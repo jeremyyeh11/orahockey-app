@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
-import { addPlayer, updatePlayer, togglePlayerActive, importPlayers } from './actions'
+import { useState, useTransition } from 'react'
+import { addPlayer, updatePlayer, togglePlayerActive } from './actions'
 import { saveGameStats, type StatRow } from '../stats/actions'
 import RosterList from '@/components/RosterList'
 import { fmtDate } from '@/lib/format'
@@ -64,8 +64,6 @@ export default function SquadClient({
   const [showInactive, setShowInactive] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [importStatus, setImportStatus] = useState<string | null>(null)
-  const csvInputRef = useRef<HTMLInputElement>(null)
 
   // Season stats state
   const seasons = seasonsOf(games)
@@ -148,43 +146,6 @@ export default function SquadClient({
         setError(err instanceof Error ? err.message : 'Something went wrong')
       }
     })
-  }
-
-  function handleCSV(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    const reader = new FileReader()
-    reader.onload = () => {
-      const text = reader.result as string
-      const lines = text.split(/\r?\n/).filter((l) => l.trim())
-      const rows = lines.slice(1).map((line) => {
-        const [name, email, admin] = line.split(',').map((c) => c.trim())
-        const isAdmin = /^(true|yes|1|admin)$/i.test(admin ?? '')
-        return { full_name: name, email, role: (isAdmin ? 'admin' : 'player') as 'player' | 'admin' }
-      }).filter((r) => r.full_name && r.email)
-
-      if (rows.length === 0) {
-        setImportStatus('No valid rows found in CSV.')
-        return
-      }
-
-      setImportStatus(`Importing ${rows.length} players…`)
-      startTransition(async () => {
-        try {
-          const { imported } = await importPlayers(rows)
-          const skipped = rows.length - imported
-          setImportStatus(
-            skipped > 0
-              ? `Imported ${imported} players. ${skipped} skipped (duplicate email).`
-              : `Imported ${imported} players.`
-          )
-        } catch (err) {
-          setImportStatus(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
-        }
-      })
-    }
-    reader.readAsText(file)
   }
 
   function handleToggleActive(player: Player) {
@@ -283,42 +244,11 @@ export default function SquadClient({
           {/* Admin actions */}
           <div className="mb-4 flex items-center gap-2">
             <button
-              onClick={() => csvInputRef.current?.click()}
-              disabled={isPending}
-              className="rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 transition disabled:opacity-40"
-            >
-              Import CSV
-            </button>
-            <button
               onClick={openAdd}
               className="bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
             >
               + Add Player
             </button>
-          </div>
-
-          <input
-            ref={csvInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={handleCSV}
-          />
-
-          {importStatus && (
-            <div className="mb-4 flex items-center justify-between rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-300">
-              <span>{importStatus}</span>
-              <button onClick={() => setImportStatus(null)} className="ml-3 text-slate-500 hover:text-white">✕</button>
-            </div>
-          )}
-
-          {/* Stats row */}
-          <div className="flex gap-4 mb-4 text-sm text-slate-400">
-            <span>{players.filter((p) => p.is_active).length} active</span>
-            {players.some((p) => !p.is_active) && (
-              <span>{players.filter((p) => !p.is_active).length} inactive</span>
-            )}
-            <span>{players.filter((p) => p.auth_user_id).length} linked</span>
           </div>
 
           {players.some((p) => !p.is_active) && (
