@@ -10,13 +10,6 @@ export type RosterPlayer = {
 
 const POSITION_ORDER: Record<string, number> = { FWD: 0, MID: 1, DEF: 2, GK: 3 }
 
-export const POSITION_COLORS: Record<string, string> = {
-  FWD: 'bg-orange-900/50 text-orange-300',
-  MID: 'bg-green-900/50 text-green-300',
-  DEF: 'bg-blue-900/50 text-blue-300',
-  GK: 'bg-purple-900/50 text-purple-300',
-}
-
 export function sortPositions(pos: string[] | null | undefined) {
   return [...(pos ?? [])].sort(
     (a, b) => (POSITION_ORDER[a] ?? 9) - (POSITION_ORDER[b] ?? 9)
@@ -64,9 +57,7 @@ export default function RosterList<T extends RosterPlayer>({
                   <span
                     key={pos}
                     className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                      isMe
-                        ? 'bg-white/15 text-white'
-                        : POSITION_COLORS[pos] ?? 'bg-slate-700 text-slate-300'
+                      isMe ? 'bg-white/15 text-white' : 'bg-white/[0.07] text-slate-300'
                     }`}
                   >
                     {pos}

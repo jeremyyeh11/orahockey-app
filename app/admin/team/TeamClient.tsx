@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from 'react'
 import { addPlayer, updatePlayer, togglePlayerActive, importPlayers } from './actions'
-import RosterList, { POSITION_COLORS } from '@/components/RosterList'
+import RosterList from '@/components/RosterList'
 
 type Player = {
   id: string
@@ -277,7 +277,7 @@ export default function TeamClient({
                         onClick={() => togglePosition(pos)}
                         className={`rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
                           selectedPositions.includes(pos)
-                            ? `${POSITION_COLORS[pos]} border-transparent`
+                            ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
                             : 'border-surface-border text-slate-400 hover:text-white hover:border-slate-500'
                         }`}
                       >
