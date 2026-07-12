@@ -1,5 +1,7 @@
 'use client'
 
+import { preferredName } from './RosterList'
+
 // Shared season-scoped stats: season picker, POTS race card, leaderboard.
 // POTM points (3/2/1 for 1st/2nd/3rd) are derived here, never stored.
 
@@ -231,7 +233,7 @@ export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
         >
           <span className="w-6 text-center text-base">{MEDALS[i]}</span>
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
-            {r.player.preferred_name?.trim() || r.player.full_name}
+            {preferredName(r.player)}
           </span>
           <span className="shrink-0 text-sm font-semibold text-brand-light">{r.potsPts} pts</span>
         </div>
