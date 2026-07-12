@@ -322,7 +322,7 @@ export default function SquadClient({
                             return (
                               <>
                                 <span>{preferred}</span>
-                                {rest && <span className="text-xs font-normal lowercase tracking-wide text-slate-400">{rest}</span>}
+                                {rest && <span className="text-xs font-normal tracking-wide text-slate-400"> {rest}</span>}
                               </>
                             )
                           })()}

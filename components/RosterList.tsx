@@ -13,21 +13,20 @@ export type RosterPlayer = {
 
 const POSITION_ORDER: Record<string, number> = { FWD: 0, MID: 1, DEF: 2, GK: 3 }
 
-/** Default preferred name = first word of full_name, title-cased */
+/** Default preferred name = first word of full_name, uppercased */
 export function defaultPreferredName(fullName: string): string {
-  const first = fullName.trim().split(/\s+/)[0] ?? ''
-  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase()
+  return (fullName.trim().split(/\s+/)[0] ?? '').toUpperCase()
 }
 
 /** Effective preferred name: explicit override or default from full_name */
 export function preferredName(player: { full_name: string; preferred_name: string | null }): string {
-  return player.preferred_name?.trim() || defaultPreferredName(player.full_name)
+  return (player.preferred_name?.trim() || defaultPreferredName(player.full_name)).toUpperCase()
 }
 
 /** Splits a name into [preferred, rest] for display */
 export function splitName(player: { full_name: string; preferred_name: string | null }): [string, string] {
   const preferred = preferredName(player)
-  const rest = player.full_name.replace(preferred, '').trim()
+  const rest = player.full_name.replace(preferred, '').trim().toUpperCase()
   return [preferred, rest]
 }
 
@@ -174,7 +173,7 @@ export default function RosterList<T extends RosterPlayer>({
                   return (
                     <>
                       <span>{preferred}</span>
-                      {rest && <span className="text-sm font-normal lowercase tracking-wide text-slate-400">{rest}</span>}
+                      {rest && <span className="text-sm font-normal tracking-wide text-slate-400"> {rest}</span>}
                     </>
                   )
                 })()}
