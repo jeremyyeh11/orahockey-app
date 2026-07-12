@@ -268,7 +268,7 @@ export function EventDetailModal({
                 /* Published: show the selected players with jersey numbers */
                 <div className="space-y-1">
                   {selectedPlayers.map((p) => (
-                    <div key={p.id} className="flex items-center gap-3 py-1">
+                    <div key={p.id} className={`flex items-center gap-3 rounded-lg px-2 py-1 ${p.id === myPlayerId ? 'bg-brand/15 ring-1 ring-brand/30' : ''}`}>
                       <span className="flex-1 text-sm text-white">{preferredName(p)}</span>
                       <span className="w-16 text-center text-[11px] text-slate-400">
                         {(p.position ?? []).join(' ') || '—'}
