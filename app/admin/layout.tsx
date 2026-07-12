@@ -40,9 +40,12 @@ export default function AdminLayout({
     <div className="flex min-h-screen flex-col">
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
-        <span className="font-display text-lg font-bold tracking-tight text-white">
-          ORA <span className="text-brand-light">Hockey</span>
-          <AdminBadge />
+        <span className="flex items-center gap-2">
+          <img src="/crest-white.png" alt="ORA Hockey" className="h-7 w-7 object-contain" />
+          <span className="font-display text-lg font-bold tracking-tight text-white">
+            ORA <span className="text-brand-light">Hockey</span>
+            <AdminBadge />
+          </span>
         </span>
         <button
           onClick={handleLogout}
