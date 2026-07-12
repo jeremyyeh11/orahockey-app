@@ -62,8 +62,11 @@ export async function middleware(request: NextRequest) {
 
     const role = player?.role ?? 'player'
 
+    // Admins can opt into the player view from the admin control panel
+    const viewAsPlayer = request.cookies.get('ora-view')?.value === 'player'
+
     // Admin trying to access player dashboard → redirect to admin
-    if (role === 'admin' && pathname.startsWith('/dashboard')) {
+    if (role === 'admin' && pathname.startsWith('/dashboard') && !viewAsPlayer) {
       const url = request.nextUrl.clone()
       url.pathname = '/admin/dashboard'
       return NextResponse.redirect(url)

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import ScheduleClient from './ScheduleClient'
+import { getNow } from '@/lib/preview'
 
 export default async function PlayerSchedulePage() {
   const supabase = createClient()
@@ -41,5 +42,12 @@ export default async function PlayerSchedulePage() {
     myStatus[a.session_id] = a.status
   }
 
-  return <ScheduleClient games={games ?? []} trainings={trainings ?? []} myStatus={myStatus} />
+  return (
+    <ScheduleClient
+      games={games ?? []}
+      trainings={trainings ?? []}
+      myStatus={myStatus}
+      now={getNow().toISOString()}
+    />
+  )
 }

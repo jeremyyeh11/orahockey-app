@@ -70,6 +70,9 @@ Do not skip this step. Every session that modifies code must end with a commit +
 - Player pages: ✅ built (Home, Schedule + attendance, Stats, Polls + voting)
 - Seed data: ✅ 2026 season backlog seeded (`supabase/seed/2026_season.sql`) — 14 played games,
   20 trainings, attendance, stats, polls, using the real 24-player roster
+- Admin control panel: ✅ double-tap the ADMIN badge in the top bar — switch to player view
+  (`ora-view` cookie, middleware bypass) or set a preview date (`ora-preview-date` cookie read
+  by `lib/preview.ts:getNow()`; server pages pass `now` down to client components)
 - Deployment: ⚠️ in progress
 
 ## Conventions

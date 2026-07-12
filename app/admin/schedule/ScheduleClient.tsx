@@ -53,10 +53,12 @@ export default function ScheduleClient({
   games,
   trainings,
   attending,
+  now,
 }: {
   games: Game[]
   trainings: Training[]
   attending: Record<string, number>
+  now: string
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
   const [gameModal, setGameModal] = useState<{ game: Game | null } | null>(null)
@@ -71,12 +73,12 @@ export default function ScheduleClient({
       : []),
   ]
 
-  const now = Date.now()
+  const nowMs = new Date(now).getTime()
   const upcoming = items
-    .filter((i) => new Date(i.date).getTime() >= now)
+    .filter((i) => new Date(i.date).getTime() >= nowMs)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   const past = items
-    .filter((i) => new Date(i.date).getTime() < now)
+    .filter((i) => new Date(i.date).getTime() < nowMs)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const played = games.filter((g) => g.result)

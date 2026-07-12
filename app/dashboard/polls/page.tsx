@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import PollsClient from './PollsClient'
+import { getNow } from '@/lib/preview'
 
 export default async function PlayerPollsPage() {
   const supabase = createClient()
@@ -26,5 +27,5 @@ export default async function PlayerPollsPage() {
     )
   }
 
-  return <PollsClient polls={polls ?? []} myPlayerId={me?.id ?? null} />
+  return <PollsClient polls={polls ?? []} myPlayerId={me?.id ?? null} now={getNow().toISOString()} />
 }

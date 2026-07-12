@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import BottomNav, { type NavItem } from '@/components/BottomNav'
+import AdminBadge from '@/components/AdminControlPanel'
 import {
   HomeIcon,
   UsersIcon,
@@ -42,10 +43,8 @@ export default function AdminLayout({
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
         <span className="font-display text-lg font-bold tracking-tight text-white">
-          ORA <span className="text-brand-light">Hockey</span>{' '}
-          <span className="ml-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Admin
-          </span>
+          ORA <span className="text-brand-light">Hockey</span>
+          <AdminBadge />
         </span>
         <button
           onClick={handleLogout}

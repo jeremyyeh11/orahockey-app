@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import DashboardView, { type WeekDay, type HeroNext } from '@/components/admin/DashboardView'
 import { fmtDateTime } from '@/lib/format'
+import { getNow } from '@/lib/preview'
 
 function initials(name: string) {
   return name
@@ -34,7 +35,7 @@ export default async function AdminDashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const now = new Date()
+  const now = getNow()
   const week = weekDays(now)
   const weekStart = week[0].toISOString()
   const weekEnd = new Date(week[6].getTime() + 24 * 60 * 60 * 1000).toISOString()
@@ -69,8 +70,9 @@ export default async function AdminDashboardPage() {
   // Season label comes from the teams table — edit league/season there to change it
   const seasonLabel = team ? `${team.league} · ${team.season}` : 'Season'
 
-  // Record + league points (3 for a win, 1 for a draw)
-  const played = games.filter((g) => g.result)
+  // Record + league points (3 for a win, 1 for a draw).
+  // Only count games on or before "now" so date preview shows the season as of that day.
+  const played = games.filter((g) => g.result && new Date(g.game_date).getTime() <= now.getTime())
   const w = played.filter((g) => g.result === 'win' || g.result === 'ot_win').length
   const d = played.filter((g) => g.result === 'tie').length
   const l = played.filter((g) => g.result === 'loss' || g.result === 'ot_loss').length

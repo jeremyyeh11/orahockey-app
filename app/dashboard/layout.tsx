@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import BottomNav, { type NavItem } from '@/components/BottomNav'
@@ -18,6 +19,17 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const [isAdminPreview, setIsAdminPreview] = useState(false)
+
+  // Set when an admin switched to player view via the admin control panel
+  useEffect(() => {
+    setIsAdminPreview(document.cookie.split('; ').includes('ora-view=player'))
+  }, [])
+
+  function returnToAdmin() {
+    document.cookie = 'ora-view=; path=/; max-age=0'
+    router.push('/admin/dashboard')
+  }
 
   async function handleLogout() {
     const supabase = createBrowserClient(
@@ -35,12 +47,22 @@ export default function DashboardLayout({
         <span className="font-display text-lg font-bold tracking-tight text-white">
           ORA <span className="text-brand-light">Hockey</span>
         </span>
-        <button
-          onClick={handleLogout}
-          className="text-xs font-medium text-slate-400 transition hover:text-white"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-3">
+          {isAdminPreview && (
+            <button
+              onClick={returnToAdmin}
+              className="rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light transition hover:bg-brand/20"
+            >
+              Admin view
+            </button>
+          )}
+          <button
+            onClick={handleLogout}
+            className="text-xs font-medium text-slate-400 transition hover:text-white"
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
       {/* Page content — padded bottom so it isn't hidden behind the floating nav */}

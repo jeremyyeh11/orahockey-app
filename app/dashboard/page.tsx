@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { fmtDateTime } from '@/lib/format'
+import { getNow } from '@/lib/preview'
 
 function firstName(full: string) {
   const f = full.split(/\s+/)[0] ?? ''
@@ -20,7 +21,8 @@ export default async function PlayerDashboardPage() {
     .eq('auth_user_id', user?.id ?? '')
     .single()
 
-  const now = new Date().toISOString()
+  const nowDate = getNow()
+  const now = nowDate.toISOString()
 
   const [{ data: games }, { data: nextGame }, { data: nextTraining }, { data: myStats }, { data: myAtt }, { count: activePolls }] =
     await Promise.all([
@@ -31,7 +33,7 @@ export default async function PlayerDashboardPage() {
         .order('game_date', { ascending: false }),
       supabase.from('games').select('opponent, game_date, location').gte('game_date', now).order('game_date').limit(1).maybeSingle(),
       supabase.from('training_sessions').select('session_date, location').gte('session_date', now).order('session_date').limit(1).maybeSingle(),
-      supabase.from('player_stats').select('goals, assists, clean_sheet').eq('player_id', me?.id ?? ''),
+      supabase.from('player_stats').select('game_id, goals, assists, clean_sheet').eq('player_id', me?.id ?? ''),
       supabase
         .from('attendance')
         .select('session_id, status')
@@ -41,7 +43,8 @@ export default async function PlayerDashboardPage() {
     supabase.from('polls').select('*', { count: 'exact', head: true }).eq('is_active', true),
     ])
 
-  const played = games ?? []
+  // Only games on or before "now" — keeps date preview consistent
+  const played = (games ?? []).filter((g) => new Date(g.game_date).getTime() <= nowDate.getTime())
   const record = {
     w: played.filter((g) => g.result === 'win' || g.result === 'ot_win').length,
     d: played.filter((g) => g.result === 'tie').length,
@@ -50,9 +53,11 @@ export default async function PlayerDashboardPage() {
   const goalsFor = played.reduce((s, g) => s + (g.goals_for ?? 0), 0)
   const goalsAgainst = played.reduce((s, g) => s + (g.goals_against ?? 0), 0)
 
-  const myGoals = (myStats ?? []).reduce((s, r) => s + r.goals, 0)
-  const myAssists = (myStats ?? []).reduce((s, r) => s + r.assists, 0)
-  const attendedGames = (myAtt ?? []).length
+  const playedIds = new Set(played.map((g) => g.id))
+  const myPlayedStats = (myStats ?? []).filter((r) => playedIds.has(r.game_id))
+  const myGoals = myPlayedStats.reduce((s, r) => s + r.goals, 0)
+  const myAssists = myPlayedStats.reduce((s, r) => s + r.assists, 0)
+  const attendedGames = (myAtt ?? []).filter((a) => playedIds.has(a.session_id)).length
   const attendancePct = played.length > 0 ? Math.round((attendedGames / played.length) * 100) : 0
 
   const lastGame = played[0]

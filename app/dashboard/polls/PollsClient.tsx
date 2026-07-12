@@ -14,9 +14,18 @@ export type Poll = {
   poll_votes: { id: string; poll_option_id: string; player_id: string }[]
 }
 
-export default function PollsClient({ polls, myPlayerId }: { polls: Poll[]; myPlayerId: string | null }) {
+export default function PollsClient({
+  polls,
+  myPlayerId,
+  now,
+}: {
+  polls: Poll[]
+  myPlayerId: string | null
+  now: string
+}) {
+  const nowMs = new Date(now).getTime()
   const open = polls.filter(
-    (p) => p.is_active && (!p.closes_at || new Date(p.closes_at).getTime() > Date.now())
+    (p) => p.is_active && (!p.closes_at || new Date(p.closes_at).getTime() > nowMs)
   )
   const closed = polls.filter((p) => !open.includes(p))
 
