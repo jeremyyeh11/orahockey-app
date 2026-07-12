@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 export type ReadEditModalProps = {
   title: string
@@ -29,6 +29,16 @@ export function ReadEditModal({
   children,
   onDelete,
 }: ReadEditModalProps) {
+  // Prevent body scroll while modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   return (
@@ -42,46 +52,34 @@ export function ReadEditModal({
 
         {/* Action buttons */}
         {isAdmin && !editMode && (
-          <div className="space-y-3 pt-1">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={onEnterEdit}
-                className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
-              >
-                Edit
-              </button>
-            </div>
-            {onDelete && (
-              <button
-                type="button"
-                onClick={onDelete}
-                disabled={isPending}
-                className="w-full rounded-lg border border-red-900/60 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-50"
-              >
-                Delete
-              </button>
-            )}
+          <div className="flex gap-2 pt-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-700"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={onEnterEdit}
+              className="flex-1 rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-700"
+            >
+              Edit
+            </button>
           </div>
         )}
 
         {isAdmin && editMode && (
-          <div className="space-y-3 pt-1">
-            <div className="flex gap-3">
+          <div className="space-y-2 pt-3">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={onDiscard}
                 disabled={isPending}
                 className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-50"
               >
-                Discard
+                Discard changes
               </button>
               <button
                 type="button"
@@ -107,11 +105,11 @@ export function ReadEditModal({
 
         {/* Non-admin (player) only sees Close */}
         {!isAdmin && (
-          <div className="pt-1">
+          <div className="pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+              className="w-full rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-700"
             >
               Close
             </button>

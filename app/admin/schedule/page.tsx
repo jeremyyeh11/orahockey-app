@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
-import type { AttendanceRow, RosterPlayer } from '@/app/dashboard/schedule/page'
+import type { AttendanceRow, RosterPlayer, TeamListSelection } from '@/app/dashboard/schedule/page'
 
 export default async function AdminSchedulePage() {
   const supabase = createClient()
@@ -16,6 +16,7 @@ export default async function AdminSchedulePage() {
     { data: att },
     { data: me },
     { data: roster },
+    { data: teamListRaw },
   ] = await Promise.all([
     supabase.from('games').select('*').order('game_date', { ascending: false }),
     supabase.from('training_sessions').select('*').order('session_date', { ascending: false }),
@@ -27,9 +28,12 @@ export default async function AdminSchedulePage() {
       .single(),
     supabase
       .from('players')
-      .select('id, full_name, preferred_name')
+      .select('id, full_name, preferred_name, position, jersey_number')
       .eq('is_active', true)
       .order('full_name', { ascending: true }),
+    supabase
+      .from('match_team_lists')
+      .select('game_id, player_id, selected'),
   ])
 
   const error = gamesError ?? trainingsError
@@ -60,6 +64,13 @@ export default async function AdminSchedulePage() {
     attendanceBySession[a.session_id].push(a)
   }
 
+  // Build team list selections per game
+  const teamListByGame: Record<string, Record<string, boolean>> = {}
+  for (const t of (teamListRaw ?? []) as unknown as TeamListSelection[]) {
+    if (!teamListByGame[t.game_id]) teamListByGame[t.game_id] = {}
+    teamListByGame[t.game_id][t.player_id] = t.selected
+  }
+
   return (
     <ScheduleClient
       games={games ?? []}
@@ -70,6 +81,8 @@ export default async function AdminSchedulePage() {
       roster={(roster ?? []) as RosterPlayer[]}
       attendanceBySession={attendanceBySession}
       myPlayerId={me?.id ?? ''}
+      isAdmin={true}
+      teamListByGame={teamListByGame}
     />
   )
 }

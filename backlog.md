@@ -13,32 +13,6 @@
 
 ---
 
-## 1. Event modal improvements + match team list
-
-### Event modal fixes
-- **Delete only in edit mode**: The Delete button should only appear when the admin is in edit mode, not in read mode.
-- **Visual hierarchy**: The Edit and Close buttons should not appear larger/more prominent than the attendance vote buttons. Make them smaller.
-- **Attendance breakdown as list**: Arrange player names in a list (one per line), not as tags/pills.
-- **Prevent body scroll**: When any modal is open, prevent scrolling on the main page behind it. Apply universally to all modals.
-
-### Match attendance data
-- For matches, the data of who attended and who didn't should already be available (everyone has responded). Update/seed this data so the attendance breakdown is populated.
-
-### Match team list (admin-only feature)
-- On the event detail modal for **matches**, add a **"Team List"** select option for admins, appearing **above** the "Your attendance" section.
-- Clicking it opens a **new modal** (replaces the current event detail modal):
-  - Has **Publish** and **Save Draft** buttons.
-  - **Column 1**: Players who indicated "attending" (from attendance), listed in one column.
-  - **Column 2**: Player positions.
-  - **Column 3**: Checkbox — admins select true/false per player to include them in the match squad.
-  - **Save Draft**: Saves selections but not visible to non-admins. Non-admins see "To be announced" under the team list section.
-  - **Publish**: Publishes the team list for everyone to see.
-  - **Published view**: Same columns for name and position, but instead of a checkbox, show the **jersey number**. Sort rows in full-name alphabetical order, but display **preferred name** to save space.
-  - **Unpublish**: Admins can go back to edit and select "Unpublish" to save selections but hide the list from non-admins.
-  - **When published**: Show the team list above "Your attendance" on the event detail modal.
-
----
-
 ## 2. Player profile page
 
 Add an individual **player profile** page reachable from the **Squad** tab (player and admin), built using the same reusable modal/panel template defined for the event detail view above.
@@ -55,6 +29,10 @@ Must reference only UI-visible elements (Squad tab, player rows/cards, modal/pan
 ---
 
 ## Archived
+
+### 1. Event modal improvements + match team list ✓ July 2026
+
+Event modal: Delete only in edit mode, smaller Edit/Close buttons, attendance breakdown as list, body scroll lock. Match attendance seeded (378 rows, 27 players × 14 games). Match team list feature: admins can select squad from attending players, save as draft or publish. Published list shows preferred name, position, jersey number. Players see "To be announced" until published. Requires `005_match_team_lists.sql` migration.
 
 ### 1. Match / Event detail view ✓ July 2026
 

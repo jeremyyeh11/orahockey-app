@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import {
   addGame,
   updateGame,
@@ -42,6 +42,8 @@ export default function ScheduleClient({
   roster,
   attendanceBySession,
   myPlayerId,
+  isAdmin,
+  teamListByGame,
 }: {
   games: Game[]
   trainings: Training[]
@@ -51,6 +53,8 @@ export default function ScheduleClient({
   roster: PlayerLite[]
   attendanceBySession: Record<string, AttendanceRow[]>
   myPlayerId: string
+  isAdmin: boolean
+  teamListByGame: Record<string, Record<string, boolean>>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
   const [selectedItem, setSelectedItem] = useState<EventItem | null>(null)
@@ -306,7 +310,8 @@ export default function ScheduleClient({
       {selectedItem && (
         <EventDetailModal
           item={selectedItem}
-          isAdmin={true}
+          isAdmin={isAdmin}
+          teamListByGame={teamListByGame}
           myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
           attendanceBySession={attendanceBySession}
           roster={roster}
@@ -465,6 +470,10 @@ function EventCard({
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />

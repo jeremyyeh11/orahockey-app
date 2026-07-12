@@ -6,6 +6,7 @@ import { preferredName } from './RosterList'
 import { fmtDateTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
+import { TeamListModal } from './TeamListModal'
 
 export type Game = {
   id: string
@@ -18,6 +19,7 @@ export type Game = {
   goals_against: number | null
   result: string | null
   notes: string | null
+  team_list_status: 'draft' | 'published' | null
 }
 
 export type Training = {
@@ -31,6 +33,8 @@ export type PlayerLite = {
   id: string
   full_name: string
   preferred_name: string | null
+  position?: string[] | null
+  jersey_number?: number | null
 }
 
 export type AttendanceRow = {
@@ -52,12 +56,6 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   tie: { label: 'D', cls: 'bg-slate-700 text-slate-300' },
   ot_win: { label: 'W·OT', cls: 'bg-green-900/60 text-green-300' },
   ot_loss: { label: 'L·OT', cls: 'bg-red-900/60 text-red-300' },
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  attending: 'Attending',
-  maybe: 'Maybe',
-  not_attending: 'Not attending',
 }
 
 const inputCls =
@@ -101,6 +99,7 @@ function buildBreakdown(
 export function EventDetailModal({
   item,
   isAdmin,
+  teamListByGame,
   myStatus,
   attendanceBySession,
   roster,
@@ -113,6 +112,7 @@ export function EventDetailModal({
 }: {
   item: EventItem | null
   isAdmin: boolean
+  teamListByGame: Record<string, Record<string, boolean>>
   myStatus: MyStatus | undefined
   attendanceBySession: Record<string, AttendanceRow[]>
   roster: PlayerLite[]
@@ -125,10 +125,10 @@ export function EventDetailModal({
 }) {
   const [editMode, setEditMode] = useState(false)
   const [respondingId, setRespondingId] = useState<string | null>(null)
+  const [showTeamList, setShowTeamList] = useState(false)
 
   if (!item) return null
 
-  // Capture narrowed values so closures don't lose the null-guard
   const currentItem = item
   const kind = currentItem.kind
   const isGame = kind === 'game'
@@ -139,6 +139,16 @@ export function EventDetailModal({
 
   const title = isGame ? `vs ${currentItem.game.opponent}` : 'Training'
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
+
+  // Team list data
+  const teamListStatus = isGame && currentItem.kind === 'game' ? currentItem.game.team_list_status : null
+  const teamListSelections = teamListByGame[sessionId] ?? {}
+  const isTeamListPublished = teamListStatus === 'published'
+
+  // Get selected players for published display
+  const selectedPlayers = roster
+    .filter((p) => teamListSelections[p.id] === true)
+    .sort((a, b) => a.full_name.localeCompare(b.full_name))
 
   function handleRespond(status: MyStatus) {
     setRespondingId(sessionId)
@@ -173,6 +183,20 @@ export function EventDetailModal({
     setEditMode(false)
   }
 
+  // If team list modal is open, render it instead
+  if (showTeamList && isGame && currentItem.kind === 'game') {
+    return (
+      <TeamListModal
+        game={currentItem.game}
+        roster={roster as (PlayerLite & { position: string[] | null; jersey_number: number | null })[]}
+        attendance={attendanceBySession[sessionId] ?? []}
+        teamListStatus={teamListStatus}
+        existingSelections={teamListSelections}
+        onClose={() => setShowTeamList(false)}
+      />
+    )
+  }
+
   return (
     <ReadEditModal
       title={title}
@@ -182,13 +206,12 @@ export function EventDetailModal({
       editMode={editMode}
       onEnterEdit={() => setEditMode(true)}
       onSave={() => {
-        // Trigger form submit
         const form = document.getElementById('event-edit-form') as HTMLFormElement | null
         form?.requestSubmit()
       }}
       onDiscard={() => setEditMode(false)}
       isPending={isPending}
-      onDelete={isAdmin ? onDelete : undefined}
+      onDelete={isAdmin && editMode ? onDelete : undefined}
     >
       {/* READ MODE */}
       {!editMode && (
@@ -218,6 +241,53 @@ export function EventDetailModal({
             )}
             <DetailRow label="Venue" value={location || 'TBD'} />
           </div>
+
+          {/* Team List — published view (all users) or admin button */}
+          {isGame && (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Team List</h3>
+              {isTeamListPublished ? (
+                /* Published: show the selected players with jersey numbers */
+                <div className="space-y-1">
+                  {selectedPlayers.map((p) => (
+                    <div key={p.id} className="flex items-center gap-3 py-1">
+                      <span className="flex-1 text-sm text-white">{preferredName(p)}</span>
+                      <span className="w-16 text-center text-[11px] text-slate-400">
+                        {(p.position ?? []).join(' ') || '—'}
+                      </span>
+                      <span className="w-8 text-center text-sm font-semibold text-white">
+                        {p.jersey_number ?? '—'}
+                      </span>
+                    </div>
+                  ))}
+                  {selectedPlayers.length === 0 && (
+                    <p className="text-xs text-slate-500">No players selected.</p>
+                  )}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowTeamList(true)}
+                      className="mt-2 rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-700"
+                    >
+                      Edit Team List
+                    </button>
+                  )}
+                </div>
+              ) : isAdmin ? (
+                /* Admin: show Team List button */
+                <button
+                  type="button"
+                  onClick={() => setShowTeamList(true)}
+                  className="w-full rounded-lg border border-surface-border py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-700"
+                >
+                  {teamListStatus === 'draft' ? 'Edit Team List (Draft)' : 'Select Team List'}
+                </button>
+              ) : (
+                /* Player: not published yet */
+                <p className="text-xs text-slate-500">To be announced</p>
+              )}
+            </div>
+          )}
 
           {/* Attendance voting */}
           <div>
@@ -258,14 +328,11 @@ export function EventDetailModal({
                     <div className="mb-1 text-[11px] font-medium text-slate-500">
                       {group.label} ({group.players.length})
                     </div>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="space-y-0.5">
                       {group.players.map((name) => (
-                        <span
-                          key={name}
-                          className="rounded bg-white/5 px-1.5 py-0.5 text-[11px] text-slate-300"
-                        >
+                        <div key={name} className="text-[11px] text-slate-300">
                           {name}
-                        </span>
+                        </div>
                       ))}
                     </div>
                   </div>

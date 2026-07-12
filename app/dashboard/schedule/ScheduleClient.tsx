@@ -35,6 +35,8 @@ export default function ScheduleClient({
   roster,
   attendanceBySession,
   myPlayerId,
+  isAdmin,
+  teamListByGame,
 }: {
   games: Game[]
   trainings: Training[]
@@ -43,6 +45,8 @@ export default function ScheduleClient({
   roster: PlayerLite[]
   attendanceBySession: Record<string, AttendanceRow[]>
   myPlayerId: string
+  isAdmin: boolean
+  teamListByGame: Record<string, Record<string, boolean>>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
   const [isPending, startTransition] = useTransition()
@@ -221,7 +225,8 @@ export default function ScheduleClient({
       {selectedItem && (
         <EventDetailModal
           item={selectedItem}
-          isAdmin={false}
+          isAdmin={isAdmin}
+          teamListByGame={teamListByGame}
           myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
           attendanceBySession={attendanceBySession}
           roster={roster}
