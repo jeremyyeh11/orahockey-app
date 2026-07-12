@@ -1,4 +1,4 @@
-# ORA Hockey — Project Context for Claude
+# ORA Hockey — Project Context
 
 ## What this is
 Mobile-first team management web app for ORA Hockey (MHL1 league).
@@ -86,3 +86,14 @@ Do not skip this step. Every session that modifies code must end with a commit +
 - Page pattern: server `page.tsx` fetches → passes to a `'use client'` component; mutations
   are server actions in a sibling `actions.ts` that `revalidatePath` affected routes
 - Game `result` is derived from the score (win/loss/tie) when saving in admin Schedule
+
+## UI Preferences
+- Stats inline in roster cards (not tables). Value+label together as "12G"
+- No pill/badge backgrounds — plain text
+- Card/sanction indicators use shapes: green ▲, yellow ■, red ● with count always shown (even 1)
+- Mobile-first, compact, legible
+- Sort: user row first, then alphabetical only (no position grouping)
+- FG/PC/PS as separate columns not G total
+- Position-based stat visibility: GK shows CS, outfield shows FG/PC/PS/A, both shows all
+- Clean sheets derived from game score + GK attendance (not seed data)
+- When Jeremy describes data columns/fields, he's clarifying DATA MAPPING, not requesting a UI redesign. Don't rebuild components — update data only. Ask before changing UI.
