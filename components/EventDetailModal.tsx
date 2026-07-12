@@ -129,6 +129,8 @@ export function EventDetailModal({
   const [localTeamListStatus, setLocalTeamListStatus] = useState<'draft' | 'published' | null>(
     item?.kind === 'game' ? item.game.team_list_status : null
   )
+  // Local copy of my attendance status so the UI updates live without refresh
+  const [localMyStatus, setLocalMyStatus] = useState<MyStatus | undefined>(myStatus)
 
   if (!item) return null
 
@@ -148,12 +150,24 @@ export function EventDetailModal({
   const teamListSelections = teamListByGame[sessionId] ?? {}
   const isTeamListPublished = localTeamListStatus === 'published'
 
-  // Get selected players for published display
+  // Get attending player IDs from attendance data
+  const sessionAttendance = attendanceBySession[sessionId] ?? []
+  const attendingPlayerIds = new Set(
+    sessionAttendance
+      .filter((a) => a.status === 'attending')
+      .map((a) => a.player_id)
+  )
+  // If my local status changed, update the attending set
+  if (localMyStatus === 'attending') attendingPlayerIds.add(myPlayerId)
+  if (localMyStatus && localMyStatus !== 'attending') attendingPlayerIds.delete(myPlayerId)
+
+  // Get selected players for published display — filtered by current attendance
   const selectedPlayers = roster
-    .filter((p) => teamListSelections[p.id] === true)
+    .filter((p) => teamListSelections[p.id] === true && attendingPlayerIds.has(p.id))
     .sort((a, b) => a.full_name.localeCompare(b.full_name))
 
   function handleRespond(status: MyStatus) {
+    setLocalMyStatus(status)
     setRespondingId(sessionId)
     setAttendance(sessionId, kind, status).finally(() => setRespondingId(null))
   }
@@ -307,7 +321,7 @@ export function EventDetailModal({
                   onClick={() => handleRespond(status)}
                   disabled={respondingId === sessionId}
                   className={`flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
-                    myStatus === status
+                    localMyStatus === status
                       ? status === 'attending'
                         ? 'bg-accent text-white ring-1 ring-white/10'
                         : status === 'maybe'
