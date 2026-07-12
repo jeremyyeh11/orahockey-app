@@ -47,11 +47,13 @@ function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
   )
 }
 
-const STAT_COLS = ['G', 'A', 'CS', 'POTM', 'Caps'] as const
+const STAT_COLS = ['FG', 'PC', 'PS', 'A', 'CS', 'POTM', 'Caps'] as const
 
 function statValue(row: LeaderboardRow, col: string): number {
   switch (col) {
-    case 'G': return row.goals
+    case 'FG': return row.fg
+    case 'PC': return row.pc
+    case 'PS': return row.ps
     case 'A': return row.assists
     case 'CS': return row.cleanSheets
     case 'POTM': return row.potmWins
@@ -83,7 +85,7 @@ function StatRow({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
 function StatHeader() {
   return (
     <div className="flex items-center px-4 pb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-      <span className="flex-1">G  A  CS  POTM  Caps</span>
+      <span className="flex-1">FG  PC  PS  A  CS  POTM  Caps</span>
       <span className="w-12 text-center">Cards</span>
     </div>
   )
