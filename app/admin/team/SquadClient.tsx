@@ -212,13 +212,13 @@ export default function SquadClient({
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">Squad</h1>
         <div className="flex items-center gap-2">
-          <SeasonSelect seasons={seasons} value={season} onChange={selectSeason} />
           <button
             onClick={openAdd}
             className="bg-accent rounded-lg border border-surface-border px-3 py-2 text-sm font-semibold text-white transition hover:brightness-110 focus:outline-none focus:ring-1 focus:ring-brand"
           >
             + Add Player
           </button>
+          <SeasonSelect seasons={seasons} value={season} onChange={selectSeason} />
         </div>
       </div>
 

@@ -207,7 +207,7 @@ export function SeasonSelect({
     >
       {seasons.map((s) => (
         <option key={s} value={s}>
-          Season {s}
+          MHL1 {s}
         </option>
       ))}
     </select>
