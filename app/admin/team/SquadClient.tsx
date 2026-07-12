@@ -17,6 +17,7 @@ import {
   type AttendanceRow,
 } from '@/components/SeasonStats'
 import type { RosterPlayer } from '@/components/RosterList'
+import { PlayerProfileModal, type ProfilePlayer } from '@/components/PlayerProfileModal'
 
 type Player = RosterPlayer & PlayerLite & {
   email: string
@@ -59,53 +60,51 @@ export default function SquadClient({
   attendance: AttendanceRow[]
   myPlayerId: string | null
 }) {
-  const [showModal, setShowModal] = useState(false)
-  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const [selectedPositions, setSelectedPositions] = useState<string[]>([])
   const [showInactive, setShowInactive] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   // Season stats state
-  const seasons = seasonsOf(games)
+  const seasons = seasonsOf(games as unknown as GameLite[])
   const [season, setSeason] = useState<string>(seasons[0] ?? String(new Date().getFullYear()))
 
   const { leaderboard, pots, topScorerGroups } = computeSeason({
     players,
-    games,
+    games: games as unknown as GameLite[],
     stats,
     potm,
     attendance,
     season,
   })
+
+  // Career stats (all games)
+  const { leaderboard: careerLeaderboard } = computeSeason({
+    players,
+    games: games as unknown as GameLite[],
+    stats,
+    potm,
+    attendance,
+    season: 'all',
+  })
+
   const statsMap = new Map(leaderboard.map((r) => [r.player.id, r]))
+  const careerMap = new Map(careerLeaderboard.map((r) => [r.player.id, r]))
 
   const visible = showInactive ? players : players.filter((p) => p.is_active)
 
   function openAdd() {
-    setEditingPlayer(null)
     setSelectedPositions([])
     setError(null)
-    setShowModal(true)
-  }
-
-  function openEdit(player: Player) {
-    setEditingPlayer(player)
-    setSelectedPositions(player.position ?? [])
-    setError(null)
-    setShowModal(true)
+    setShowAddModal(true)
   }
 
   function togglePosition(pos: string) {
     setSelectedPositions((prev) =>
       prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]
     )
-  }
-
-  function closeModal() {
-    setShowModal(false)
-    setEditingPlayer(null)
-    setError(null)
   }
 
   function parseForm(form: HTMLFormElement): FormData {
@@ -122,18 +121,35 @@ export default function SquadClient({
     }
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleAddSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const data = parseForm(e.currentTarget)
     setError(null)
     startTransition(async () => {
       try {
-        if (editingPlayer) {
-          await updatePlayer(editingPlayer.id, data)
-        } else {
-          await addPlayer(data)
-        }
-        closeModal()
+        await addPlayer(data)
+        setShowAddModal(false)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
+  }
+
+  function handleProfileSave(data: {
+    preferred_name: string | null
+    jersey_number: number | null
+    position: string[] | null
+    role: 'player' | 'admin'
+  }) {
+    if (!selectedPlayer) return
+    startTransition(async () => {
+      try {
+        await updatePlayer(selectedPlayer.id, {
+          ...data,
+          full_name: selectedPlayer.full_name,
+          email: selectedPlayer.email,
+        })
+        setSelectedPlayer(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
       }
@@ -146,9 +162,9 @@ export default function SquadClient({
     })
   }
 
-  function selectSeason(s: string) {
-    setSeason(s)
-  }
+  const inputCls =
+    'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+  const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
   return (
     <div className="p-4">
@@ -162,7 +178,7 @@ export default function SquadClient({
           >
             + Add Player
           </button>
-          <SeasonSelect seasons={seasons} value={season} onChange={selectSeason} />
+          <SeasonSelect seasons={seasons} value={season} onChange={setSeason} />
         </div>
       </div>
 
@@ -190,68 +206,52 @@ export default function SquadClient({
         <RosterList
           players={visible}
           myPlayerId={myPlayerId}
-          onSelect={openEdit}
+          onSelect={(p) => setSelectedPlayer(p)}
           statsMap={statsMap}
         />
       )}
 
-      {/* Player edit/add modal */}
-      {showModal && (
+      {/* Player Profile Modal */}
+      {selectedPlayer && (
+        <PlayerProfileModal
+          player={selectedPlayer as ProfilePlayer}
+          seasonRow={statsMap.get(selectedPlayer.id)}
+          careerRow={careerMap.get(selectedPlayer.id)}
+          seasonLabel={season === 'all' ? 'All Time' : `MHL1 ${season}`}
+          isAdmin={true}
+          onClose={() => { setSelectedPlayer(null); setError(null) }}
+          onSave={handleProfileSave}
+          isPending={isPending}
+        />
+      )}
+
+      {/* Add Player modal (separate from profile) */}
+      {showAddModal && (
         <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
+          <div className="absolute inset-0 bg-black/70" onClick={() => { setShowAddModal(false); setError(null) }} />
           <div className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-            <h2 className="text-lg font-bold text-white mb-5">
-              {editingPlayer ? 'Edit Player' : 'Add Player'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <h2 className="text-lg font-bold text-white mb-5">Add Player</h2>
+            <form onSubmit={handleAddSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Full Name *</label>
-                <input
-                  name="full_name"
-                  type="text"
-                  required
-                  defaultValue={editingPlayer?.full_name}
-                  className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                  placeholder="John Smith"
-                />
+                <label className={labelCls}>Full Name *</label>
+                <input name="full_name" type="text" required className={inputCls} placeholder="John Smith" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Preferred Name</label>
-                <input
-                  name="preferred_name"
-                  type="text"
-                  defaultValue={editingPlayer?.preferred_name ?? ''}
-                  className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                  placeholder={editingPlayer ? defaultPreferredName(editingPlayer.full_name) : 'Auto (first name)'}
-                />
+                <label className={labelCls}>Preferred Name</label>
+                <input name="preferred_name" type="text" className={inputCls} placeholder="Auto (first name)" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Email *</label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  defaultValue={editingPlayer?.email}
-                  className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                  placeholder="player@example.com"
-                />
+                <label className={labelCls}>Email *</label>
+                <input name="email" type="email" required className={inputCls} placeholder="player@example.com" />
               </div>
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Jersey #</label>
-                  <input
-                    name="jersey_number"
-                    type="number"
-                    min="0"
-                    max="99"
-                    defaultValue={editingPlayer?.jersey_number ?? ''}
-                    className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                    placeholder="—"
-                  />
+                  <label className={labelCls}>Jersey #</label>
+                  <input name="jersey_number" type="number" min="0" max="99" className={inputCls} placeholder="—" />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Position</label>
+                  <label className={labelCls}>Position</label>
                   <div className="flex gap-1.5 flex-wrap">
                     {POSITIONS.map((pos) => (
                       <button
@@ -271,12 +271,8 @@ export default function SquadClient({
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Role</label>
-                <select
-                  name="role"
-                  defaultValue={editingPlayer?.role ?? 'player'}
-                  className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                >
+                <label className={labelCls}>Role</label>
+                <select name="role" className={inputCls} defaultValue="player">
                   <option value="player">Player</option>
                   <option value="admin">Admin</option>
                 </select>
@@ -287,7 +283,7 @@ export default function SquadClient({
               <div className="flex gap-3 pt-1">
                 <button
                   type="button"
-                  onClick={closeModal}
+                  onClick={() => { setShowAddModal(false); setError(null) }}
                   className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 transition"
                 >
                   Cancel

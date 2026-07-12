@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import RosterList from '@/components/RosterList'
 import {
   computeSeason,
@@ -15,6 +15,8 @@ import {
   type AttendanceRow,
 } from '@/components/SeasonStats'
 import type { RosterPlayer } from '@/components/RosterList'
+import { PlayerProfileModal, type ProfilePlayer } from '@/components/PlayerProfileModal'
+import { updatePlayer } from '@/app/admin/team/actions'
 
 type Player = RosterPlayer & PlayerLite
 
@@ -47,12 +49,21 @@ export default function SquadClient({
     season,
   })
 
-  // Build a stats lookup map for inline display
-  const statsMap = new Map(leaderboard.map((r) => [r.player.id, r]))
+  // Career stats (all games, no season filter)
+  const { leaderboard: careerLeaderboard } = computeSeason({
+    players,
+    games,
+    stats,
+    potm,
+    attendance,
+    season: 'all',
+  })
 
-  // Filter roster to players active for the selected season:
-  // - has stats/potm/attendance for games in that season, OR
-  // - is currently active (for the current season)
+  // Build stats lookup maps
+  const statsMap = new Map(leaderboard.map((r) => [r.player.id, r]))
+  const careerMap = new Map(careerLeaderboard.map((r) => [r.player.id, r]))
+
+  // Filter roster to players active for the selected season
   const currentYear = String(new Date().getFullYear())
   const seasonGameIds = new Set(seasonGames.map((g) => g.id))
   const playedIds = new Set(
@@ -77,6 +88,30 @@ export default function SquadClient({
           (p) => seasonPlayerIds.has(p.id) || p.is_active
         )
 
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  function handleSave(data: {
+    preferred_name: string | null
+    jersey_number: number | null
+    position: string[] | null
+    role: 'player' | 'admin'
+  }) {
+    if (!selectedPlayer) return
+    startTransition(async () => {
+      try {
+        await updatePlayer(selectedPlayer.id, {
+          ...data,
+          full_name: selectedPlayer.full_name,
+          email: (selectedPlayer as Player & { email?: string }).email ?? '',
+        })
+        setSelectedPlayer(null)
+      } catch (err) {
+        console.error(err)
+      }
+    })
+  }
+
   return (
     <div className="p-4">
       {/* Header + season selector */}
@@ -94,12 +129,27 @@ export default function SquadClient({
         <TopScorersCard groups={topScorerGroups} />
       </div>
 
-      {/* Roster with inline stats */}
+      {/* Roster with inline stats — now tappable */}
       <RosterList
         players={visible}
         myPlayerId={myPlayerId}
+        onSelect={(p) => setSelectedPlayer(p)}
         statsMap={statsMap}
       />
+
+      {/* Player Profile Modal */}
+      {selectedPlayer && (
+        <PlayerProfileModal
+          player={selectedPlayer as ProfilePlayer}
+          seasonRow={statsMap.get(selectedPlayer.id)}
+          careerRow={careerMap.get(selectedPlayer.id)}
+          seasonLabel={season === 'all' ? 'All Time' : `MHL1 ${season}`}
+          isAdmin={false}
+          onClose={() => setSelectedPlayer(null)}
+          onSave={handleSave}
+          isPending={isPending}
+        />
+      )}
     </div>
   )
 }

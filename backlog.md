@@ -12,18 +12,6 @@
 
 ## Backlog
 
-## 3. Player profile page
-
-Add an individual **player profile** page reachable from the **Squad** tab (player and admin), built using the same reusable modal/panel template defined for the event detail view above.
-
-**Content:**
-- Career stats and current-season stats, both displayed.
-- Every player's stats are viewable by all players (no access restriction).
-- A dedicated space for a player photo, styled like a trading card — to be populated later.
-- The photo area is masked to the player only (transparent/no background), with key stats and info overlaid on the masked image appropriately.
-
-Must reference only UI-visible elements (Squad tab, player rows/cards, modal/panel template). Internal data shape TBD.
-
 ## 4. Update match result
 
 Let players record a played match's result and goals/cards after the match, separate from match creation.
@@ -93,6 +81,10 @@ Must reference only UI-visible elements (login page, admin Squad / whitelist con
 ---
 
 ## Archived
+
+### 3. Player profile page ✓ July 2026
+
+Player profile modal accessible from the Squad tab (both player and admin). Shows season stats and career stats in a stat grid with position-based visibility (GK shows CS, outfield shows FG/PC/PS/A). Trading card photo area as placeholder (jersey number in a styled box). Admins get Edit mode for preferred name, jersey, position, role via ReadEditModal. Career stats computed via computeSeason with season='all'. No SQL migration needed — uses existing tables.
 
 ### 1. Merge stats page into team page ✓ July 2026
 

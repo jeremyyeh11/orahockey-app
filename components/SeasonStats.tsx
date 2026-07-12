@@ -76,7 +76,9 @@ export function computeSeason({
   attendance: AttendanceRow[]
   season: string
 }) {
-  const seasonGames = games.filter((g) => String(new Date(g.game_date).getFullYear()) === season)
+  const seasonGames = season === 'all'
+    ? games
+    : games.filter((g) => String(new Date(g.game_date).getFullYear()) === season)
   const gameIds = new Set(seasonGames.map((g) => g.id))
   const playedIds = new Set(seasonGames.filter((g) => g.result).map((g) => g.id))
 
