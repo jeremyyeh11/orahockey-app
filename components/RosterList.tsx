@@ -28,10 +28,11 @@ function CardShape({ color, count }: { color: 'green' | 'yellow' | 'red'; count:
   return (
     <span className="inline-flex items-center gap-0.5 text-xs">
       {shapes[color]}
-      {count > 1 && <span className="text-slate-400">{count}</span>}
+      <span className="text-slate-400">{count}</span>
     </span>
   )
 }
+
 
 function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
   const { green, yellow, red } = row.cards
