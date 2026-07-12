@@ -208,10 +208,18 @@ export default function SquadClient({
 
   return (
     <div className="p-4">
-      {/* Header + season selector */}
+      {/* Header + season selector + add player */}
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">Squad</h1>
-        <SeasonSelect seasons={seasons} value={season} onChange={selectSeason} />
+        <div className="flex items-center gap-2">
+          <SeasonSelect seasons={seasons} value={season} onChange={selectSeason} />
+          <button
+            onClick={openAdd}
+            className="bg-accent rounded-lg border border-surface-border px-3 py-2 text-sm font-semibold text-white transition hover:brightness-110 focus:outline-none focus:ring-1 focus:ring-brand"
+          >
+            + Add Player
+          </button>
+        </div>
       </div>
 
       {/* Tabs: Squad | By game */}
@@ -240,16 +248,6 @@ export default function SquadClient({
         <>
           {/* POTS race card */}
           <PotsCard pots={pots} />
-
-          {/* Admin actions */}
-          <div className="mb-4 flex items-center gap-2">
-            <button
-              onClick={openAdd}
-              className="bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
-            >
-              + Add Player
-            </button>
-          </div>
 
           {players.some((p) => !p.is_active) && (
             <label className="flex items-center gap-2 text-sm text-slate-400 mb-4 cursor-pointer w-fit">
