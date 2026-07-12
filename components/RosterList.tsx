@@ -62,14 +62,28 @@ function statValue(row: LeaderboardRow, col: string): number {
   }
 }
 
-function StatRow({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean; positions: string[] | null }) {
   const valCls = (v: number) =>
     v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'
   const labelCls = isMe ? 'text-white/50' : 'text-slate-500'
 
+  const isGK = positions?.includes('GK') ?? false
+  const isOutfield = positions?.some((p) => p !== 'GK') ?? false
+
+  // GK-only: show CS, hide FG/PC/PS/A
+  // Outfield-only: show FG/PC/PS/A, hide CS
+  // Both (GK + outfield): show everything
+  const showGoals = isOutfield
+  const showCS = isGK
+
+  const cols: string[] = []
+  if (showGoals) cols.push('FG', 'PC', 'PS', 'A')
+  if (showCS) cols.push('CS')
+  cols.push('POTM', 'Caps')
+
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 mt-1.5 text-[11px]">
-      {STAT_COLS.map((col) => {
+      {cols.map((col) => {
         const v = statValue(row, col)
         return (
           <span key={col} className="inline-flex items-baseline gap-0.5">
@@ -141,7 +155,7 @@ export default function RosterList<T extends RosterPlayer>({
 
             {stats && (
               <div className="relative mt-1 flex items-end justify-between">
-                <StatRow row={stats} isMe={isMe} />
+                <StatRow row={stats} isMe={isMe} positions={player.position} />
                 <div className="shrink-0 pl-2">
                   <CardsCell row={stats} isMe={isMe} />
                 </div>
