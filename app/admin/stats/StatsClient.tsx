@@ -23,7 +23,9 @@ export type Game = {
 export type Stat = {
   player_id: string
   game_id: string
-  goals: number
+  goals_fg: number
+  goals_pc: number
+  goals_ps: number
   assists: number
   clean_sheet: boolean
 }
@@ -32,10 +34,12 @@ export default function StatsClient({
   players,
   games,
   stats,
+  caps,
 }: {
   players: Player[]
   games: Game[]
   stats: Stat[]
+  caps: Record<string, number>
 }) {
   const [tab, setTab] = useState<'season' | 'game'>('season')
   const [gameId, setGameId] = useState<string>(games[0]?.id ?? '')
@@ -49,28 +53,42 @@ export default function StatsClient({
 
   // Season totals per player
   const totals = useMemo(() => {
-    const map: Record<string, { goals: number; assists: number; cleanSheets: number; games: number }> = {}
+    const map: Record<
+      string,
+      { fg: number; pc: number; ps: number; goals: number; assists: number; cleanSheets: number }
+    > = {}
     for (const s of stats) {
-      const t = (map[s.player_id] ??= { goals: 0, assists: 0, cleanSheets: 0, games: 0 })
-      t.goals += s.goals
+      const t = (map[s.player_id] ??= { fg: 0, pc: 0, ps: 0, goals: 0, assists: 0, cleanSheets: 0 })
+      t.fg += s.goals_fg
+      t.pc += s.goals_pc
+      t.ps += s.goals_ps
+      t.goals += s.goals_fg + s.goals_pc + s.goals_ps
       t.assists += s.assists
       if (s.clean_sheet) t.cleanSheets += 1
-      t.games += 1
     }
     return map
   }, [stats])
 
   const leaderboard = players
-    .map((p) => ({ player: p, ...(totals[p.id] ?? { goals: 0, assists: 0, cleanSheets: 0, games: 0 }) }))
-    .filter((r) => r.goals > 0 || r.assists > 0 || r.cleanSheets > 0)
-    .sort((a, b) => b.goals - a.goals || b.assists - a.assists || b.cleanSheets - a.cleanSheets)
+    .map((p) => ({
+      player: p,
+      caps: caps[p.id] ?? 0,
+      ...(totals[p.id] ?? { fg: 0, pc: 0, ps: 0, goals: 0, assists: 0, cleanSheets: 0 }),
+    }))
+    .filter((r) => r.goals > 0 || r.assists > 0 || r.cleanSheets > 0 || r.caps > 0)
+    .sort(
+      (a, b) =>
+        b.goals - a.goals || b.assists - a.assists || b.cleanSheets - a.cleanSheets || b.caps - a.caps
+    )
 
   function rowFor(playerId: string): StatRow {
     if (edits[playerId]) return edits[playerId]
     const s = stats.find((s) => s.game_id === gameId && s.player_id === playerId)
     return {
       player_id: playerId,
-      goals: s?.goals ?? 0,
+      goals_fg: s?.goals_fg ?? 0,
+      goals_pc: s?.goals_pc ?? 0,
+      goals_ps: s?.goals_ps ?? 0,
       assists: s?.assists ?? 0,
       clean_sheet: s?.clean_sheet ?? false,
     }
@@ -88,7 +106,10 @@ export default function StatsClient({
     setError(null)
   }
 
-  const assignedGoals = players.reduce((sum, p) => sum + rowFor(p.id).goals, 0)
+  const assignedGoals = players.reduce((sum, p) => {
+    const r = rowFor(p.id)
+    return sum + r.goals_fg + r.goals_pc + r.goals_ps
+  }, 0)
 
   function handleSave() {
     setError(null)
@@ -142,24 +163,38 @@ export default function StatsClient({
                   <th className="px-2 py-2.5 font-medium">Player</th>
                   <th className="px-2 py-2.5 text-center font-medium">G</th>
                   <th className="px-2 py-2.5 text-center font-medium">A</th>
-                  <th className="py-2.5 pl-2 pr-4 text-center font-medium">CS</th>
+                  <th className="px-2 py-2.5 text-center font-medium">CS</th>
+                  <th className="py-2.5 pl-2 pr-4 text-center font-medium">Caps</th>
                 </tr>
               </thead>
               <tbody>
                 {leaderboard.map((row, i) => (
                   <tr key={row.player.id} className="border-b border-white/5 last:border-0">
                     <td className="py-2.5 pl-4 pr-2 text-slate-500">{i + 1}</td>
-                    <td className="max-w-0 truncate px-2 py-2.5 font-medium text-white">
-                      {row.player.jersey_number != null && (
-                        <span className="mr-1.5 text-slate-500">#{row.player.jersey_number}</span>
+                    <td className="max-w-0 truncate px-2 py-2.5">
+                      <div className="truncate font-medium text-white">{row.player.full_name}</div>
+                      {row.goals > 0 && (
+                        <div className="text-[10px] text-slate-500">
+                          {[
+                            row.fg > 0 ? `FG ${row.fg}` : null,
+                            row.pc > 0 ? `PC ${row.pc}` : null,
+                            row.ps > 0 ? `PS ${row.ps}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </div>
                       )}
-                      {row.player.full_name}
                     </td>
-                    <td className="px-2 py-2.5 text-center font-semibold text-white">{row.goals}</td>
-                    <td className="px-2 py-2.5 text-center text-slate-300">{row.assists}</td>
-                    <td className="py-2.5 pl-2 pr-4 text-center text-slate-300">
+                    <td className="px-2 py-2.5 text-center font-semibold text-white">
+                      {row.goals > 0 ? row.goals : '—'}
+                    </td>
+                    <td className="px-2 py-2.5 text-center text-slate-300">
+                      {row.assists > 0 ? row.assists : '—'}
+                    </td>
+                    <td className="px-2 py-2.5 text-center text-slate-300">
                       {row.cleanSheets > 0 ? row.cleanSheets : '—'}
                     </td>
+                    <td className="py-2.5 pl-2 pr-4 text-center text-slate-300">{row.caps}</td>
                   </tr>
                 ))}
               </tbody>
@@ -205,31 +240,30 @@ export default function StatsClient({
                   const row = rowFor(p.id)
                   const isGK = p.position?.includes('GK') ?? false
                   return (
-                    <div key={p.id} className="flex items-center gap-2 px-3 py-2.5">
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-white">
-                          {p.jersey_number != null && (
-                            <span className="mr-1.5 text-slate-500">#{p.jersey_number}</span>
-                          )}
+                    <div key={p.id} className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1 truncate text-sm font-medium text-white">
                           {p.full_name}
                         </div>
+                        {isGK && (
+                          <button
+                            onClick={() => setRow(p.id, { clean_sheet: !row.clean_sheet })}
+                            className={`shrink-0 rounded px-2 py-1 text-[10px] font-bold uppercase transition ${
+                              row.clean_sheet
+                                ? 'bg-green-900/60 text-green-300'
+                                : 'border border-surface-border text-slate-500'
+                            }`}
+                          >
+                            CS
+                          </button>
+                        )}
                       </div>
-
-                      {isGK && (
-                        <button
-                          onClick={() => setRow(p.id, { clean_sheet: !row.clean_sheet })}
-                          className={`shrink-0 rounded px-2 py-1 text-[10px] font-bold uppercase transition ${
-                            row.clean_sheet
-                              ? 'bg-green-900/60 text-green-300'
-                              : 'border border-surface-border text-slate-500'
-                          }`}
-                        >
-                          CS
-                        </button>
-                      )}
-
-                      <Stepper label="G" value={row.goals} onChange={(v) => setRow(p.id, { goals: v })} />
-                      <Stepper label="A" value={row.assists} onChange={(v) => setRow(p.id, { assists: v })} />
+                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                        <Stepper label="FG" value={row.goals_fg} onChange={(v) => setRow(p.id, { goals_fg: v })} />
+                        <Stepper label="PC" value={row.goals_pc} onChange={(v) => setRow(p.id, { goals_pc: v })} />
+                        <Stepper label="PS" value={row.goals_ps} onChange={(v) => setRow(p.id, { goals_ps: v })} />
+                        <Stepper label="A" value={row.assists} onChange={(v) => setRow(p.id, { assists: v })} />
+                      </div>
                     </div>
                   )
                 })}
@@ -264,7 +298,7 @@ function Stepper({
 }) {
   return (
     <div className="flex shrink-0 items-center gap-1">
-      <span className="w-3 text-center text-[10px] font-semibold uppercase text-slate-500">{label}</span>
+      <span className="w-5 text-center text-[10px] font-semibold uppercase text-slate-500">{label}</span>
       <button
         onClick={() => onChange(Math.max(0, value - 1))}
         className="flex h-7 w-7 items-center justify-center rounded-md border border-surface-border text-slate-400 transition hover:text-white disabled:opacity-30"

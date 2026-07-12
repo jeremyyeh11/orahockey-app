@@ -116,7 +116,7 @@ begin
       end if;
     end loop;
 
-    insert into player_stats (player_id, game_id, goals, assists)
+    insert into player_stats (player_id, game_id, goals_fg, assists)
     select player_id, g.id, goals, assists from tally;
 
     -- goalkeeper of the day: clean sheet when goals_against = 0
@@ -133,8 +133,8 @@ begin
     end if;
 
     if v_gk is not null then
-      insert into player_stats (player_id, game_id, goals, assists, clean_sheet)
-      values (v_gk, g.id, 0, 0, coalesce(g.goals_against, 1) = 0)
+      insert into player_stats (player_id, game_id, clean_sheet)
+      values (v_gk, g.id, coalesce(g.goals_against, 1) = 0)
       on conflict (player_id, game_id) do update set clean_sheet = excluded.clean_sheet;
     end if;
   end loop;
