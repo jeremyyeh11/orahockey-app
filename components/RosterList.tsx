@@ -216,11 +216,15 @@ export default function RosterList<T extends RosterPlayer>({
               <div className="truncate font-semibold text-white">
                 {(() => {
                   const { before, preferred, after } = splitName(player)
+                  // Check if we need spaces between parts — no space if adjacent
+                  // char is a non-alphanumeric delimiter (e.g. hyphen in KEAEN-SETH)
+                  const beforeNeedsSpace = before && !before.endsWith('-') && !before.endsWith("'")
+                  const afterNeedsSpace = after && !after.startsWith('-') && !after.startsWith("'")
                   return (
                     <>
-                      {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before} </span>}
+                      {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before}{beforeNeedsSpace ? ' ' : ''}</span>}
                       <span>{preferred}</span>
-                      {after && <span className="text-sm font-normal tracking-wide text-slate-400"> {after}</span>}
+                      {after && <span className="text-sm font-normal tracking-wide text-slate-400">{afterNeedsSpace ? ' ' : ''}{after}</span>}
                     </>
                   )
                 })()}
