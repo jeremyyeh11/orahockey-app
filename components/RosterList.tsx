@@ -5,12 +5,31 @@ import type { LeaderboardRow } from './SeasonStats'
 export type RosterPlayer = {
   id: string
   full_name: string
+  preferred_name: string | null
   jersey_number: number | null
   position: string[] | null
   is_active: boolean
 }
 
 const POSITION_ORDER: Record<string, number> = { FWD: 0, MID: 1, DEF: 2, GK: 3 }
+
+/** Default preferred name = first word of full_name, title-cased */
+export function defaultPreferredName(fullName: string): string {
+  const first = fullName.trim().split(/\s+/)[0] ?? ''
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase()
+}
+
+/** Effective preferred name: explicit override or default from full_name */
+export function preferredName(player: { full_name: string; preferred_name: string | null }): string {
+  return player.preferred_name?.trim() || defaultPreferredName(player.full_name)
+}
+
+/** Splits a name into [preferred, rest] for display */
+export function splitName(player: { full_name: string; preferred_name: string | null }): [string, string] {
+  const preferred = preferredName(player)
+  const rest = player.full_name.replace(preferred, '').trim()
+  return [preferred, rest]
+}
 
 export function sortPositions(pos: string[] | null | undefined) {
   return [...(pos ?? [])].sort(
@@ -149,7 +168,17 @@ export default function RosterList<T extends RosterPlayer>({
             )}
 
             <div className="relative min-w-0 pr-16">
-              <div className="truncate font-semibold text-white">{player.full_name}</div>
+              <div className="truncate font-semibold text-white">
+                {(() => {
+                  const [preferred, rest] = splitName(player)
+                  return (
+                    <>
+                      <span>{preferred}</span>
+                      {rest && <span className="text-sm font-normal lowercase tracking-wide text-slate-400">{rest}</span>}
+                    </>
+                  )
+                })()}
+              </div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 {sortPositions(player.position).map((pos) => (
                   <span

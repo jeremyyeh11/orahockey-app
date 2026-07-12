@@ -19,7 +19,7 @@ export default async function AdminSquadPage() {
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     supabase
       .from('players')
-      .select('id, full_name, email, jersey_number, position, role, is_active, auth_user_id')
+      .select('id, full_name, email, jersey_number, position, role, is_active, auth_user_id, preferred_name')
       .order('jersey_number', { ascending: true, nullsFirst: false })
       .order('full_name', { ascending: true }),
     supabase

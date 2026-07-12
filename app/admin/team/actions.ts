@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 type PlayerInput = {
   full_name: string
+  preferred_name: string | null
   email: string
   jersey_number: number | null
   position: string[] | null

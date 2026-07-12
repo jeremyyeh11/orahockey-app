@@ -6,6 +6,7 @@
 export type PlayerLite = {
   id: string
   full_name: string
+  preferred_name: string | null
   jersey_number: number | null
 }
 

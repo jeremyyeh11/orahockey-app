@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { addPlayer, updatePlayer, togglePlayerActive } from './actions'
 import { saveGameStats, type StatRow } from '../stats/actions'
 import RosterList from '@/components/RosterList'
+import { defaultPreferredName, splitName } from '@/components/RosterList'
 import { fmtDate } from '@/lib/format'
 import {
   computeSeason,
@@ -35,6 +36,7 @@ type Game = {
 
 type FormData = {
   full_name: string
+  preferred_name: string | null
   email: string
   jersey_number: number | null
   position: string[] | null
@@ -121,8 +123,10 @@ export default function SquadClient({
   function parseForm(form: HTMLFormElement): FormData {
     const fd = new FormData(form)
     const jerseyRaw = fd.get('jersey_number') as string
+    const preferredRaw = (fd.get('preferred_name') as string).trim()
     return {
       full_name: fd.get('full_name') as string,
+      preferred_name: preferredRaw || null,
       email: fd.get('email') as string,
       jersey_number: jerseyRaw ? Number(jerseyRaw) : null,
       position: selectedPositions.length > 0 ? selectedPositions : null,
@@ -313,7 +317,15 @@ export default function SquadClient({
                     <div key={p.id} className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <div className="min-w-0 flex-1 truncate text-sm font-medium text-white">
-                          {p.full_name}
+                          {(() => {
+                            const [preferred, rest] = splitName(p)
+                            return (
+                              <>
+                                <span>{preferred}</span>
+                                {rest && <span className="text-xs font-normal lowercase tracking-wide text-slate-400">{rest}</span>}
+                              </>
+                            )
+                          })()}
                         </div>
                         {isGK && (
                           <button
@@ -373,6 +385,16 @@ export default function SquadClient({
                   defaultValue={editingPlayer?.full_name}
                   className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   placeholder="John Smith"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Preferred Name</label>
+                <input
+                  name="preferred_name"
+                  type="text"
+                  defaultValue={editingPlayer?.preferred_name ?? ''}
+                  className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  placeholder={editingPlayer ? defaultPreferredName(editingPlayer.full_name) : 'Auto (first name)'}
                 />
               </div>
               <div>

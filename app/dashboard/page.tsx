@@ -17,7 +17,7 @@ export default async function PlayerDashboardPage() {
 
   const { data: me } = await supabase
     .from('players')
-    .select('id, full_name, jersey_number')
+    .select('id, full_name, jersey_number, preferred_name')
     .eq('auth_user_id', user?.id ?? '')
     .single()
 
@@ -77,7 +77,7 @@ export default async function PlayerDashboardPage() {
     <div className="p-4">
       {/* Greeting */}
       <h1 className="text-xl font-bold text-white">
-        {me ? `Hi, ${firstName(me.full_name)}` : 'Home'}
+        {me ? `Hi, ${me.preferred_name?.trim() || firstName(me.full_name)}` : 'Home'}
         {me?.jersey_number != null && <span className="ml-2 text-slate-500">#{me.jersey_number}</span>}
       </h1>
 
