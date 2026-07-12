@@ -415,7 +415,7 @@ export default function SquadClient({
                   <input
                     name="jersey_number"
                     type="number"
-                    min="1"
+                    min="0"
                     max="99"
                     defaultValue={editingPlayer?.jersey_number ?? ''}
                     className="w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
