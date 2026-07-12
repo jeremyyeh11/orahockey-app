@@ -9,12 +9,6 @@
 
 ---
 
-## Archived
-
-_Completed features live here, moved from Backlog._
-
----
-
 ## Backlog
 
 ### 1. Merge stats page into team page
@@ -28,3 +22,9 @@ _Completed features live here, moved from Backlog._
 - Place the **Player of the Season (POTS) race card** at the top of the page, above the squad list.
 - **"My" stats** (personal season summary cards and per-game breakdown) must NOT appear on this page — they will be a separate feature later.
 - Update the bottom navigation: remove the Stats tab. Change "Team" to "Squad".
+
+---
+
+## Archived
+
+_Completed features live here, moved from Backlog._
