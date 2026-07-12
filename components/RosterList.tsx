@@ -18,23 +18,46 @@ export function sortPositions(pos: string[] | null | undefined) {
   )
 }
 
-function InlineStats({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
-  const items: { label: string; value: number }[] = []
-  if (row.goals > 0) items.push({ label: 'G', value: row.goals })
-  if (row.assists > 0) items.push({ label: 'A', value: row.assists })
-  if (row.cleanSheets > 0) items.push({ label: 'CS', value: row.cleanSheets })
-  if (row.potmWins > 0) items.push({ label: 'POTM', value: row.potmWins })
-  if (row.caps > 0) items.push({ label: 'Caps', value: row.caps })
+const STAT_COLS = ['G', 'A', 'CS', 'POTM', 'Caps'] as const
 
-  if (items.length === 0) return null
+function statValue(row: LeaderboardRow, col: string): number {
+  switch (col) {
+    case 'G': return row.goals
+    case 'A': return row.assists
+    case 'CS': return row.cleanSheets
+    case 'POTM': return row.potmWins
+    case 'Caps': return row.caps
+    default: return 0
+  }
+}
 
+function StatGrid({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
   return (
-    <div className={`mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] ${isMe ? 'text-white/80' : 'text-slate-400'}`}>
-      {items.map((s, i) => (
-        <span key={s.label}>
-          {i > 0 && <span className="mr-3 text-slate-600">·</span>}
-          <span className="font-semibold">{s.value}</span> {s.label}
-        </span>
+    <div className="grid grid-cols-5 gap-1 mt-2">
+      {STAT_COLS.map((col) => {
+        const v = statValue(row, col)
+        return (
+          <div key={col} className="text-center">
+            <div className={`text-sm font-semibold ${v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'}`}>
+              {v > 0 ? v : '–'}
+            </div>
+            <div className={`text-[9px] uppercase tracking-wide ${isMe ? 'text-white/60' : 'text-slate-500'}`}>
+              {col}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function StatHeader() {
+  return (
+    <div className="grid grid-cols-5 gap-1 px-4 pb-1">
+      {STAT_COLS.map((col) => (
+        <div key={col} className="text-center text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+          {col}
+        </div>
       ))}
     </div>
   )
@@ -43,8 +66,8 @@ function InlineStats({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
 /**
  * Roster cards shared by the admin Squad page (tappable → edit) and the
  * player Squad page (read-only). The signed-in player's row is highlighted.
- * When statsMap is provided, compact season stats are shown inline below
- * the position badges.
+ * When statsMap is provided, compact season stats are shown in aligned
+ * columns below each player's name.
  */
 export default function RosterList<T extends RosterPlayer>({
   players,
@@ -59,6 +82,7 @@ export default function RosterList<T extends RosterPlayer>({
 }) {
   return (
     <div className="space-y-2">
+      {statsMap && <StatHeader />}
       {players.map((player) => {
         const isMe = player.id === myPlayerId
         const stats = statsMap?.get(player.id)
@@ -93,8 +117,8 @@ export default function RosterList<T extends RosterPlayer>({
                   </span>
                 ))}
               </div>
-              {stats && <InlineStats row={stats} isMe={isMe} />}
             </div>
+            {stats && <StatGrid row={stats} isMe={isMe} />}
           </>
         )
 
