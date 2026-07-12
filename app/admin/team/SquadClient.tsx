@@ -166,11 +166,11 @@ export default function SquadClient({
         </div>
       </div>
 
-      {/* POTS race card */}
-      <PotsCard pots={pots} />
-
-      {/* Top scorers card */}
-      <TopScorersCard scorers={topScorers} />
+      {/* POTS race + Top scorers — side by side */}
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <PotsCard pots={pots} />
+        <TopScorersCard scorers={topScorers} />
+      </div>
 
       {players.some((p) => !p.is_active) && (
         <label className="flex items-center gap-2 text-sm text-slate-400 mb-4 cursor-pointer w-fit">

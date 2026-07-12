@@ -227,20 +227,20 @@ const MEDALS = ['🥇', '🥈', '🥉']
 export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
   if (pots.length === 0) return null
   return (
-    <div className="card mb-4 overflow-hidden">
-      <div className="border-b border-white/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Player of the Season race
+    <div className="card overflow-hidden">
+      <div className="border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        POTS Race
       </div>
       {pots.map((r, i) => (
         <div
           key={r.player.id}
-          className="flex items-center gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
+          className="flex items-center gap-2 border-b border-white/5 px-3 py-2 last:border-0"
         >
-          <span className="w-6 text-center text-base">{MEDALS[i]}</span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
+          <span className="w-5 text-center text-sm">{MEDALS[i]}</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-white">
             {preferredName(r.player)}
           </span>
-          <span className="shrink-0 text-sm font-semibold text-brand-light">{r.potsPts} pts</span>
+          <span className="shrink-0 text-xs font-semibold text-brand-light">{r.potsPts} pts</span>
         </div>
       ))}
     </div>
@@ -250,20 +250,20 @@ export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
 export function TopScorersCard({ scorers }: { scorers: LeaderboardRow[] }) {
   if (scorers.length === 0) return null
   return (
-    <div className="card mb-4 overflow-hidden">
-      <div className="border-b border-white/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <div className="card overflow-hidden">
+      <div className="border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
         Top Scorers
       </div>
       {scorers.map((r, i) => (
         <div
           key={r.player.id}
-          className="flex items-center gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
+          className="flex items-center gap-2 border-b border-white/5 px-3 py-2 last:border-0"
         >
-          <span className="w-6 text-center text-base">{MEDALS[i]}</span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
+          <span className="w-5 text-center text-sm">{MEDALS[i]}</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-white">
             {preferredName(r.player)}
           </span>
-          <span className="shrink-0 text-sm font-semibold text-brand-light">{r.goals}G</span>
+          <span className="shrink-0 text-xs font-semibold text-brand-light">{r.goals}G</span>
         </div>
       ))}
     </div>

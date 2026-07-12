@@ -88,11 +88,11 @@ export default function SquadClient({
         <SeasonSelect seasons={seasons} value={season} onChange={setSeason} />
       </div>
 
-      {/* POTS race card */}
-      <PotsCard pots={pots} />
-
-      {/* Top scorers card */}
-      <TopScorersCard scorers={topScorers} />
+      {/* POTS race + Top scorers — side by side */}
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <PotsCard pots={pots} />
+        <TopScorersCard scorers={topScorers} />
+      </div>
 
       {/* Roster with inline stats */}
       <RosterList
