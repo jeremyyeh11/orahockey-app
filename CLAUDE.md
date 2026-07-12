@@ -31,7 +31,10 @@ supabase/migrations/
 ```
 
 ## Database tables
-`teams`, `players`, `player_whitelist`, `games`, `training_sessions`, `attendance`, `polls`, `poll_options`, `poll_votes`, `player_stats`
+`teams`, `players`, `player_whitelist`, `games`, `training_sessions`, `attendance`, `polls`, `poll_options`, `poll_votes`, `player_stats`, `potm`
+
+POTM: 1st/2nd/3rd placings per game in `potm` (shared places allowed); points 3/2/1 are
+derived in `components/SeasonStats.tsx`, never stored. POTS race = season points tally.
 
 All tables have RLS enabled. `is_admin()` SQL function used in policies.
 

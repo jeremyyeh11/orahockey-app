@@ -1,8 +1,18 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { saveGameStats, type StatRow } from './actions'
 import { fmtDate } from '@/lib/format'
+import {
+  computeSeason,
+  seasonsOf,
+  SeasonSelect,
+  PotsCard,
+  LeaderboardTable,
+  type SeasonStat,
+  type PotmRow,
+  type AttendanceRow,
+} from '@/components/SeasonStats'
 
 export type Player = {
   id: string
@@ -20,70 +30,46 @@ export type Game = {
   result: string | null
 }
 
-export type Stat = {
-  player_id: string
-  game_id: string
-  goals_fg: number
-  goals_pc: number
-  goals_ps: number
-  assists: number
-  clean_sheet: boolean
-}
-
 export default function StatsClient({
   players,
   games,
   stats,
-  caps,
+  potm,
+  attendance,
 }: {
   players: Player[]
   games: Game[]
-  stats: Stat[]
-  caps: Record<string, number>
+  stats: SeasonStat[]
+  potm: PotmRow[]
+  attendance: AttendanceRow[]
 }) {
+  const seasons = seasonsOf(games)
+  const [season, setSeason] = useState<string>(seasons[0] ?? String(new Date().getFullYear()))
   const [tab, setTab] = useState<'season' | 'game'>('season')
-  const [gameId, setGameId] = useState<string>(games[0]?.id ?? '')
+
+  const { seasonGames, leaderboard, pots } = computeSeason({
+    players,
+    games,
+    stats,
+    potm,
+    attendance,
+    season,
+  })
+  const entryGames = games.filter((g) => seasonGames.some((sg) => sg.id === g.id))
+
+  const [gameId, setGameId] = useState<string>(entryGames[0]?.id ?? '')
   // edits[player_id] holds unsaved values for the selected game
   const [edits, setEdits] = useState<Record<string, StatRow>>({})
   const [flash, setFlash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const game = games.find((g) => g.id === gameId)
-
-  // Season totals per player
-  const totals = useMemo(() => {
-    const map: Record<
-      string,
-      { fg: number; pc: number; ps: number; goals: number; assists: number; cleanSheets: number }
-    > = {}
-    for (const s of stats) {
-      const t = (map[s.player_id] ??= { fg: 0, pc: 0, ps: 0, goals: 0, assists: 0, cleanSheets: 0 })
-      t.fg += s.goals_fg
-      t.pc += s.goals_pc
-      t.ps += s.goals_ps
-      t.goals += s.goals_fg + s.goals_pc + s.goals_ps
-      t.assists += s.assists
-      if (s.clean_sheet) t.cleanSheets += 1
-    }
-    return map
-  }, [stats])
-
-  const leaderboard = players
-    .map((p) => ({
-      player: p,
-      caps: caps[p.id] ?? 0,
-      ...(totals[p.id] ?? { fg: 0, pc: 0, ps: 0, goals: 0, assists: 0, cleanSheets: 0 }),
-    }))
-    .filter((r) => r.goals > 0 || r.assists > 0 || r.cleanSheets > 0 || r.caps > 0)
-    .sort(
-      (a, b) =>
-        b.goals - a.goals || b.assists - a.assists || b.cleanSheets - a.cleanSheets || b.caps - a.caps
-    )
+  const game = entryGames.find((g) => g.id === gameId) ?? entryGames[0]
+  const activeGameId = game?.id ?? ''
 
   function rowFor(playerId: string): StatRow {
     if (edits[playerId]) return edits[playerId]
-    const s = stats.find((s) => s.game_id === gameId && s.player_id === playerId)
+    const s = stats.find((s) => s.game_id === activeGameId && s.player_id === playerId)
     return {
       player_id: playerId,
       goals_fg: s?.goals_fg ?? 0,
@@ -106,6 +92,14 @@ export default function StatsClient({
     setError(null)
   }
 
+  function selectSeason(s: string) {
+    setSeason(s)
+    setEdits({})
+    setGameId('')
+    setFlash(null)
+    setError(null)
+  }
+
   const assignedGoals = players.reduce((sum, p) => {
     const r = rowFor(p.id)
     return sum + r.goals_fg + r.goals_pc + r.goals_ps
@@ -116,7 +110,7 @@ export default function StatsClient({
     const rows = players.map((p) => rowFor(p.id))
     startTransition(async () => {
       try {
-        await saveGameStats(gameId, rows)
+        await saveGameStats(activeGameId, rows)
         setEdits({})
         setFlash('Saved.')
       } catch (err) {
@@ -127,7 +121,10 @@ export default function StatsClient({
 
   return (
     <div className="p-4">
-      <h1 className="mb-4 text-xl font-bold text-white">Stats</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-white">Stats</h1>
+        <SeasonSelect seasons={seasons} value={season} onChange={selectSeason} />
+      </div>
 
       {/* Tabs */}
       <div className="mb-4 flex gap-1.5">
@@ -152,70 +149,27 @@ export default function StatsClient({
       </div>
 
       {tab === 'season' && (
-        <div className="card overflow-hidden">
-          {leaderboard.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">No stats recorded yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <th className="py-2.5 pl-4 pr-2 font-medium">#</th>
-                  <th className="px-2 py-2.5 font-medium">Player</th>
-                  <th className="px-2 py-2.5 text-center font-medium">G</th>
-                  <th className="px-2 py-2.5 text-center font-medium">A</th>
-                  <th className="px-2 py-2.5 text-center font-medium">CS</th>
-                  <th className="py-2.5 pl-2 pr-4 text-center font-medium">Caps</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((row, i) => (
-                  <tr key={row.player.id} className="border-b border-white/5 last:border-0">
-                    <td className="py-2.5 pl-4 pr-2 text-slate-500">{i + 1}</td>
-                    <td className="max-w-0 truncate px-2 py-2.5">
-                      <div className="truncate font-medium text-white">{row.player.full_name}</div>
-                      {row.goals > 0 && (
-                        <div className="text-[10px] text-slate-500">
-                          {[
-                            row.fg > 0 ? `FG ${row.fg}` : null,
-                            row.pc > 0 ? `PC ${row.pc}` : null,
-                            row.ps > 0 ? `PS ${row.ps}` : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-2 py-2.5 text-center font-semibold text-white">
-                      {row.goals > 0 ? row.goals : '—'}
-                    </td>
-                    <td className="px-2 py-2.5 text-center text-slate-300">
-                      {row.assists > 0 ? row.assists : '—'}
-                    </td>
-                    <td className="px-2 py-2.5 text-center text-slate-300">
-                      {row.cleanSheets > 0 ? row.cleanSheets : '—'}
-                    </td>
-                    <td className="py-2.5 pl-2 pr-4 text-center text-slate-300">{row.caps}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <>
+          <PotsCard pots={pots} />
+          <LeaderboardTable rows={leaderboard} />
+        </>
       )}
 
       {tab === 'game' && (
         <>
-          {games.length === 0 ? (
-            <p className="py-4 text-center text-sm text-slate-500">No games yet — add one on the Schedule page.</p>
+          {entryGames.length === 0 ? (
+            <p className="py-4 text-center text-sm text-slate-500">
+              No games this season — add one on the Schedule page.
+            </p>
           ) : (
             <>
               {/* Game picker */}
               <select
-                value={gameId}
+                value={activeGameId}
                 onChange={(e) => selectGame(e.target.value)}
                 className="mb-3 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               >
-                {games.map((g) => (
+                {entryGames.map((g) => (
                   <option key={g.id} value={g.id}>
                     {fmtDate(g.game_date)} — vs {g.opponent}
                     {g.goals_for != null ? ` (${g.goals_for}–${g.goals_against})` : ''}

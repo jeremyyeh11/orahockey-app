@@ -8,6 +8,7 @@ export default async function AdminStatsPage() {
     { data: players, error: playersError },
     { data: games, error: gamesError },
     { data: stats },
+    { data: potm },
     { data: att },
   ] = await Promise.all([
     supabase
@@ -23,6 +24,7 @@ export default async function AdminStatsPage() {
     supabase
       .from('player_stats')
       .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists, clean_sheet'),
+    supabase.from('potm').select('game_id, player_id, place'),
     supabase
       .from('attendance')
       .select('player_id, session_id')
@@ -39,13 +41,13 @@ export default async function AdminStatsPage() {
     )
   }
 
-  // Caps = games played. Derived from attendance on played games —
-  // placeholder numbers until real attendance is tracked.
-  const playedIds = new Set((games ?? []).filter((g) => g.result).map((g) => g.id))
-  const caps: Record<string, number> = {}
-  for (const a of att ?? []) {
-    if (playedIds.has(a.session_id)) caps[a.player_id] = (caps[a.player_id] ?? 0) + 1
-  }
-
-  return <StatsClient players={players ?? []} games={games ?? []} stats={stats ?? []} caps={caps} />
+  return (
+    <StatsClient
+      players={players ?? []}
+      games={games ?? []}
+      stats={stats ?? []}
+      potm={potm ?? []}
+      attendance={att ?? []}
+    />
+  )
 }
