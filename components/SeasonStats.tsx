@@ -124,7 +124,8 @@ export function computeSeason({
     if (r) r.caps += 1
   }
 
-  // Real card data (green/yellow/red) — hardcoded from 2026 season totals
+  // Real card data (green/yellow/red) — keyed by first name, matched case-insensitively
+  // against DB full names (e.g. 'Hiren' matches 'HIREN KOBAN')
   const CARD_DATA: Record<string, { green: number; yellow: number; red: number }> = {
     'Akash':      { green: 0, yellow: 0, red: 0 },
     'Alton':      { green: 0, yellow: 0, red: 0 },
@@ -153,10 +154,22 @@ export function computeSeason({
     'Ryan Vir':   { green: 1, yellow: 0, red: 0 },
   }
 
+  const EMPTY_CARDS = { green: 0, yellow: 0, red: 0 }
   for (const id of Object.keys(rows)) {
     const r = rows[id]
     const player = players.find((p) => p.id === id)
-    r.cards = player ? (CARD_DATA[player.full_name] ?? { green: 0, yellow: 0, red: 0 }) : { green: 0, yellow: 0, red: 0 }
+    if (!player) {
+      r.cards = EMPTY_CARDS
+      continue
+    }
+    // Match card data by key as a substring within the DB full name (case-insensitive)
+    // Sorted by key length descending so 'Ryan Vir' matches before 'Ryan'
+    const fullNameUpper = player.full_name.toUpperCase()
+    const sortedCards = Object.entries(CARD_DATA).sort((a, b) => b[0].length - a[0].length)
+    const match = sortedCards.find(([key]) =>
+      fullNameUpper.includes(key.toUpperCase())
+    )
+    r.cards = match ? match[1] : EMPTY_CARDS
   }
 
   const leaderboard = Object.values(rows)
