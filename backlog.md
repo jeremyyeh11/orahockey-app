@@ -28,14 +28,14 @@ Replace the current edit modal that appears when an event is clicked on the **Sc
 - Clicking **Edit** converts the read fields into editable fields. The Edit button is replaced by a **Save** button (persists changes) and a **Discard changes** button (reverts without saving) sitting next to it.
 
 **Reusable component:**
-- The modal's read→edit interaction pattern (read view, Edit→Save/Discard conversion, field styling) must be saved as a generic, non-event-specific component so it can be reused as a template for other entities (see #2).
+- The modal's read→edit interaction pattern (read view, Edit→Save/Discard conversion, field styling) must be saved as a generic, non-event-specific component so it can be reused as a template for other entities such as the player profile page.
 
 Must reference only UI-visible elements (Schedule tab, fixture cards, modal). Internal data shape TBD.
 
 
 ## 2. Player profile page
 
-Add an individual **player profile** page reachable from the **Squad** tab (player and admin), built using the same reusable modal/panel template from #1.
+Add an individual **player profile** page reachable from the **Squad** tab (player and admin), built using the same reusable modal/panel template defined for the event detail view above.
 
 **Content:**
 - Career stats and current-season stats, both displayed.
