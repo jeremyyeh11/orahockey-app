@@ -68,8 +68,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo / Title */}
         <div className="mb-9 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5">
-            <img src="/crest-white.png" alt="ORA Hockey" className="h-12 w-12 object-contain" />
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full">
+            <img src="/crest-white.png" alt="ORA Hockey" className="h-full w-full object-cover" />
           </div>
           <h1 className="font-display text-[1.7rem] font-bold tracking-tight text-white">
             ORA <span className="text-brand-light">Hockey</span>
