@@ -126,6 +126,9 @@ export function EventDetailModal({
   const [editMode, setEditMode] = useState(false)
   const [respondingId, setRespondingId] = useState<string | null>(null)
   const [showTeamList, setShowTeamList] = useState(false)
+  const [localTeamListStatus, setLocalTeamListStatus] = useState<'draft' | 'published' | null>(
+    item?.kind === 'game' ? item.game.team_list_status : null
+  )
 
   if (!item) return null
 
@@ -140,10 +143,10 @@ export function EventDetailModal({
   const title = isGame ? `vs ${currentItem.game.opponent}` : 'Training'
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
 
-  // Team list data
-  const teamListStatus = isGame && currentItem.kind === 'game' ? currentItem.game.team_list_status : null
+  // Team list data — use local state so it updates without a page refresh
+  const teamListStatus = isGame && currentItem.kind === 'game' ? localTeamListStatus : null
   const teamListSelections = teamListByGame[sessionId] ?? {}
-  const isTeamListPublished = teamListStatus === 'published'
+  const isTeamListPublished = localTeamListStatus === 'published'
 
   // Get selected players for published display
   const selectedPlayers = roster
@@ -190,9 +193,10 @@ export function EventDetailModal({
         game={currentItem.game}
         roster={roster as (PlayerLite & { position: string[] | null; jersey_number: number | null })[]}
         attendance={attendanceBySession[sessionId] ?? []}
-        teamListStatus={teamListStatus}
+        teamListStatus={localTeamListStatus}
         existingSelections={teamListSelections}
         onClose={() => setShowTeamList(false)}
+        onStatusChange={(status) => setLocalTeamListStatus(status)}
       />
     )
   }
@@ -267,7 +271,7 @@ export function EventDetailModal({
                     <button
                       type="button"
                       onClick={() => setShowTeamList(true)}
-                      className="mt-2 rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-700"
+                      className="mt-2 w-full rounded-lg border border-surface-border py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-700"
                     >
                       Edit Team List
                     </button>

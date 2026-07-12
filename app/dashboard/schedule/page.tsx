@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
+import { cookies } from 'next/headers'
+import { VIEW_COOKIE } from '@/lib/preview'
 
 export type AttendanceRow = {
   player_id: string
@@ -36,7 +38,7 @@ export default async function PlayerSchedulePage() {
     .eq('auth_user_id', user?.id ?? '')
     .single()
 
-  const isAdmin = me?.role === 'admin'
+  const isAdmin = me?.role === 'admin' && cookies().get(VIEW_COOKIE)?.value !== 'player'
 
   const [
     { data: games, error: gamesError },

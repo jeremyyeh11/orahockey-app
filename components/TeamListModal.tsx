@@ -19,6 +19,7 @@ export function TeamListModal({
   teamListStatus,
   existingSelections,
   onClose,
+  onStatusChange,
 }: {
   game: Game
   roster: PlayerWithMeta[]
@@ -26,6 +27,7 @@ export function TeamListModal({
   teamListStatus: 'draft' | 'published' | null
   existingSelections: Record<string, boolean>
   onClose: () => void
+  onStatusChange: (status: 'draft' | 'published') => void
 }) {
   // Get players who indicated attending
   const attendingPlayerIds = new Set(
@@ -70,6 +72,7 @@ export function TeamListModal({
     saveTeamList(game.id, entries, 'draft')
       .then(() => {
         setCurrentStatus('draft')
+        onStatusChange('draft')
         setIsPending(false)
       })
       .catch((err) => {
@@ -87,6 +90,7 @@ export function TeamListModal({
     saveTeamList(game.id, entries, 'published')
       .then(() => {
         setCurrentStatus('published')
+        onStatusChange('published')
         setIsPending(false)
       })
       .catch((err) => {
@@ -100,6 +104,7 @@ export function TeamListModal({
     unpublishTeamList(game.id)
       .then(() => {
         setCurrentStatus('draft')
+        onStatusChange('draft')
         setIsPending(false)
       })
       .catch((err) => {
@@ -108,13 +113,23 @@ export function TeamListModal({
       })
   }
 
+  function handleSelectAll() {
+    setSelections((prev) => {
+      const next = { ...prev }
+      for (const p of attendingPlayers) {
+        next[p.id] = true
+      }
+      return next
+    })
+  }
+
   const isPublished = currentStatus === 'published'
   const isDraft = currentStatus === 'draft'
 
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-md sm:rounded-2xl">
+      <div className="relative max-h-[90vh] w-full overflow-y-auto scrollbar-hide rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-md sm:rounded-2xl">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
 
         {/* Header */}
@@ -145,7 +160,7 @@ export function TeamListModal({
 
         {/* Player list */}
         <div className="space-y-1">
-          {/* Column headers */}
+          {/* Column headers + Select All */}
           <div className="flex items-center gap-3 border-b border-white/5 pb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
             <span className="flex-1">Player</span>
             <span className="w-16 text-center">Pos</span>
@@ -153,6 +168,15 @@ export function TeamListModal({
               {isPublished ? 'Jersey' : 'In'}
             </span>
           </div>
+          {!isPublished && attendingPlayers.length > 0 && (
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="w-full rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-700"
+            >
+              Select All
+            </button>
+          )}
 
           {attendingPlayers.map((p) => {
             const isSelected = selections[p.id] ?? false
