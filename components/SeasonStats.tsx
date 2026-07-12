@@ -47,6 +47,7 @@ export type LeaderboardRow = {
   potmWins: number
   potsPts: number
   caps: number
+  cards: { green: number; yellow: number; red: number }
 }
 
 const POTM_POINTS: Record<number, number> = { 1: 3, 2: 2, 3: 1 }
@@ -91,6 +92,7 @@ export function computeSeason({
       potmWins: 0,
       potsPts: 0,
       caps: 0,
+      cards: { green: 0, yellow: 0, red: 0 },
     })
   }
 
@@ -121,6 +123,19 @@ export function computeSeason({
     const r = rowFor(a.player_id)
     if (r) r.caps += 1
   }
+
+  // Mock card data — temporary, will be replaced with real data later
+  const playerIds = Object.keys(rows)
+  const mockSeed = parseInt(season) || 2026
+  playerIds.forEach((id, idx) => {
+    const r = rows[id]
+    const seed = (mockSeed + idx * 37) % 100
+    r.cards = {
+      green: seed % 7,
+      yellow: (seed * 3) % 4,
+      red: seed % 13 === 0 ? 1 : 0,
+    }
+  })
 
   const leaderboard = Object.values(rows)
     .filter((r) => r.goals > 0 || r.assists > 0 || r.cleanSheets > 0 || r.potsPts > 0 || r.caps > 0)

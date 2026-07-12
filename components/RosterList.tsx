@@ -18,6 +18,35 @@ export function sortPositions(pos: string[] | null | undefined) {
   )
 }
 
+function CardShape({ color, count }: { color: 'green' | 'yellow' | 'red'; count: number }) {
+  if (count === 0) return null
+  const shapes = {
+    green: <span className="text-green-400">▲</span>,
+    yellow: <span className="text-yellow-400">■</span>,
+    red: <span className="text-red-400">●</span>,
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 text-xs">
+      {shapes[color]}
+      {count > 1 && <span className="text-slate-400">{count}</span>}
+    </span>
+  )
+}
+
+function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+  const { green, yellow, red } = row.cards
+  if (green === 0 && yellow === 0 && red === 0) {
+    return <span className="text-slate-600 text-xs">–</span>
+  }
+  return (
+    <div className="flex items-center gap-1.5">
+      <CardShape color="green" count={green} />
+      <CardShape color="yellow" count={yellow} />
+      <CardShape color="red" count={red} />
+    </div>
+  )
+}
+
 const STAT_COLS = ['G', 'A', 'CS', 'POTM', 'Caps'] as const
 
 function statValue(row: LeaderboardRow, col: string): number {
@@ -31,20 +60,20 @@ function statValue(row: LeaderboardRow, col: string): number {
   }
 }
 
-function StatGrid({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+function StatRow({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+  const valCls = (v: number) =>
+    v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'
+  const labelCls = isMe ? 'text-white/50' : 'text-slate-500'
+
   return (
-    <div className="grid grid-cols-5 gap-1 mt-2">
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 mt-1.5 text-[11px]">
       {STAT_COLS.map((col) => {
         const v = statValue(row, col)
         return (
-          <div key={col} className="text-center">
-            <div className={`text-sm font-semibold ${v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'}`}>
-              {v > 0 ? v : '–'}
-            </div>
-            <div className={`text-[9px] uppercase tracking-wide ${isMe ? 'text-white/60' : 'text-slate-500'}`}>
-              {col}
-            </div>
-          </div>
+          <span key={col} className="inline-flex items-baseline gap-0.5">
+            <span className={`font-semibold ${valCls(v)}`}>{v > 0 ? v : '–'}</span>
+            <span className={labelCls}>{col}</span>
+          </span>
         )
       })}
     </div>
@@ -53,22 +82,13 @@ function StatGrid({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
 
 function StatHeader() {
   return (
-    <div className="grid grid-cols-5 gap-1 px-4 pb-1">
-      {STAT_COLS.map((col) => (
-        <div key={col} className="text-center text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-          {col}
-        </div>
-      ))}
+    <div className="flex items-center px-4 pb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+      <span className="flex-1">G  A  CS  POTM  Caps</span>
+      <span className="w-12 text-center">Cards</span>
     </div>
   )
 }
 
-/**
- * Roster cards shared by the admin Squad page (tappable → edit) and the
- * player Squad page (read-only). The signed-in player's row is highlighted.
- * When statsMap is provided, compact season stats are shown in aligned
- * columns below each player's name.
- */
 export default function RosterList<T extends RosterPlayer>({
   players,
   myPlayerId,
@@ -86,14 +106,12 @@ export default function RosterList<T extends RosterPlayer>({
       {players.map((player) => {
         const isMe = player.id === myPlayerId
         const stats = statsMap?.get(player.id)
-        // Own row gets the dashboard hero treatment: solid green, white text
         const cardCls = `relative block w-full overflow-hidden rounded-xl px-4 py-3 text-left transition ${
           isMe ? 'bg-accent ring-1 ring-white/10' : 'border border-surface-border bg-surface-card'
         } ${!player.is_active ? 'opacity-50' : ''}`
 
         const inner = (
           <>
-            {/* Jersey number watermark — same treatment as the dashboard hero icon */}
             {player.jersey_number != null && (
               <span
                 aria-hidden
@@ -118,7 +136,15 @@ export default function RosterList<T extends RosterPlayer>({
                 ))}
               </div>
             </div>
-            {stats && <StatGrid row={stats} isMe={isMe} />}
+
+            {stats && (
+              <div className="relative mt-1 flex items-end justify-between">
+                <StatRow row={stats} isMe={isMe} />
+                <div className="shrink-0 pl-2">
+                  <CardsCell row={stats} isMe={isMe} />
+                </div>
+              </div>
+            )}
           </>
         )
 
