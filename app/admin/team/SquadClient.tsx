@@ -9,6 +9,7 @@ import {
   seasonsOf,
   SeasonSelect,
   PotsCard,
+  TopScorersCard,
   type PlayerLite,
   type GameLite,
   type SeasonStat,
@@ -69,7 +70,7 @@ export default function SquadClient({
   const seasons = seasonsOf(games)
   const [season, setSeason] = useState<string>(seasons[0] ?? String(new Date().getFullYear()))
 
-  const { leaderboard, pots } = computeSeason({
+  const { leaderboard, pots, topScorers } = computeSeason({
     players,
     games,
     stats,
@@ -167,6 +168,9 @@ export default function SquadClient({
 
       {/* POTS race card */}
       <PotsCard pots={pots} />
+
+      {/* Top scorers card */}
+      <TopScorersCard scorers={topScorers} />
 
       {players.some((p) => !p.is_active) && (
         <label className="flex items-center gap-2 text-sm text-slate-400 mb-4 cursor-pointer w-fit">

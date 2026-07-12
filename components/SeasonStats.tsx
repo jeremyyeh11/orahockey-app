@@ -190,7 +190,12 @@ export function computeSeason({
     .sort((a, b) => b.potsPts - a.potsPts || b.potmWins - a.potmWins || b.goals - a.goals)
     .slice(0, 3)
 
-  return { seasonGames, leaderboard, pots }
+  const topScorers = Object.values(rows)
+    .filter((r) => r.goals > 0)
+    .sort((a, b) => b.goals - a.goals || b.assists - a.assists)
+    .slice(0, 3)
+
+  return { seasonGames, leaderboard, pots, topScorers }
 }
 
 export function SeasonSelect({
@@ -236,6 +241,29 @@ export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
             {preferredName(r.player)}
           </span>
           <span className="shrink-0 text-sm font-semibold text-brand-light">{r.potsPts} pts</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function TopScorersCard({ scorers }: { scorers: LeaderboardRow[] }) {
+  if (scorers.length === 0) return null
+  return (
+    <div className="card mb-4 overflow-hidden">
+      <div className="border-b border-white/10 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Top Scorers
+      </div>
+      {scorers.map((r, i) => (
+        <div
+          key={r.player.id}
+          className="flex items-center gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
+        >
+          <span className="w-6 text-center text-base">{MEDALS[i]}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">
+            {preferredName(r.player)}
+          </span>
+          <span className="shrink-0 text-sm font-semibold text-brand-light">{r.goals}G</span>
         </div>
       ))}
     </div>

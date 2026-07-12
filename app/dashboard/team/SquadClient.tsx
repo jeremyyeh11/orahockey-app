@@ -7,6 +7,7 @@ import {
   seasonsOf,
   SeasonSelect,
   PotsCard,
+  TopScorersCard,
   type PlayerLite,
   type GameLite,
   type SeasonStat,
@@ -37,7 +38,7 @@ export default function SquadClient({
     seasons[0] ?? String(new Date().getFullYear())
   )
 
-  const { seasonGames, leaderboard, pots } = computeSeason({
+  const { seasonGames, leaderboard, pots, topScorers } = computeSeason({
     players,
     games,
     stats,
@@ -89,6 +90,9 @@ export default function SquadClient({
 
       {/* POTS race card */}
       <PotsCard pots={pots} />
+
+      {/* Top scorers card */}
+      <TopScorersCard scorers={topScorers} />
 
       {/* Roster with inline stats */}
       <RosterList
