@@ -28,8 +28,23 @@ export function splitName(player: { full_name: string; preferred_name: string | 
   const preferred = preferredName(player)
   const full = player.full_name.trim()
   const words = full.split(/\s+/)
+  const prefWords = preferred.split(/\s+/)
 
-  // First: try exact whole-word match (case-insensitive)
+  // First: try multi-word match (e.g. "PEH YU" in "PEH YU TAY")
+  if (prefWords.length > 1) {
+    for (let i = 0; i <= words.length - prefWords.length; i++) {
+      const slice = words.slice(i, i + prefWords.length)
+      if (slice.every((w, j) => w.toUpperCase() === prefWords[j].toUpperCase())) {
+        return {
+          before: words.slice(0, i).join(' ').toUpperCase(),
+          preferred,
+          after: words.slice(i + prefWords.length).join(' ').toUpperCase(),
+        }
+      }
+    }
+  }
+
+  // Second: try exact whole-word match (case-insensitive, single word)
   const wordIdx = words.findIndex(w => w.toUpperCase() === preferred.toUpperCase())
   if (wordIdx !== -1) {
     return {
@@ -39,7 +54,7 @@ export function splitName(player: { full_name: string; preferred_name: string | 
     }
   }
 
-  // Second: try substring match within a word (e.g. "KEAEN" in "KEAEN-SETH")
+  // Third: try substring match within a word (e.g. "KEAEN" in "KEAEN-SETH")
   for (let i = 0; i < words.length; i++) {
     const w = words[i].toUpperCase()
     const p = preferred.toUpperCase()

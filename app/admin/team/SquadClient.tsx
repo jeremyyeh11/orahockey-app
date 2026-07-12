@@ -114,7 +114,7 @@ export default function SquadClient({
     const preferredRaw = (fd.get('preferred_name') as string).trim()
     return {
       full_name: fd.get('full_name') as string,
-      preferred_name: preferredRaw || null,
+      preferred_name: preferredRaw ? preferredRaw.toUpperCase() : null,
       email: fd.get('email') as string,
       jersey_number: jerseyRaw ? Number(jerseyRaw) : null,
       position: selectedPositions.length > 0 ? selectedPositions : null,
