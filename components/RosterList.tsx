@@ -106,6 +106,18 @@ function StatHeader() {
   )
 }
 
+// Sort: user's row first, then by position (GK > DEF > MID > FWD), then alphabetical
+const SORT_ORDER: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 }
+
+function playerSortKey(player: RosterPlayer, myPlayerId: string | null): string {
+  const positions = player.position ?? []
+  // Use the highest-priority position (lowest sort order)
+  const minPos = positions.length > 0
+    ? Math.min(...positions.map((p) => SORT_ORDER[p] ?? 9))
+    : 9
+  return `${minPos}_${player.full_name.toLowerCase()}`
+}
+
 export default function RosterList<T extends RosterPlayer>({
   players,
   myPlayerId,
@@ -117,10 +129,18 @@ export default function RosterList<T extends RosterPlayer>({
   onSelect?: (player: T) => void
   statsMap?: Map<string, LeaderboardRow>
 }) {
+  const sorted = [...players].sort((a, b) => {
+    // User's row always first
+    if (a.id === myPlayerId && b.id !== myPlayerId) return -1
+    if (b.id === myPlayerId && a.id !== myPlayerId) return 1
+    // Then by position (GK > DEF > MID > FWD), then alphabetical
+    return playerSortKey(a, myPlayerId).localeCompare(playerSortKey(b, myPlayerId))
+  })
+
   return (
     <div className="space-y-2">
       {statsMap && <StatHeader />}
-      {players.map((player) => {
+      {sorted.map((player) => {
         const isMe = player.id === myPlayerId
         const stats = statsMap?.get(player.id)
         const cardCls = `relative block w-full overflow-hidden rounded-xl px-4 py-3 text-left transition ${
