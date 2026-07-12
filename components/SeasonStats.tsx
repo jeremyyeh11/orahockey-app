@@ -263,7 +263,7 @@ export function TopScorersCard({ scorers }: { scorers: LeaderboardRow[] }) {
           <span className="min-w-0 flex-1 truncate text-xs font-medium text-white">
             {preferredName(r.player)}
           </span>
-          <span className="shrink-0 text-xs font-semibold text-brand-light">{r.goals}G</span>
+          <span className="shrink-0 text-xs font-semibold text-brand-light">{r.goals}</span>
         </div>
       ))}
     </div>
