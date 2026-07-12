@@ -40,8 +40,9 @@ export default function RosterList<T extends RosterPlayer>({
     <div className="space-y-2">
       {players.map((player) => {
         const isMe = player.id === myPlayerId
-        const cardCls = `relative block w-full overflow-hidden rounded-xl border px-4 py-3 text-left transition ${
-          isMe ? 'border-brand/50 bg-brand/10' : 'border-surface-border bg-surface-card'
+        // Own row gets the dashboard hero treatment: solid green, white text
+        const cardCls = `relative block w-full overflow-hidden rounded-xl px-4 py-3 text-left transition ${
+          isMe ? 'bg-accent ring-1 ring-white/10' : 'border border-surface-border bg-surface-card'
         } ${!player.is_active ? 'opacity-50' : ''}`
 
         const inner = (
@@ -52,20 +53,20 @@ export default function RosterList<T extends RosterPlayer>({
                 aria-hidden
                 className="pointer-events-none absolute -top-1.5 right-2 select-none font-display text-[2.75rem] font-extrabold leading-none text-white opacity-15"
               >
-                #{player.jersey_number}
+                {player.jersey_number}
               </span>
             )}
 
             <div className="relative min-w-0 pr-16">
-              <div className={`truncate font-semibold ${isMe ? 'text-brand-light' : 'text-white'}`}>
-                {player.full_name}
-              </div>
+              <div className="truncate font-semibold text-white">{player.full_name}</div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 {sortPositions(player.position).map((pos) => (
                   <span
                     key={pos}
                     className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                      POSITION_COLORS[pos] ?? 'bg-slate-700 text-slate-300'
+                      isMe
+                        ? 'bg-white/15 text-white'
+                        : POSITION_COLORS[pos] ?? 'bg-slate-700 text-slate-300'
                     }`}
                   >
                     {pos}
