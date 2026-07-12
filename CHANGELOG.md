@@ -1,9 +1,11 @@
 # ORA Hockey — Changelog / Feature Queue
 
 > **How this works:**
-> - New features go to the **Backlog** section (bottom).
-> - When a feature is completed by an implementation agent, move it to **Archived**.
-> - Each entry is a self-contained prompt that can be handed off.
+> - Work starts from **#1** at the top of Backlog. Complete items in order.
+> - New feature requests are appended to the **bottom** of the Backlog (insert at back, not front).
+> - When a feature is completed, move it to the **Archived** section.
+> - Each entry is a self-contained prompt that can be handed off to an implementation agent.
+> - Refer to UI elements by what the user sees on the deployed page — not by internal file/component names.
 
 ---
 
@@ -17,29 +19,12 @@ _Completed features live here, moved from Backlog._
 
 ### 1. Merge stats page into team page
 
-**Prompt:** Merge the `/dashboard/stats` page into `/dashboard/team`. Rename the combined page to "Squad" (instead of "Team"). Deprecate and remove the old `/dashboard/stats` page and its nav link. Remove the `/admin/stats` page and its nav link too — the admin view should also be merged.
+**Prompt:** Merge the Stats page into the Team page. Rename the combined page to "Squad". Remove the old Stats page (both player-facing and admin views) and their nav links.
 
 **Requirements:**
-- **Preserve the existing Team (now "Squad") page layout** — keep the roster card design (`RosterList`), the top-bar, nav, and overall visual structure intact.
-- **Add a season selector dropdown** at the top of the page. When a season is selected, only show players who were registered/active for that season.
-- **Display per-player stats inline** in each player's roster card, below their name and position badges. Stats should be compact and legible on mobile — not in a separate table.
-- **Move the POTS race card** (`PotsCard` from `SeasonStats.tsx`) to the top of the page, above the squad list.
-- **Exclude "My" stats** — the "My season" summary cards and "My games" per-game breakdown (currently in `StatsClient.tsx`) should not appear on the merged Squad page. These will be implemented later as a separate feature.
-- **Update navigation:** in both `app/dashboard/layout.tsx` and `app/admin/layout.tsx`, rename "Stats" to... actually remove the Stats nav link entirely. Change "Team" to "Squad".
-- **Deprecate old stats pages**: remove `app/dashboard/stats/` and `app/admin/stats/` directories entirely.
-
-**Files to modify:**
-- `app/dashboard/team/page.tsx` — add season selector, stats integration, rename heading to "Squad"
-- `app/dashboard/layout.tsx` — rename nav: Team → Squad, remove Stats (or hide it)
-- `app/admin/layout.tsx` — same nav changes
-- `app/admin/team/page.tsx` and `TeamClient.tsx` — add season selector, stats, rename to Squad
-- `components/RosterList.tsx` — accept optional stats data and render inline below player name
-- `components/SeasonStats.tsx` — already has `computeSeason`, `SeasonSelect`, `PotsCard` — reuse these
-
-**Files to remove:**
-- `app/dashboard/stats/page.tsx`
-- `app/dashboard/stats/StatsClient.tsx`
-- `app/dashboard/stats/actions.ts`
-- `app/admin/stats/page.tsx`
-- `app/admin/stats/StatsClient.tsx`
-- `app/admin/stats/actions.ts`
+- Preserve the existing Squad (formerly Team) page layout — the roster cards, top-bar, bottom nav, and overall visual structure stay the same.
+- Add a **season selector dropdown** at the top of the page. When a season is selected, only show players who were active/registered for that season.
+- Display each player's stats **inline inside their roster card**, below their name and position badges. Stats should be compact and legible on mobile — not in a separate table.
+- Place the **Player of the Season (POTS) race card** at the top of the page, above the squad list.
+- **"My" stats** (personal season summary cards and per-game breakdown) must NOT appear on this page — they will be a separate feature later.
+- Update the bottom navigation: remove the Stats tab. Change "Team" to "Squad".
