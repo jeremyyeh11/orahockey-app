@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { PlayerProfilePage } from '@/components/PlayerProfilePage'
-import { computeSeason, seasonsOf, type PlayerLite, type GameLite, type SeasonStat, type PotmRow, type AttendanceRow } from '@/components/SeasonStats'
+import { computeSeason, seasonsOf, type PlayerLite, type GameLite, type SeasonStat, type PotmRow, type AttendanceRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
 import { getNow } from '@/lib/preview'
 
@@ -37,8 +37,8 @@ export default async function PlayerProfileRoute({
   const seasons = seasonsOf(games ?? [])
   const currentSeason = seasons[0] ?? String(getNow().getFullYear())
 
-  let seasonRow: import('@/components/SeasonStats').LeaderboardRow | undefined
-  let careerRow: import('@/components/SeasonStats').LeaderboardRow | undefined
+  let seasonRow: LeaderboardRow | undefined
+  let careerRow: LeaderboardRow | undefined
 
   try {
     const { leaderboard: seasonLb } = computeSeason({

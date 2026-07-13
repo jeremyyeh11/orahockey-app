@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { preferredName, splitName, sortPositions } from './RosterList'
-import type { LeaderboardRow, PlayerLite } from './SeasonStats'
+import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 
 export type ProfilePlayer = PlayerLite & {
   position: string[] | null
