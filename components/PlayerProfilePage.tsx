@@ -102,12 +102,26 @@ export function PlayerProfilePage({
         </span>
       )}
 
-      {/* Player image placeholder — full screen height */}
-      <div className="absolute inset-0 flex items-start justify-center pt-20">
+      {/* Player image — real photo if available, silhouette placeholder otherwise */}
+      <div className="absolute inset-0 flex items-start justify-center pt-16">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/players/${player.id}.png`}
+          alt={preferredName(player)}
+          className="h-[55vh] w-auto max-w-full object-contain opacity-90"
+          onError={(e) => {
+            // Fallback to silhouette if no photo
+            const img = e.currentTarget
+            img.style.display = 'none'
+            const fallback = img.nextElementSibling
+            if (fallback) (fallback as HTMLElement).style.display = 'block'
+          }}
+        />
         <svg
           viewBox="0 0 100 130"
           className="h-[55vh] w-auto opacity-25"
           fill="currentColor"
+          style={{ display: 'none' }}
         >
           <circle cx="50" cy="18" r="12" />
           <path d="M32 40 Q50 30 68 40 L68 72 L63 72 L63 48 L58 48 L58 130 L53 130 L53 72 L47 72 L47 130 L42 130 L42 48 L37 48 L37 72 L32 72 Z" />
