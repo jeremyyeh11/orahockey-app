@@ -12,7 +12,7 @@ export default async function AdminPlayerProfileRoute({
   const supabase = createClient()
 
   const [
-    { data: player },
+    { data: player, error: playerErr },
     { data: games },
     { data: stats },
     { data: potm },
@@ -29,34 +29,39 @@ export default async function AdminPlayerProfileRoute({
     supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending'),
   ])
 
-  if (!player) {
+  if (playerErr || !player) {
     return <div className="p-4 text-sm text-red-400">Player not found.</div>
   }
 
-  const players: (PlayerLite & RosterPlayer)[] = [player]
+  const players: (PlayerLite & RosterPlayer)[] = [player as (PlayerLite & RosterPlayer)]
   const seasons = seasonsOf(games ?? [])
   const currentSeason = seasons[0] ?? String(getNow().getFullYear())
 
-  const { leaderboard: seasonLb } = computeSeason({
-    players,
-    games: games ?? [],
-    stats: stats ?? [],
-    potm: potm ?? [],
-    attendance: att ?? [],
-    season: currentSeason,
-  })
+  let seasonRow: import('@/components/SeasonStats').LeaderboardRow | undefined
+  let careerRow: import('@/components/SeasonStats').LeaderboardRow | undefined
 
-  const { leaderboard: careerLb } = computeSeason({
-    players,
-    games: games ?? [],
-    stats: stats ?? [],
-    potm: potm ?? [],
-    attendance: att ?? [],
-    season: 'all',
-  })
-
-  const seasonRow = seasonLb.find((r) => r.player.id === player.id)
-  const careerRow = careerLb.find((r) => r.player.id === player.id)
+  try {
+    const { leaderboard: seasonLb } = computeSeason({
+      players,
+      games: games ?? [],
+      stats: stats ?? [],
+      potm: potm ?? [],
+      attendance: att ?? [],
+      season: currentSeason,
+    })
+    const { leaderboard: careerLb } = computeSeason({
+      players,
+      games: games ?? [],
+      stats: stats ?? [],
+      potm: potm ?? [],
+      attendance: att ?? [],
+      season: 'all',
+    })
+    seasonRow = seasonLb.find((r) => r.player.id === player.id)
+    careerRow = careerLb.find((r) => r.player.id === player.id)
+  } catch (e) {
+    // computeSeason may crash if data is incomplete — that's fine, just show no stats
+  }
 
   return (
     <PlayerProfilePage
