@@ -43,7 +43,6 @@ function StatGrid({ row, positions }: { row: LeaderboardRow; positions: string[]
 
   return (
     <div className="grid grid-cols-3 gap-2">
-      {/* Total goals as a highlighted stat */}
       {showGoals && (
         <div className="rounded-lg bg-brand/10 px-3 py-2 text-center ring-1 ring-brand/20">
           <div className="text-xl font-bold text-white">{totalGoals}</div>
@@ -124,7 +123,6 @@ export function PlayerProfileModal({
 
   const { before, beforeSep, preferred, afterSep, after } = splitName(player)
   const positions = sortPositions(player.position)
-  const isMeHighlight = false // highlight is handled by parent
 
   function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -148,7 +146,7 @@ export function PlayerProfileModal({
 
   return (
     <ReadEditModal
-      title={preferredName(player)}
+      title=""
       isOpen={!!player}
       onClose={onClose}
       isAdmin={isAdmin}
@@ -164,34 +162,48 @@ export function PlayerProfileModal({
       onDiscard={() => setEditMode(false)}
       isPending={isPending}
     >
-      {/* READ MODE */}
+      {/* READ MODE — Trading card layout */}
       {!editMode && (
-        <div className="space-y-5">
-          {/* Photo placeholder — trading card area */}
-          <div className="flex flex-col items-center">
-            <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-surface-border bg-surface">
-              <span className="text-3xl font-bold text-slate-600">
-                {player.jersey_number ?? '—'}
+        <div className="space-y-4">
+          {/* Hero area — ~45% of modal height, trading card style */}
+          <div className="relative -mx-6 -mt-6 h-[38vh] max-h-[280px] min-h-[180px] overflow-hidden rounded-t-2xl bg-gradient-to-b from-brand/20 via-surface to-surface-card">
+            {/* Large faded jersey number as background */}
+            {player.jersey_number != null && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 select-none font-display text-[8rem] font-extrabold leading-none text-white/10"
+              >
+                {player.jersey_number}
               </span>
-            </div>
-          </div>
-
-          {/* Name */}
-          <div className="text-center">
-            <div className="text-base font-bold text-white">
-              {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before}{beforeSep}</span>}
-              <span>{preferred}</span>
-              {after && <span className="text-sm font-normal tracking-wide text-slate-400">{afterSep}{after}</span>}
-            </div>
-            {positions.length > 0 && (
-              <div className="mt-1.5 flex justify-center gap-1.5">
-                {positions.map((pos) => (
-                  <span key={pos} className="rounded bg-white/[0.07] px-1.5 py-0.5 text-xs font-medium text-slate-300">
-                    {pos}
-                  </span>
-                ))}
-              </div>
             )}
+            {/* Placeholder silhouette — replaced by player photo later */}
+            <div className="absolute inset-0 flex items-end justify-center pb-2">
+              <svg
+                viewBox="0 0 100 120"
+                className="h-[85%] w-auto opacity-20"
+                fill="currentColor"
+              >
+                <circle cx="50" cy="22" r="14" />
+                <path d="M30 50 Q50 38 70 50 L70 80 L65 80 L65 55 L60 55 L60 120 L55 120 L55 80 L45 80 L45 120 L40 120 L40 55 L35 55 L35 80 L30 80 Z" />
+              </svg>
+            </div>
+            {/* Name overlay at bottom of hero */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface-card to-transparent px-6 pb-2 pt-8">
+              <div className="text-lg font-bold text-white">
+                {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before}{beforeSep}</span>}
+                <span>{preferred}</span>
+                {after && <span className="text-sm font-normal tracking-wide text-slate-400">{afterSep}{after}</span>}
+              </div>
+              {positions.length > 0 && (
+                <div className="mt-1 flex gap-1.5">
+                  {positions.map((pos) => (
+                    <span key={pos} className="rounded bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
+                      {pos}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Season stats */}
@@ -225,6 +237,19 @@ export function PlayerProfileModal({
       {/* EDIT MODE (admins only) */}
       {editMode && (
         <form id="player-profile-form" onSubmit={handleSave} className="space-y-4">
+          {/* Compact hero in edit mode */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-surface-border bg-surface">
+              <span className="text-2xl font-bold text-slate-500">
+                {player.jersey_number ?? '—'}
+              </span>
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white">{preferredName(player)}</div>
+              <div className="text-xs text-slate-500">{player.position?.join(' / ') || 'No position'}</div>
+            </div>
+          </div>
+
           <div>
             <label className={labelCls}>Preferred Name</label>
             <input
