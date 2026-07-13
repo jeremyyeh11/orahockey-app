@@ -101,11 +101,11 @@ export function PlayerProfilePage({
 
     <div className="fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide">
 
-      {/* Large faded jersey number */}
+      {/* Large faded jersey number — aligned with back button */}
       {player.jersey_number != null && (
         <span
           aria-hidden
-          className="pointer-events-none absolute right-2 top-16 select-none font-display text-[7rem] font-extrabold leading-none text-white/8"
+          className="pointer-events-none absolute right-4 top-1 select-none font-display text-[7rem] font-extrabold leading-none text-white/8"
         >
           {player.jersey_number}
         </span>
@@ -135,6 +135,9 @@ export function PlayerProfilePage({
           <path d="M32 40 Q50 30 68 40 L68 72 L63 72 L63 48 L58 48 L58 130 L53 130 L53 72 L47 72 L47 130 L42 130 L42 48 L37 48 L37 72 L32 72 Z" />
         </svg>
       </div>
+
+      {/* Fade image out at bottom */}
+      <div className="absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-surface-card via-surface-card/80 to-transparent" />
 
       {/* Back button — top left */}
       <button
