@@ -5,11 +5,22 @@ import { useEffect } from 'react'
 import { preferredName, splitName, sortPositions } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 
+function calcAge(dob: string): number {
+  const birth = new Date(dob)
+  const now = new Date()
+  let age = now.getFullYear() - birth.getFullYear()
+  const m = now.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--
+  return age
+}
+
 export type ProfilePlayer = PlayerLite & {
   position: string[] | null
   is_active: boolean
   email?: string
   role?: 'player' | 'admin'
+  date_of_birth?: string | null
+  joined_year?: number | null
 }
 
 // Inline stat row — same compact style as squad cards
@@ -32,7 +43,6 @@ function StatLine({ row, positions }: { row: LeaderboardRow; positions: string[]
   }
   if (showCS) cols.push({ label: 'CS', value: row.cleanSheets })
   cols.push({ label: 'POTM', value: row.potmWins })
-  cols.push({ label: 'CAPS', value: row.caps })
 
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px]">
@@ -154,13 +164,29 @@ export function PlayerProfilePage({
       <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
         <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
+          {/* Name */}
           <div className="text-lg font-bold text-white">
             {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before}{beforeSep}</span>}
             <span>{preferred}</span>
             {after && <span className="text-sm font-normal tracking-wide text-slate-400">{afterSep}{after}</span>}
           </div>
+
+          {/* Age | Years with ORA | Total Caps */}
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px] text-slate-300">
+            {player.date_of_birth && (
+              <span>{calcAge(player.date_of_birth)} yrs</span>
+            )}
+            {player.joined_year && (
+              <span>{new Date().getFullYear() - player.joined_year} yrs with ORA</span>
+            )}
+            {careerRow && careerRow.caps > 0 && (
+              <span>{careerRow.caps} caps</span>
+            )}
+          </div>
+
+          {/* Positions */}
           {positions.length > 0 && (
-            <div className="mt-1 flex gap-1.5">
+            <div className="mt-1.5 flex gap-1.5">
               {positions.map((pos) => (
                 <span key={pos} className="rounded bg-white/[0.1] px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
                   {pos}

@@ -20,7 +20,7 @@ export default async function AdminPlayerProfileRoute({
   ] = await Promise.all([
     supabase
       .from('players')
-      .select('id, full_name, preferred_name, jersey_number, position, is_active, email, role')
+      .select('id, full_name, preferred_name, jersey_number, position, is_active, email, role, date_of_birth, joined_year')
       .eq('id', params.playerId)
       .single(),
     supabase.from('games').select('id, game_date, result').order('game_date', { ascending: false }),
