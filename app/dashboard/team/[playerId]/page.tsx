@@ -1,0 +1,69 @@
+import { createClient } from '@/lib/supabase/server'
+import { PlayerProfilePage } from '@/components/PlayerProfilePage'
+import { computeSeason, seasonsOf, type PlayerLite, type GameLite, type SeasonStat, type PotmRow, type AttendanceRow } from '@/components/SeasonStats'
+import type { RosterPlayer } from '@/components/RosterList'
+import { getNow } from '@/lib/preview'
+
+export default async function PlayerProfileRoute({
+  params,
+}: {
+  params: { playerId: string }
+}) {
+  const supabase = createClient()
+
+  const [
+    { data: player },
+    { data: games },
+    { data: stats },
+    { data: potm },
+    { data: att },
+  ] = await Promise.all([
+    supabase
+      .from('players')
+      .select('id, full_name, preferred_name, jersey_number, position, is_active')
+      .eq('id', params.playerId)
+      .single(),
+    supabase.from('games').select('id, game_date, result').order('game_date', { ascending: false }),
+    supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists, clean_sheet'),
+    supabase.from('potm').select('game_id, player_id, place'),
+    supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending'),
+  ])
+
+  if (!player) {
+    return <div className="p-4 text-sm text-red-400">Player not found.</div>
+  }
+
+  const players: (PlayerLite & RosterPlayer)[] = [player]
+  const seasons = seasonsOf(games ?? [])
+  const currentSeason = seasons[0] ?? String(getNow().getFullYear())
+
+  const { leaderboard: seasonLb } = computeSeason({
+    players,
+    games: games ?? [],
+    stats: stats ?? [],
+    potm: potm ?? [],
+    attendance: att ?? [],
+    season: currentSeason,
+  })
+
+  const { leaderboard: careerLb } = computeSeason({
+    players,
+    games: games ?? [],
+    stats: stats ?? [],
+    potm: potm ?? [],
+    attendance: att ?? [],
+    season: 'all',
+  })
+
+  const seasonRow = seasonLb.find((r) => r.player.id === player.id)
+  const careerRow = careerLb.find((r) => r.player.id === player.id)
+
+  return (
+    <PlayerProfilePage
+      player={player}
+      seasonRow={seasonRow}
+      careerRow={careerRow}
+      seasonLabel={`MHL1 ${currentSeason}`}
+    />
+  )
+}

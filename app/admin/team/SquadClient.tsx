@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { addPlayer, updatePlayer, togglePlayerActive } from './actions'
+import { useRouter } from 'next/navigation'
+import { addPlayer, togglePlayerActive } from './actions'
 import RosterList from '@/components/RosterList'
 import { defaultPreferredName } from '@/components/RosterList'
 import {
@@ -17,7 +18,6 @@ import {
   type AttendanceRow,
 } from '@/components/SeasonStats'
 import type { RosterPlayer } from '@/components/RosterList'
-import { PlayerProfileModal, type ProfilePlayer } from '@/components/PlayerProfileModal'
 
 type Player = RosterPlayer & PlayerLite & {
   email: string
@@ -60,8 +60,8 @@ export default function SquadClient({
   attendance: AttendanceRow[]
   myPlayerId: string | null
 }) {
+  const router = useRouter()
   const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const [selectedPositions, setSelectedPositions] = useState<string[]>([])
   const [showInactive, setShowInactive] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -80,18 +80,7 @@ export default function SquadClient({
     season,
   })
 
-  // Career stats (all games)
-  const { leaderboard: careerLeaderboard } = computeSeason({
-    players,
-    games: games as unknown as GameLite[],
-    stats,
-    potm,
-    attendance,
-    season: 'all',
-  })
-
   const statsMap = new Map(leaderboard.map((r) => [r.player.id, r]))
-  const careerMap = new Map(careerLeaderboard.map((r) => [r.player.id, r]))
 
   const visible = showInactive ? players : players.filter((p) => p.is_active)
 
@@ -129,27 +118,6 @@ export default function SquadClient({
       try {
         await addPlayer(data)
         setShowAddModal(false)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      }
-    })
-  }
-
-  function handleProfileSave(data: {
-    preferred_name: string | null
-    jersey_number: number | null
-    position: string[] | null
-    role: 'player' | 'admin'
-  }) {
-    if (!selectedPlayer) return
-    startTransition(async () => {
-      try {
-        await updatePlayer(selectedPlayer.id, {
-          ...data,
-          full_name: selectedPlayer.full_name,
-          email: selectedPlayer.email,
-        })
-        setSelectedPlayer(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
       }
@@ -206,22 +174,8 @@ export default function SquadClient({
         <RosterList
           players={visible}
           myPlayerId={myPlayerId}
-          onSelect={(p) => setSelectedPlayer(p)}
+          onSelect={(p) => router.push(`/admin/team/${p.id}`)}
           statsMap={statsMap}
-        />
-      )}
-
-      {/* Player Profile Modal */}
-      {selectedPlayer && (
-        <PlayerProfileModal
-          player={selectedPlayer as ProfilePlayer}
-          seasonRow={statsMap.get(selectedPlayer.id)}
-          careerRow={careerMap.get(selectedPlayer.id)}
-          seasonLabel={season === 'all' ? 'All Time' : `MHL1 ${season}`}
-          isAdmin={true}
-          onClose={() => { setSelectedPlayer(null); setError(null) }}
-          onSave={handleProfileSave}
-          isPending={isPending}
         />
       )}
 
