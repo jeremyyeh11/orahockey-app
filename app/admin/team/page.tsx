@@ -26,7 +26,7 @@ export default async function AdminSquadPage() {
       .order('full_name', { ascending: true }),
     supabase
       .from('player_stats')
-      .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists, clean_sheet'),
+      .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
     supabase
       .from('games')
       .select('id, opponent, game_date, goals_for, goals_against, result')

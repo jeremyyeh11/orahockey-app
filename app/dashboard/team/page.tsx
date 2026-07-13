@@ -26,10 +26,10 @@ export default async function PlayerSquadPage() {
       .order('full_name', { ascending: true }),
     supabase
       .from('player_stats')
-      .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists, clean_sheet'),
+      .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
     supabase
       .from('games')
-      .select('id, game_date, result')
+      .select('id, game_date, result, goals_against')
       .order('game_date', { ascending: false }),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase

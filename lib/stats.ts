@@ -6,12 +6,14 @@ export type PlayerLite = {
   full_name: string
   preferred_name: string | null
   jersey_number: number | null
+  position?: string[] | null
 }
 
 export type GameLite = {
   id: string
   game_date: string
   result: string | null
+  goals_against: number | null
 }
 
 export type SeasonStat = {
@@ -21,7 +23,6 @@ export type SeasonStat = {
   goals_pc: number
   goals_ps: number
   assists: number
-  clean_sheet: boolean
 }
 
 export type PotmRow = {
@@ -115,7 +116,6 @@ export function computeSeason({
     r.ps += s.goals_ps
     r.goals += s.goals_fg + s.goals_pc + s.goals_ps
     r.assists += s.assists
-    if (s.clean_sheet) r.cleanSheets += 1
   }
 
   for (const m of potm) {
@@ -130,6 +130,20 @@ export function computeSeason({
     if (!playedIds.has(a.session_id)) continue
     const r = rowFor(a.player_id)
     if (r) r.caps += 1
+  }
+
+  // Clean sheets — derived, never stored: a GK who attended a played game
+  // in which we conceded nothing gets a CS.
+  const shutoutIds = new Set(
+    seasonGames.filter((g) => g.result && g.goals_against === 0).map((g) => g.id)
+  )
+  const gkIds = new Set(
+    players.filter((p) => p.position?.includes('GK')).map((p) => p.id)
+  )
+  for (const a of attendance) {
+    if (!shutoutIds.has(a.session_id) || !gkIds.has(a.player_id)) continue
+    const r = rowFor(a.player_id)
+    if (r) r.cleanSheets += 1
   }
 
   // Cards from match_cards rows. Rows with a game follow that game's season;

@@ -73,8 +73,10 @@ Do not skip this step. Every session that modifies code must end with a commit +
 - Schema and migrations: ✅ done (note: live DB has drifted from `001_initial_schema.sql` —
   `players.position` is now `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
-  with `goals` as a generated total, plus assists/clean_sheet; Caps are derived from
-  attendance rows on played games, not stored)
+  with `goals` as a generated total, plus assists; Caps are derived from attendance rows on
+  played games, not stored. Clean sheets are derived too — GK attended a played game with
+  goals_against = 0, computed in `lib/stats.ts` — the stored `player_stats.clean_sheet`
+  column is legacy and no longer read)
 - Auth + middleware: ✅ done
 - Login page: ✅ done (dev shortcut: admin/admin maps to `NEXT_PUBLIC_DEV_LOGIN_*` in `.env.local`, dev builds only)
 - Admin pages: ✅ built (Dashboard, Team, Schedule, Stats, Polls, Profile)

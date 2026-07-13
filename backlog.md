@@ -53,6 +53,20 @@ Must reference only UI-visible elements (login page, admin Squad / whitelist con
 - *Edge: what if the admin whitelists an email that already has an auth user? Decide (link existing vs reject).*
 - *SMTP in Supabase: confirm it is enabled in the project, or this flow silently fails to email the player.*
 
+## 7. Live player photos + dynamic season labels
+
+Two spots still not driven by live data (flagged during the July 2026 hardcoded-stats audit):
+
+- **Player photos:** the player profile page loads the trading-card photo from files committed to the
+  repo (`public/players/{playerId}.png` — only one photo exists). Adding a player's photo currently
+  means a git commit + deploy. Move photos to Supabase Storage with an in-app upload (admin edit mode
+  on the player profile), keeping the silhouette fallback for players without one.
+- **Season labels:** the "Season 2026 · MHL1" hero label on the player Home page and the "Season 2026"
+  heading on both Schedule tabs are hardcoded strings that will silently go stale in 2027. Derive the
+  season from game dates (the Squad tab's season selector already does this).
+
+Must reference only UI-visible elements (player profile photo, Home hero, Schedule tab heading).
+
 ---
 
 ## Archived

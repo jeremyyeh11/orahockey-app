@@ -33,7 +33,7 @@ export default async function PlayerDashboardPage() {
         .order('game_date', { ascending: false }),
       supabase.from('games').select('opponent, game_date, location').gte('game_date', now).order('game_date').limit(1).maybeSingle(),
       supabase.from('training_sessions').select('session_date, location').gte('session_date', now).order('session_date').limit(1).maybeSingle(),
-      supabase.from('player_stats').select('game_id, goals, assists, clean_sheet').eq('player_id', me?.id ?? ''),
+      supabase.from('player_stats').select('game_id, goals, assists').eq('player_id', me?.id ?? ''),
       supabase
         .from('attendance')
         .select('session_id, status')
