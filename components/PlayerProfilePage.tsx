@@ -164,23 +164,29 @@ export function PlayerProfilePage({
       <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
         <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
-          {/* Name */}
-          <div className="text-lg font-bold text-white">
-            {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before}{beforeSep}</span>}
-            <span>{preferred}</span>
-            {after && <span className="text-sm font-normal tracking-wide text-slate-400">{afterSep}{after}</span>}
+          {/* Name — hero scale to match the jersey watermark */}
+          <div className="font-display font-extrabold uppercase leading-[0.95] text-white">
+            {before && <span className="text-xl font-semibold tracking-wide text-slate-300">{before}{beforeSep}</span>}
+            <span className="text-5xl">{preferred}</span>
+            {after && <span className="text-xl font-semibold tracking-wide text-slate-300">{afterSep}{after}</span>}
           </div>
 
-          {/* Age | Years with ORA | Total Caps */}
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px] text-slate-300">
+          {/* Age | Years with ORA | Total Caps — spread across full width */}
+          <div className="mt-3 flex items-baseline justify-between text-slate-200">
             {player.date_of_birth && (
-              <span>{calcAge(player.date_of_birth)} yrs</span>
+              <span className="text-base">
+                <span className="font-bold text-white">{calcAge(player.date_of_birth)}</span> yrs
+              </span>
             )}
             {player.joined_year && (
-              <span>{new Date().getFullYear() - player.joined_year} yrs with ORA</span>
+              <span className="text-base">
+                <span className="font-bold text-white">{new Date().getFullYear() - player.joined_year}</span> yrs with ORA
+              </span>
             )}
             {careerRow && careerRow.caps > 0 && (
-              <span>{careerRow.caps} caps</span>
+              <span className="text-base">
+                <span className="font-bold text-white">{careerRow.caps}</span> caps
+              </span>
             )}
           </div>
 
