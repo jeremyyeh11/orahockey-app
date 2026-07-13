@@ -95,9 +95,11 @@ export function PlayerProfilePage({
   }, [])
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-hidden scrollbar-hide">
-      {/* Layer 1: Solid gradient background behind image */}
-      <div className="absolute inset-0 bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
+    <>
+    {/* Background layer — extends behind header to avoid seam */}
+    <div className="fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
+
+    <div className="fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide">
 
       {/* Large faded jersey number */}
       {player.jersey_number != null && (
@@ -137,7 +139,7 @@ export function PlayerProfilePage({
       {/* Back button — top left */}
       <button
         onClick={() => router.back()}
-        className="fixed left-4 top-4 z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
+        className="fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
         aria-label="Back"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -198,5 +200,6 @@ export function PlayerProfilePage({
         )}
       </div>
     </div>
+    </>
   )
 }
