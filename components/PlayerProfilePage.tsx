@@ -1,9 +1,22 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { preferredName, splitName, sortPositions } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
+
+// useLayoutEffect on the server warns; fall back to useEffect there.
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
+/** One stat: value on top, label below (e.g. 27y / AGE). */
+function StatCol({ value, label }: { value: string | number; label: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <span className="font-display text-2xl font-bold leading-none text-white">{value}</span>
+      <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
+    </div>
+  )
+}
 
 function calcAge(dob: string): number {
   const birth = new Date(dob)
@@ -98,6 +111,40 @@ export function PlayerProfilePage({
   const { before, beforeSep, preferred, afterSep, after } = splitName(player)
   const positions = sortPositions(player.position)
 
+  // Keep the whole name on one line: preferred stays a fixed 48px, the rest of
+  // the full name auto-shrinks to fit the remaining width.
+  const nameRef = useRef<HTMLDivElement>(null)
+  const preferredRef = useRef<HTMLSpanElement>(null)
+  const beforeRef = useRef<HTMLSpanElement>(null)
+  const afterRef = useRef<HTMLSpanElement>(null)
+
+  useIsoLayoutEffect(() => {
+    const container = nameRef.current
+    const pref = preferredRef.current
+    if (!container || !pref) return
+
+    const fit = () => {
+      const b = beforeRef.current
+      const a = afterRef.current
+      // Reset to the class-based base size before measuring natural width.
+      if (b) b.style.fontSize = ''
+      if (a) a.style.fontSize = ''
+      const restW = (b?.offsetWidth ?? 0) + (a?.offsetWidth ?? 0)
+      if (restW === 0) return
+      const base = parseFloat(getComputedStyle(b ?? a!).fontSize) || 20
+      const available = container.clientWidth - pref.offsetWidth - 6
+      if (available > 0 && restW > available) {
+        const size = Math.max(9, base * (available / restW))
+        if (b) b.style.fontSize = `${size}px`
+        if (a) a.style.fontSize = `${size}px`
+      }
+    }
+
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [before, beforeSep, preferred, afterSep, after])
+
   // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -164,29 +211,30 @@ export function PlayerProfilePage({
       <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
         <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
-          {/* Name — hero scale to match the jersey watermark */}
-          <div className="font-display font-extrabold uppercase leading-[0.95] text-white">
-            {before && <span className="text-xl font-semibold tracking-wide text-slate-300">{before}{beforeSep}</span>}
-            <span className="text-5xl">{preferred}</span>
-            {after && <span className="text-xl font-semibold tracking-wide text-slate-300">{afterSep}{after}</span>}
+          {/* Name — preferred fixed at 48px, rest auto-shrinks to stay one line */}
+          <div
+            ref={nameRef}
+            className="flex items-baseline overflow-hidden whitespace-nowrap font-display text-xl font-extrabold uppercase leading-[0.95] text-white"
+          >
+            {before && (
+              <span ref={beforeRef} className="font-semibold tracking-wide text-slate-300">{before}{beforeSep}</span>
+            )}
+            <span ref={preferredRef} className="text-5xl">{preferred}</span>
+            {after && (
+              <span ref={afterRef} className="font-semibold tracking-wide text-slate-300">{afterSep}{after}</span>
+            )}
           </div>
 
-          {/* Age | Years with ORA | Total Caps — spread across full width */}
-          <div className="mt-3 flex items-baseline justify-between text-slate-200">
+          {/* Age · Years with ORA · Appearances — value over label, full width */}
+          <div className="mt-3 flex items-end justify-between">
             {player.date_of_birth && (
-              <span className="text-base">
-                <span className="font-bold text-white">{calcAge(player.date_of_birth)}</span> yrs
-              </span>
+              <StatCol value={`${calcAge(player.date_of_birth)}y`} label="Age" />
             )}
             {player.joined_year && (
-              <span className="text-base">
-                <span className="font-bold text-white">{new Date().getFullYear() - player.joined_year}</span> yrs with ORA
-              </span>
+              <StatCol value={`${new Date().getFullYear() - player.joined_year}y`} label="At ORA" />
             )}
             {careerRow && careerRow.caps > 0 && (
-              <span className="text-base">
-                <span className="font-bold text-white">{careerRow.caps}</span> caps
-              </span>
+              <StatCol value={careerRow.caps} label="App" />
             )}
           </div>
 
