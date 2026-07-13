@@ -151,7 +151,7 @@ export function PlayerProfilePage({
       </button>
 
       {/* Layer 2: Translucent stats overlay at bottom */}
-      <div className="absolute bottom-0 left-0 right-0">
+      <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
         <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
           <div className="text-lg font-bold text-white">
