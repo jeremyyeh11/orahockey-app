@@ -18,47 +18,35 @@ const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 const POSITIONS = ['FWD', 'MID', 'DEF', 'GK'] as const
 
-function StatGrid({ row, positions }: { row: LeaderboardRow; positions: string[] | null }) {
+// Inline stat row — same compact style as squad cards
+function StatLine({ row, positions }: { row: LeaderboardRow; positions: string[] | null }) {
   const isGK = positions?.includes('GK') ?? false
   const isOutfield = positions?.some((p) => p !== 'GK') ?? false
 
   const showGoals = isOutfield
   const showCS = isGK
 
-  const stats: { label: string; value: number }[] = []
-  if (showGoals) {
-    stats.push({ label: 'FG', value: row.fg })
-    stats.push({ label: 'PC', value: row.pc })
-    stats.push({ label: 'PS', value: row.ps })
-    stats.push({ label: 'A', value: row.assists })
-  }
-  if (showCS) {
-    stats.push({ label: 'CS', value: row.cleanSheets })
-  }
-  stats.push({ label: 'POTM', value: row.potmWins })
-  stats.push({ label: 'POTS Pts', value: row.potsPts })
-  stats.push({ label: 'Caps', value: row.caps })
+  const valCls = (v: number) => v > 0 ? 'text-white' : 'text-slate-600'
+  const lblCls = 'text-white/50'
 
-  const totalGoals = row.goals
+  const cols: { label: string; value: number }[] = []
+  if (showGoals) {
+    cols.push({ label: 'FG', value: row.fg })
+    cols.push({ label: 'PC', value: row.pc })
+    cols.push({ label: 'PS', value: row.ps })
+    cols.push({ label: 'A', value: row.assists })
+  }
+  if (showCS) cols.push({ label: 'CS', value: row.cleanSheets })
+  cols.push({ label: 'POTM', value: row.potmWins })
+  cols.push({ label: 'CAPS', value: row.caps })
 
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {showGoals && (
-        <div className="rounded-lg bg-brand/10 px-3 py-2 text-center ring-1 ring-brand/20">
-          <div className="text-xl font-bold text-white">{totalGoals}</div>
-          <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Goals</div>
-        </div>
-      )}
-      {stats.map((s) => (
-        <div
-          key={s.label}
-          className={`rounded-lg px-3 py-2 text-center ${s.value > 0 ? 'bg-white/5' : 'bg-white/[0.02]'}`}
-        >
-          <div className={`text-lg font-bold ${s.value > 0 ? 'text-white' : 'text-slate-600'}`}>
-            {s.value > 0 ? s.value : '—'}
-          </div>
-          <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500">{s.label}</div>
-        </div>
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px]">
+      {cols.map((c) => (
+        <span key={c.label} className="inline-flex items-baseline gap-0.5">
+          <span className={`font-semibold ${valCls(c.value)}`}>{c.value > 0 ? c.value : '–'}</span>
+          <span className={lblCls}>{c.label}</span>
+        </span>
       ))}
     </div>
   )
@@ -67,9 +55,8 @@ function StatGrid({ row, positions }: { row: LeaderboardRow; positions: string[]
 function CardBadges({ row }: { row: LeaderboardRow }) {
   const { green, yellow, red } = row.cards
   if (green === 0 && yellow === 0 && red === 0) return null
-
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       {green > 0 && (
         <span className="inline-flex items-center gap-0.5 text-xs">
           <span className="text-green-400">▲</span>
@@ -162,82 +149,97 @@ export function PlayerProfileModal({
       onDiscard={() => setEditMode(false)}
       isPending={isPending}
     >
-      {/* READ MODE — Trading card layout */}
+      {/* READ MODE — Full-bleed image with translucent stats overlay */}
       {!editMode && (
-        <div className="space-y-4">
-          {/* Hero area — ~45% of modal height, trading card style */}
-          <div className="relative -mx-6 -mt-6 h-[38vh] max-h-[280px] min-h-[180px] overflow-hidden rounded-t-2xl bg-gradient-to-b from-brand/20 via-surface to-surface-card">
-            {/* Large faded jersey number as background */}
+        <div className="space-y-0">
+          {/* Full-screen image area — the modal IS the image */}
+          <div className="relative -mx-6 -mt-6 min-h-[60vh]">
+            {/* Layer 1: Solid gradient background behind image */}
+            <div className="absolute inset-0 bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
+
+            {/* Large faded jersey number */}
             {player.jersey_number != null && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 select-none font-display text-[8rem] font-extrabold leading-none text-white/10"
+                className="pointer-events-none absolute -right-4 top-8 select-none font-display text-[7rem] font-extrabold leading-none text-white/8"
               >
                 {player.jersey_number}
               </span>
             )}
-            {/* Placeholder silhouette — replaced by player photo later */}
-            <div className="absolute inset-0 flex items-end justify-center pb-2">
+
+            {/* Player image placeholder — will be replaced with real photo */}
+            {/* Full height, centered */}
+            <div className="absolute inset-0 flex items-start justify-center pt-8">
               <svg
-                viewBox="0 0 100 120"
-                className="h-[85%] w-auto opacity-20"
+                viewBox="0 0 100 130"
+                className="h-[50vh] w-auto opacity-25"
                 fill="currentColor"
               >
-                <circle cx="50" cy="22" r="14" />
-                <path d="M30 50 Q50 38 70 50 L70 80 L65 80 L65 55 L60 55 L60 120 L55 120 L55 80 L45 80 L45 120 L40 120 L40 55 L35 55 L35 80 L30 80 Z" />
+                <circle cx="50" cy="18" r="12" />
+                <path d="M32 40 Q50 30 68 40 L68 72 L63 72 L63 48 L58 48 L58 130 L53 130 L53 72 L47 72 L47 130 L42 130 L42 48 L37 48 L37 72 L32 72 Z" />
               </svg>
             </div>
-            {/* Name overlay at bottom of hero */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-surface-card to-transparent px-6 pb-2 pt-8">
-              <div className="text-lg font-bold text-white">
-                {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before}{beforeSep}</span>}
-                <span>{preferred}</span>
-                {after && <span className="text-sm font-normal tracking-wide text-slate-400">{afterSep}{after}</span>}
+
+            {/* Layer 2: Translucent stats overlay at bottom */}
+            <div className="absolute bottom-0 left-0 right-0">
+              {/* Gradient fade for name */}
+              <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-10 pb-2">
+                {/* Name + position */}
+                <div className="text-lg font-bold text-white">
+                  {before && <span className="text-sm font-normal tracking-wide text-slate-400">{before}{beforeSep}</span>}
+                  <span>{preferred}</span>
+                  {after && <span className="text-sm font-normal tracking-wide text-slate-400">{afterSep}{after}</span>}
+                </div>
+                {positions.length > 0 && (
+                  <div className="mt-1 flex gap-1.5">
+                    {positions.map((pos) => (
+                      <span key={pos} className="rounded bg-white/[0.1] px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
+                        {pos}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-              {positions.length > 0 && (
-                <div className="mt-1 flex gap-1.5">
-                  {positions.map((pos) => (
-                    <span key={pos} className="rounded bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
-                      {pos}
+
+              {/* Translucent stat panel */}
+              {seasonRow && (
+                <div className="bg-black/50 backdrop-blur-sm px-6 py-3">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      {seasonLabel}
                     </span>
-                  ))}
+                    <CardBadges row={seasonRow} />
+                  </div>
+                  <StatLine row={seasonRow} positions={player.position} />
+                </div>
+              )}
+
+              {/* Career stats — slightly more opaque */}
+              {careerRow && (
+                <div className="bg-black/70 backdrop-blur-sm px-6 py-3">
+                  <div className="mb-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Career
+                    </span>
+                  </div>
+                  <StatLine row={careerRow} positions={player.position} />
+                </div>
+              )}
+
+              {/* No stats */}
+              {!seasonRow && !careerRow && (
+                <div className="bg-black/50 backdrop-blur-sm px-6 py-4">
+                  <p className="text-center text-sm text-slate-500">No stats recorded yet.</p>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Season stats */}
-          {seasonRow && (
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {seasonLabel} Season
-              </h3>
-              <StatGrid row={seasonRow} positions={player.position} />
-              <div className="mt-2 flex justify-end">
-                <CardBadges row={seasonRow} />
-              </div>
-            </div>
-          )}
-
-          {/* Career stats */}
-          {careerRow && (
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Career</h3>
-              <StatGrid row={careerRow} positions={player.position} />
-            </div>
-          )}
-
-          {/* No stats yet */}
-          {!seasonRow && !careerRow && (
-            <p className="py-4 text-center text-sm text-slate-500">No stats recorded yet.</p>
-          )}
         </div>
       )}
 
       {/* EDIT MODE (admins only) */}
       {editMode && (
         <form id="player-profile-form" onSubmit={handleSave} className="space-y-4">
-          {/* Compact hero in edit mode */}
           <div className="flex items-center gap-3">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-surface-border bg-surface">
               <span className="text-2xl font-bold text-slate-500">
@@ -252,25 +254,11 @@ export function PlayerProfileModal({
 
           <div>
             <label className={labelCls}>Preferred Name</label>
-            <input
-              name="preferred_name"
-              type="text"
-              defaultValue={player.preferred_name ?? ''}
-              className={inputCls}
-              placeholder={preferred}
-            />
+            <input name="preferred_name" type="text" defaultValue={player.preferred_name ?? ''} className={inputCls} placeholder={preferred} />
           </div>
           <div>
             <label className={labelCls}>Jersey #</label>
-            <input
-              name="jersey_number"
-              type="number"
-              min="0"
-              max="99"
-              defaultValue={player.jersey_number ?? ''}
-              className={inputCls}
-              placeholder="—"
-            />
+            <input name="jersey_number" type="number" min="0" max="99" defaultValue={player.jersey_number ?? ''} className={inputCls} placeholder="—" />
           </div>
           <div>
             <label className={labelCls}>Position</label>
@@ -294,11 +282,7 @@ export function PlayerProfileModal({
           {isAdmin && player.role && (
             <div>
               <label className={labelCls}>Role</label>
-              <select
-                name="role"
-                defaultValue={player.role}
-                className={inputCls}
-              >
+              <select name="role" defaultValue={player.role} className={inputCls}>
                 <option value="player">Player</option>
                 <option value="admin">Admin</option>
               </select>
