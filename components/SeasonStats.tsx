@@ -107,7 +107,7 @@ export function LeaderboardTable({
             <th className="px-1.5 py-2.5 text-center font-medium">A</th>
             <th className="px-1.5 py-2.5 text-center font-medium">CS</th>
             <th className="px-1.5 py-2.5 text-center font-medium">POTM</th>
-            <th className="py-2.5 pl-1.5 pr-4 text-center font-medium">Caps</th>
+            <th className="py-2.5 pl-1.5 pr-4 text-center font-medium">App</th>
           </tr>
         </thead>
         <tbody>

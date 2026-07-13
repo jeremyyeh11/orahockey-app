@@ -38,7 +38,7 @@ function StatLine({ row, positions }: { row: LeaderboardRow; positions: string[]
   }
   if (showCS) cols.push({ label: 'CS', value: row.cleanSheets })
   cols.push({ label: 'POTM', value: row.potmWins })
-  cols.push({ label: 'CAPS', value: row.caps })
+  cols.push({ label: 'APP', value: row.caps })
 
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px]">
