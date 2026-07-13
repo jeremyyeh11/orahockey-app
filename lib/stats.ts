@@ -35,6 +35,13 @@ export type AttendanceRow = {
   session_id: string
 }
 
+export type MatchCardRow = {
+  player_id: string
+  game_id: string | null
+  card_type: 'green' | 'yellow' | 'red'
+  created_at: string
+}
+
 export type LeaderboardRow = {
   player: PlayerLite
   goals: number
@@ -63,6 +70,7 @@ export function computeSeason({
   stats,
   potm,
   attendance,
+  cards = [],
   season,
 }: {
   players: PlayerLite[]
@@ -70,6 +78,7 @@ export function computeSeason({
   stats: SeasonStat[]
   potm: PotmRow[]
   attendance: AttendanceRow[]
+  cards?: MatchCardRow[]
   season: string
 }) {
   const seasonGames = season === 'all'
@@ -123,50 +132,15 @@ export function computeSeason({
     if (r) r.caps += 1
   }
 
-  // Real card data — keyed by short name, matched case-insensitively
-  const CARD_DATA: Record<string, { green: number; yellow: number; red: number }> = {
-    'Akash':      { green: 0, yellow: 0, red: 0 },
-    'Alton':      { green: 0, yellow: 0, red: 0 },
-    'Ashwin':     { green: 0, yellow: 0, red: 0 },
-    'Balraj':     { green: 0, yellow: 0, red: 0 },
-    'Boon Kai':   { green: 0, yellow: 0, red: 0 },
-    'Faris':      { green: 0, yellow: 0, red: 0 },
-    'Gabriel':    { green: 0, yellow: 0, red: 0 },
-    'Hafiz':      { green: 0, yellow: 0, red: 0 },
-    'Hiren':      { green: 2, yellow: 0, red: 0 },
-    'Ian':        { green: 0, yellow: 0, red: 0 },
-    'Ish':        { green: 0, yellow: 1, red: 0 },
-    'Jasmeet':    { green: 1, yellow: 0, red: 0 },
-    'Jaspal':     { green: 1, yellow: 0, red: 0 },
-    'Jaydon':     { green: 0, yellow: 1, red: 0 },
-    'Jeremy':     { green: 1, yellow: 0, red: 0 },
-    'Joash':      { green: 0, yellow: 0, red: 0 },
-    'Jorim':      { green: 1, yellow: 0, red: 0 },
-    'Joshua':     { green: 0, yellow: 0, red: 0 },
-    'Kang':       { green: 0, yellow: 0, red: 0 },
-    'Kevin Saji': { green: 0, yellow: 0, red: 0 },
-    'Matteus':    { green: 0, yellow: 0, red: 0 },
-    'Peh Yu':     { green: 1, yellow: 0, red: 0 },
-    'Raziq':      { green: 0, yellow: 0, red: 0 },
-    'Rifqi':      { green: 1, yellow: 0, red: 0 },
-    'Ryan Naidu': { green: 0, yellow: 0, red: 0 },
-    'Ryan Vir':   { green: 1, yellow: 0, red: 0 },
-  }
-
-  const EMPTY_CARDS = { green: 0, yellow: 0, red: 0 }
-  for (const id of Object.keys(rows)) {
-    const r = rows[id]
-    const player = players.find((p) => p.id === id)
-    if (!player) {
-      r.cards = EMPTY_CARDS
-      continue
-    }
-    const fullNameUpper = player.full_name.toUpperCase()
-    const sortedCards = Object.entries(CARD_DATA).sort((a, b) => b[0].length - a[0].length)
-    const match = sortedCards.find(([key]) =>
-      fullNameUpper.includes(key.toUpperCase())
-    )
-    r.cards = match ? match[1] : EMPTY_CARDS
+  // Cards from match_cards rows. Rows with a game follow that game's season;
+  // legacy rows (game_id null, no match attribution) follow their created_at year.
+  for (const c of cards) {
+    const inSeason = c.game_id
+      ? gameIds.has(c.game_id)
+      : season === 'all' || String(new Date(c.created_at).getFullYear()) === season
+    if (!inSeason) continue
+    const r = rowFor(c.player_id)
+    if (r) r.cards[c.card_type] += 1
   }
 
   const leaderboard = Object.values(rows)

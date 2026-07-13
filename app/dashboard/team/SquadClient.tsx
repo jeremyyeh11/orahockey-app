@@ -14,6 +14,7 @@ import {
   type SeasonStat,
   type PotmRow,
   type AttendanceRow,
+  type MatchCardRow,
 } from '@/components/SeasonStats'
 import type { RosterPlayer } from '@/components/RosterList'
 
@@ -25,6 +26,7 @@ export default function SquadClient({
   stats,
   potm,
   attendance,
+  cards,
   myPlayerId,
 }: {
   players: Player[]
@@ -32,6 +34,7 @@ export default function SquadClient({
   stats: SeasonStat[]
   potm: PotmRow[]
   attendance: AttendanceRow[]
+  cards: MatchCardRow[]
   myPlayerId: string | null
 }) {
   const router = useRouter()
@@ -46,6 +49,7 @@ export default function SquadClient({
     stats,
     potm,
     attendance,
+    cards,
     season,
   })
 

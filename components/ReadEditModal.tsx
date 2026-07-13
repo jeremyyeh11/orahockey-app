@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from 'react'
 
 export type ReadEditModalProps = {
   title: string
+  titleAction?: ReactNode
   isOpen: boolean
   onClose: () => void
   isAdmin: boolean
@@ -18,6 +19,7 @@ export type ReadEditModalProps = {
 
 export function ReadEditModal({
   title,
+  titleAction,
   isOpen,
   onClose,
   isAdmin,
@@ -46,7 +48,10 @@ export function ReadEditModal({
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <div className="relative max-h-[90vh] w-full overflow-y-auto scrollbar-hide rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-        <h2 className="mb-5 text-lg font-bold text-white">{title}</h2>
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="min-w-0 truncate text-lg font-bold text-white">{title}</h2>
+          {titleAction}
+        </div>
 
         {children}
 

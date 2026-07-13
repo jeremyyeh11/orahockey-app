@@ -2,6 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
 import type { AttendanceRow, RosterPlayer, TeamListSelection } from '@/app/dashboard/schedule/page'
+import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
+
+function groupByGame<T extends { game_id: string | null }>(rows: T[]): Record<string, T[]> {
+  const byGame: Record<string, T[]> = {}
+  for (const r of rows) {
+    if (!r.game_id) continue
+    ;(byGame[r.game_id] ??= []).push(r)
+  }
+  return byGame
+}
 
 export default async function AdminSchedulePage() {
   const supabase = createClient()
@@ -17,6 +27,8 @@ export default async function AdminSchedulePage() {
     { data: me },
     { data: roster },
     { data: teamListRaw },
+    { data: goalRows },
+    { data: cardRows },
   ] = await Promise.all([
     supabase.from('games').select('*').order('game_date', { ascending: false }),
     supabase.from('training_sessions').select('*').order('session_date', { ascending: false }),
@@ -34,6 +46,14 @@ export default async function AdminSchedulePage() {
     supabase
       .from('match_team_lists')
       .select('game_id, player_id, selected'),
+    supabase
+      .from('match_goals')
+      .select('id, game_id, goal_number, scorer_id, assist_kind, assist_player_id')
+      .order('goal_number', { ascending: true }),
+    supabase
+      .from('match_cards')
+      .select('id, game_id, player_id, card_type')
+      .not('game_id', 'is', null),
   ])
 
   const error = gamesError ?? trainingsError
@@ -83,6 +103,8 @@ export default async function AdminSchedulePage() {
       myPlayerId={me?.id ?? ''}
       isAdmin={true}
       teamListByGame={teamListByGame}
+      goalsByGame={groupByGame((goalRows ?? []) as GoalRow[])}
+      cardsByGame={groupByGame((cardRows ?? []) as CardRow[])}
     />
   )
 }

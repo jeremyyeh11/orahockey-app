@@ -3,7 +3,7 @@
 import { preferredName } from './RosterList'
 
 // Re-export types and pure functions from lib/stats.ts so existing imports work
-export type { PlayerLite, GameLite, SeasonStat, PotmRow, AttendanceRow, LeaderboardRow } from '@/lib/stats'
+export type { PlayerLite, GameLite, SeasonStat, PotmRow, AttendanceRow, MatchCardRow, LeaderboardRow } from '@/lib/stats'
 export { computeSeason, seasonsOf } from '@/lib/stats'
 
 import type { LeaderboardRow } from '@/lib/stats'

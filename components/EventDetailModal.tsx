@@ -7,6 +7,8 @@ import { fmtDateTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/li
 import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { TeamListModal } from './TeamListModal'
+import { MatchResultModal } from './MatchResultModal'
+import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 
 export type Game = {
   id: string
@@ -104,6 +106,9 @@ export function EventDetailModal({
   attendanceBySession,
   roster,
   myPlayerId,
+  now,
+  goalsByGame,
+  cardsByGame,
   onClose,
   onSaveGame,
   onSaveTraining,
@@ -117,6 +122,9 @@ export function EventDetailModal({
   attendanceBySession: Record<string, AttendanceRow[]>
   roster: PlayerLite[]
   myPlayerId: string
+  now: string
+  goalsByGame: Record<string, GoalRow[]>
+  cardsByGame: Record<string, CardRow[]>
   onClose: () => void
   onSaveGame: (id: string, data: GameInput) => void
   onSaveTraining: (id: string, data: TrainingInput) => void
@@ -126,9 +134,14 @@ export function EventDetailModal({
   const [editMode, setEditMode] = useState(false)
   const [respondingId, setRespondingId] = useState<string | null>(null)
   const [showTeamList, setShowTeamList] = useState(false)
+  const [showResult, setShowResult] = useState(false)
   const [localTeamListStatus, setLocalTeamListStatus] = useState<'draft' | 'published' | null>(
     item?.kind === 'game' ? item.game.team_list_status : null
   )
+  // Local copies so the read view + a reopened result modal stay fresh without a refresh
+  const [localScore, setLocalScore] = useState<{ gf: number; ga: number; result: string } | null>(null)
+  const [localGoals, setLocalGoals] = useState<GoalRow[] | null>(null)
+  const [localCards, setLocalCards] = useState<CardRow[] | null>(null)
   // Local copy of my attendance status so the UI updates live without refresh
   const [localMyStatus, setLocalMyStatus] = useState<MyStatus | undefined>(myStatus)
 
@@ -144,6 +157,18 @@ export function EventDetailModal({
 
   const title = isGame ? `vs ${currentItem.game.opponent}` : 'Training'
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
+
+  // Update result — matches only, enabled once the match date/time has passed
+  const hasStarted = new Date(dateStr).getTime() <= new Date(now).getTime()
+  const effectiveScore = localScore ?? (
+    isGame && currentItem.kind === 'game' && currentItem.game.result
+      ? {
+          gf: currentItem.game.goals_for ?? 0,
+          ga: currentItem.game.goals_against ?? 0,
+          result: currentItem.game.result,
+        }
+      : null
+  )
 
   // Team list data — use local state so it updates without a page refresh
   const teamListStatus = isGame && currentItem.kind === 'game' ? localTeamListStatus : null
@@ -200,6 +225,30 @@ export function EventDetailModal({
     setEditMode(false)
   }
 
+  // If result entry modal is open, render it instead
+  if (showResult && isGame && currentItem.kind === 'game') {
+    const g = currentItem.game
+    const gameWithScore = localScore
+      ? { ...g, goals_for: localScore.gf, goals_against: localScore.ga, result: localScore.result }
+      : g
+    // Scorers/assists/cards come from the published match team list; full roster if not published
+    const resultPlayers =
+      isTeamListPublished && selectedPlayers.length > 0 ? selectedPlayers : roster
+    return (
+      <MatchResultModal
+        game={gameWithScore}
+        players={resultPlayers}
+        roster={roster}
+        initialGoals={localGoals ?? goalsByGame[sessionId] ?? []}
+        initialCards={localCards ?? cardsByGame[sessionId] ?? []}
+        onClose={() => setShowResult(false)}
+        onScoreChange={(gf, ga, result) => setLocalScore({ gf, ga, result })}
+        onGoalsChange={setLocalGoals}
+        onCardsChange={setLocalCards}
+      />
+    )
+  }
+
   // If team list modal is open, render it instead
   if (showTeamList && isGame && currentItem.kind === 'game') {
     return (
@@ -218,6 +267,18 @@ export function EventDetailModal({
   return (
     <ReadEditModal
       title={title}
+      titleAction={
+        isGame && !editMode ? (
+          <button
+            type="button"
+            onClick={() => setShowResult(true)}
+            disabled={!hasStarted}
+            className="shrink-0 rounded-lg border border-surface-border px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
+          >
+            Update result
+          </button>
+        ) : undefined
+      }
       isOpen={!!item}
       onClose={onClose}
       isAdmin={isAdmin}
@@ -242,15 +303,15 @@ export function EventDetailModal({
                 <DetailRow label="Opponent" value={currentItem.game.opponent} />
                 <DetailRow label="Home / Away" value={currentItem.game.home_away ? (currentItem.game.home_away === 'home' ? 'Home' : 'Away') : '—'} />
                 <DetailRow label="Type" value={currentItem.game.game_type.charAt(0).toUpperCase() + currentItem.game.game_type.slice(1)} />
-                {currentItem.game.result && (
+                {effectiveScore && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-slate-400">Result</span>
                     <div className="flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${RESULT_BADGE[currentItem.game.result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
-                        {RESULT_BADGE[currentItem.game.result]?.label ?? currentItem.game.result}
+                      <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${RESULT_BADGE[effectiveScore.result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
+                        {RESULT_BADGE[effectiveScore.result]?.label ?? effectiveScore.result}
                       </span>
                       <span className="text-sm font-semibold text-white">
-                        {currentItem.game.goals_for}–{currentItem.game.goals_against}
+                        {effectiveScore.gf}–{effectiveScore.ga}
                       </span>
                     </div>
                   </div>

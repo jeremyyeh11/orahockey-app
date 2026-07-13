@@ -31,7 +31,13 @@ supabase/migrations/
 ```
 
 ## Database tables
-`teams`, `players`, `player_whitelist`, `games`, `training_sessions`, `attendance`, `polls`, `poll_options`, `poll_votes`, `player_stats`, `potm`
+`teams`, `players`, `player_whitelist`, `games`, `training_sessions`, `attendance`, `polls`, `poll_options`, `poll_votes`, `player_stats`, `potm`, `match_team_lists`, `match_goals`, `match_cards`
+
+Match results (goals/cards) are per-event rows: `match_goals` (scorer + assist slot `pc`/`ps`/player,
+chronological via `goal_number`) and `match_cards` (green/yellow/red; `game_id NULL` = legacy card with
+no match attribution). Any signed-in player can enter a played match's score (`set_match_score()` SQL fn,
+derives `games.result`) and goal/card rows (player-write RLS). A trigger keeps `player_stats`
+FG/PC/PS/assists in sync with goal rows — don't edit those columns directly for played games.
 
 POTM: 1st/2nd/3rd placings per game in `potm` (shared places allowed); points 3/2/1 are
 derived in `components/SeasonStats.tsx`, never stored. POTS race = season points tally.

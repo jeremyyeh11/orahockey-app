@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import SquadClient from './SquadClient'
+import type { MatchCardRow } from '@/lib/stats'
 
 export default async function PlayerSquadPage() {
   const supabase = createClient()
@@ -15,6 +16,7 @@ export default async function PlayerSquadPage() {
     { data: games },
     { data: potm },
     { data: att },
+    { data: cards },
   ] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     supabase
@@ -35,6 +37,7 @@ export default async function PlayerSquadPage() {
       .select('player_id, session_id')
       .eq('session_type', 'game')
       .eq('status', 'attending'),
+    supabase.from('match_cards').select('player_id, game_id, card_type, created_at'),
   ])
 
   if (error) {
@@ -52,6 +55,7 @@ export default async function PlayerSquadPage() {
       stats={stats ?? []}
       potm={potm ?? []}
       attendance={att ?? []}
+      cards={(cards ?? []) as MatchCardRow[]}
       myPlayerId={me?.id ?? null}
     />
   )

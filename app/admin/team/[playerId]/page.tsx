@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { PlayerProfilePage } from '@/components/PlayerProfilePage'
-import { computeSeason, seasonsOf, type PlayerLite, type GameLite, type SeasonStat, type PotmRow, type AttendanceRow, type LeaderboardRow } from '@/lib/stats'
+import { computeSeason, seasonsOf, type PlayerLite, type GameLite, type SeasonStat, type PotmRow, type AttendanceRow, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
 import { getNow } from '@/lib/preview'
 
@@ -17,6 +17,7 @@ export default async function AdminPlayerProfileRoute({
     { data: stats },
     { data: potm },
     { data: att },
+    { data: cardRows },
   ] = await Promise.all([
     supabase
       .from('players')
@@ -27,6 +28,7 @@ export default async function AdminPlayerProfileRoute({
     supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists, clean_sheet'),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending'),
+    supabase.from('match_cards').select('player_id, game_id, card_type, created_at'),
   ])
 
   if (playerErr || !player) {
@@ -34,6 +36,7 @@ export default async function AdminPlayerProfileRoute({
   }
 
   const players: (PlayerLite & RosterPlayer)[] = [player as (PlayerLite & RosterPlayer)]
+  const cards = (cardRows ?? []) as MatchCardRow[]
   const seasons = seasonsOf(games ?? [])
   const currentSeason = seasons[0] ?? String(getNow().getFullYear())
 
@@ -47,6 +50,7 @@ export default async function AdminPlayerProfileRoute({
       stats: stats ?? [],
       potm: potm ?? [],
       attendance: att ?? [],
+      cards,
       season: currentSeason,
     })
     const { leaderboard: careerLb } = computeSeason({
@@ -55,6 +59,7 @@ export default async function AdminPlayerProfileRoute({
       stats: stats ?? [],
       potm: potm ?? [],
       attendance: att ?? [],
+      cards,
       season: 'all',
     })
     seasonRow = seasonLb.find((r) => r.player.id === player.id)

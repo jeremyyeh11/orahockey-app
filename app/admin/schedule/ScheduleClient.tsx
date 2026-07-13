@@ -14,6 +14,7 @@ import {
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fmtTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
+import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 
 type EventItem =
   | { kind: 'game'; date: string; game: Game }
@@ -44,6 +45,8 @@ export default function ScheduleClient({
   myPlayerId,
   isAdmin,
   teamListByGame,
+  goalsByGame,
+  cardsByGame,
 }: {
   games: Game[]
   trainings: Training[]
@@ -55,6 +58,8 @@ export default function ScheduleClient({
   myPlayerId: string
   isAdmin: boolean
   teamListByGame: Record<string, Record<string, boolean>>
+  goalsByGame: Record<string, GoalRow[]>
+  cardsByGame: Record<string, CardRow[]>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
   const [selectedItem, setSelectedItem] = useState<EventItem | null>(null)
@@ -136,16 +141,15 @@ export default function ScheduleClient({
   function submitAddGame(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
-    const gf = fd.get('goals_for') as string
-    const ga = fd.get('goals_against') as string
     const data: GameInput = {
       opponent: fd.get('opponent') as string,
       game_date: fromDatetimeLocal(fd.get('game_date') as string),
       location: (fd.get('location') as string) || null,
       home_away: (fd.get('home_away') as 'home' | 'away') || null,
       game_type: fd.get('game_type') as GameInput['game_type'],
-      goals_for: gf === '' ? null : Number(gf),
-      goals_against: ga === '' ? null : Number(ga),
+      // Score is not part of match creation — it's entered post-match via Update result
+      goals_for: null,
+      goals_against: null,
       notes: (fd.get('notes') as string) || null,
     }
     setError(null)
@@ -316,6 +320,9 @@ export default function ScheduleClient({
           attendanceBySession={attendanceBySession}
           roster={roster}
           myPlayerId={myPlayerId}
+          now={now}
+          goalsByGame={goalsByGame}
+          cardsByGame={cardsByGame}
           onClose={() => { setSelectedItem(null); setError(null) }}
           onSaveGame={handleSaveGame}
           onSaveTraining={handleSaveTraining}
@@ -356,14 +363,6 @@ export default function ScheduleClient({
                   <option value="playoff">Playoff</option>
                   <option value="exhibition">Exhibition</option>
                 </select>
-              </div>
-            </div>
-            <div>
-              <label className={labelCls}>Score (leave blank if not played yet)</label>
-              <div className="flex items-center gap-3">
-                <input name="goals_for" type="number" min="0" max="99" className={inputCls} placeholder="Us" />
-                <span className="text-slate-500">–</span>
-                <input name="goals_against" type="number" min="0" max="99" className={inputCls} placeholder="Them" />
               </div>
             </div>
             <div>

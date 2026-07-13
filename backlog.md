@@ -12,31 +12,6 @@
 
 ## Backlog
 
-## 4. Update match result
-
-Let players record a played match's result and goals/cards after the match, separate from match creation.
-
-- **Separate score from creation:** when an admin creates a new match (the **Add Game** action on the Schedule tab), the score fields are NOT part of the creation form. The result is entered later through the flow below.
-- **Update result button:** on the match detail view (the detail modal opened from the Schedule tab), add an **Update result** button inline with the match title, aligned right. Show it for matches only (not training sessions). The button is disabled (greyed out) until the match's date/time has passed.
-- **Result entry UI** (opens on tap):
-  - The score (us - them) shows at the top, **read-only**. It is derived from the goal rows entered below, not typed directly.
-  - Below it: a **+ Goal** button and a **+ Card** button.
-  - **+ Goal** adds a row to a goals table: select **scorer** (from the match team list only) and **assist**.
-    - The assist dropdown lists, in order: `PC` (penalty corner), `PS` (penalty stroke), then players (from the match team list only).
-  - **+ Card** adds a row to a cards table: select **player** (from the match team list only) and **card type**.
-  - **All players** (not just admins) can add goals and cards for a played match.
-- **Scorers table:** maintain as a **chronological list** (order goals were scored), each row showing scorer with its assist / `PC` / `PS` label — **not consolidated**. The table is **rearrangeable by dragging**.
-- **Cards:** auto-sort to the **bottom** of the result view and are **consolidated** as `name - card - card number` (same style as the Squad tab indications).
-- **POTM space:** beneath the scoreline, leave a **blank POTM space** (populated by the vote-POTM system in #5).
-
-Must reference only UI-visible elements (Schedule tab, Add Game, match detail modal, match team list). Internal data shape TBD.
-
-*Open questions to resolve at build time:*
-- *Goals/cards are not currently stored as per-event rows — `player_stats` holds goals_fg/goals_pc/goals_ps + assists, and there is no cards table. This needs a goals (and cards) table + a migration, like `005_match_team_lists.sql`. Confirm whether the stored `games` score is computed from goal rows or still maintained separately.*
-- *RLS: opening result entry to all players requires a new policy (authenticated users may insert goal/card rows for played matches). Admin-only event editing stays unchanged.*
-- *Confirm card types (yellow / red / second yellow?).*
-- *If the match team list is not yet published ("To be announced"), can players still pick scorers? Edge case to decide.*
-
 ## 5. Vote POTM system
 
 A match-linked POTM vote that replaces the current admin-only manual `potm` entry (table `potm`, currently populated by admins). Players vote 1st / 2nd / 3rd from the match's published team list; results stay secret until the poll closes.
@@ -81,6 +56,20 @@ Must reference only UI-visible elements (login page, admin Squad / whitelist con
 ---
 
 ## Archived
+
+### 4. Update match result ✓ July 2026
+
+Post-match result entry open to all players, separate from match creation (score fields removed
+from Add Game). **Update result** button inline with the title in the match detail modal, matches
+only, disabled until the match date/time passes. Design changed at build time: anyone enters the
+final score (us–them) first, which spawns one scorer slot per goal we scored; slots are filled with
+scorer + assist (`PC` / `PS` / player) from the published team list (full roster if none published),
+chronological and drag-reorderable. Cards consolidated at the bottom (`name ▲/■/● count`, Squad-tab
+style, green/yellow/red); blank POTM space beneath the scoreline awaits #5. New tables `match_goals`
+and `match_cards` (`007_match_results.sql`) with player-write RLS for played matches; score entry via
+`set_match_score()` definer fn (derives result); `player_stats` FG/PC/PS/A kept in sync by trigger.
+The seeded 2026 season was backfilled into goal rows (verified 0 drift), and the previously hardcoded
+CARD_DATA card counts migrated to `match_cards` (legacy rows, no game attribution).
 
 ### 3. Player profile page ✓ July 2026
 
