@@ -20,6 +20,16 @@ const CARD_SHAPES: Record<CardRow['card_type'], { shape: string; cls: string; la
   red: { shape: '●', cls: 'text-red-400', label: 'Red' },
 }
 
+// Placings from the vote-POTM system (#5); populated once a poll closes.
+export type PotmPlacing = { player_id: string; place: number }
+
+const POTM_PLACE_LABEL: Record<number, string> = { 1: '1st', 2: '2nd', 3: '3rd' }
+const POTM_PLACE_CLS: Record<number, string> = {
+  1: 'text-yellow-300',
+  2: 'text-slate-300',
+  3: 'text-amber-600',
+}
+
 const selectCls =
   'rounded-lg border border-surface-border bg-surface px-2 py-2 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-40'
 
@@ -36,6 +46,7 @@ export function MatchResultModal({
   roster,
   initialGoals,
   initialCards,
+  potm = [],
   onClose,
   onScoreChange,
   onGoalsChange,
@@ -46,6 +57,7 @@ export function MatchResultModal({
   roster: PlayerLite[] // everyone, for name lookups
   initialGoals: GoalRow[]
   initialCards: CardRow[]
+  potm?: PotmPlacing[] // POTM placings (vote-POTM #5), shown once the poll closes
   onClose: () => void
   onScoreChange: (goalsFor: number, goalsAgainst: number, result: string) => void
   onGoalsChange: (goals: GoalRow[]) => void
@@ -242,6 +254,14 @@ export function MatchResultModal({
 
   const hasScore = score.gf != null && score.ga != null
 
+  // Group POTM placings (1st/2nd/3rd), sharing a place on ties.
+  const potmByPlace = [1, 2, 3]
+    .map((place) => ({
+      place,
+      names: potm.filter((p) => p.place === place).map((p) => nameOf(p.player_id)),
+    }))
+    .filter((row) => row.names.length > 0)
+
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
@@ -294,10 +314,21 @@ export function MatchResultModal({
           )}
         </div>
 
-        {/* POTM space — populated by the vote-POTM system (#5) */}
+        {/* POTM — result from the vote-POTM system (#5), shown once the poll closes */}
         <div className="mb-5 border-b border-white/5 pb-4 text-center">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Player of the Match</div>
-          <div className="mt-0.5 text-xs text-slate-600">To be decided</div>
+          {potmByPlace.length === 0 ? (
+            <div className="mt-0.5 text-xs text-slate-600">To be decided</div>
+          ) : (
+            <div className="mt-1 space-y-0.5">
+              {potmByPlace.map(({ place, names }) => (
+                <div key={place} className="text-xs">
+                  <span className={`font-bold ${POTM_PLACE_CLS[place]}`}>{POTM_PLACE_LABEL[place]}</span>{' '}
+                  <span className="text-white">{names.join(', ')}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Scorers */}

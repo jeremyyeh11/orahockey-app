@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { votePoll } from './actions'
 import { fmtDateTime } from '@/lib/format'
+import PotmPolls from '@/components/PotmPolls'
+import type { PotmPoll } from '@/lib/potm'
 
 export type Poll = {
   id: string
@@ -16,10 +18,12 @@ export type Poll = {
 
 export default function PollsClient({
   polls,
+  potmPolls,
   myPlayerId,
   now,
 }: {
   polls: Poll[]
+  potmPolls: PotmPoll[]
   myPlayerId: string | null
   now: string
 }) {
@@ -33,7 +37,9 @@ export default function PollsClient({
     <div className="p-4">
       <h1 className="mb-4 text-xl font-bold text-white">Polls</h1>
 
-      {polls.length === 0 && (
+      <PotmPolls polls={potmPolls} myPlayerId={myPlayerId} />
+
+      {polls.length === 0 && potmPolls.length === 0 && (
         <p className="py-4 text-center text-sm text-slate-500">No polls yet.</p>
       )}
 

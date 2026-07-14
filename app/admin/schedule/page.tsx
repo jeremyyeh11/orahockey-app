@@ -29,6 +29,7 @@ export default async function AdminSchedulePage() {
     { data: teamListRaw },
     { data: goalRows },
     { data: cardRows },
+    { data: potmRows },
   ] = await Promise.all([
     supabase.from('games').select('*').order('game_date', { ascending: false }),
     supabase.from('training_sessions').select('*').order('session_date', { ascending: false }),
@@ -54,6 +55,7 @@ export default async function AdminSchedulePage() {
       .from('match_cards')
       .select('id, game_id, player_id, card_type')
       .not('game_id', 'is', null),
+    supabase.from('potm').select('game_id, player_id, place'),
   ])
 
   const error = gamesError ?? trainingsError
@@ -105,6 +107,7 @@ export default async function AdminSchedulePage() {
       teamListByGame={teamListByGame}
       goalsByGame={groupByGame((goalRows ?? []) as GoalRow[])}
       cardsByGame={groupByGame((cardRows ?? []) as CardRow[])}
+      potmByGame={groupByGame((potmRows ?? []) as { game_id: string; player_id: string; place: number }[])}
     />
   )
 }

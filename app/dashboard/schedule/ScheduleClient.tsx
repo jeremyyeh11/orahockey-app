@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { setAttendance } from './actions'
 import { fmtTime, dateBlock } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
+import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
 import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { updateGame, updateTraining, deleteGame, deleteTraining } from '@/app/admin/schedule/actions'
@@ -40,6 +41,7 @@ export default function ScheduleClient({
   teamListByGame,
   goalsByGame,
   cardsByGame,
+  potmByGame,
 }: {
   games: Game[]
   trainings: Training[]
@@ -52,6 +54,7 @@ export default function ScheduleClient({
   teamListByGame: Record<string, Record<string, boolean>>
   goalsByGame: Record<string, GoalRow[]>
   cardsByGame: Record<string, CardRow[]>
+  potmByGame: Record<string, PotmPlacing[]>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
   const [isPending, startTransition] = useTransition()
@@ -239,6 +242,7 @@ export default function ScheduleClient({
           now={now}
           goalsByGame={goalsByGame}
           cardsByGame={cardsByGame}
+          potmByGame={potmByGame}
           onClose={() => setSelectedItem(null)}
           onSaveGame={handleSaveGame}
           onSaveTraining={handleSaveTraining}

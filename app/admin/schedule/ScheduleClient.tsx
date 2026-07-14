@@ -14,6 +14,7 @@ import {
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fmtTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
+import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 
 type EventItem =
@@ -47,6 +48,7 @@ export default function ScheduleClient({
   teamListByGame,
   goalsByGame,
   cardsByGame,
+  potmByGame,
 }: {
   games: Game[]
   trainings: Training[]
@@ -60,6 +62,7 @@ export default function ScheduleClient({
   teamListByGame: Record<string, Record<string, boolean>>
   goalsByGame: Record<string, GoalRow[]>
   cardsByGame: Record<string, CardRow[]>
+  potmByGame: Record<string, PotmPlacing[]>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
   const [selectedItem, setSelectedItem] = useState<EventItem | null>(null)
@@ -323,6 +326,7 @@ export default function ScheduleClient({
           now={now}
           goalsByGame={goalsByGame}
           cardsByGame={cardsByGame}
+          potmByGame={potmByGame}
           onClose={() => { setSelectedItem(null); setError(null) }}
           onSaveGame={handleSaveGame}
           onSaveTraining={handleSaveTraining}
