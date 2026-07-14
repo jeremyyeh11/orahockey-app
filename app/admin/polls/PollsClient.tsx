@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import { createPoll, setPollActive, deletePoll } from './actions'
 import { votePoll } from '@/app/dashboard/polls/actions'
 import { fmtDateTime, fromDatetimeLocal } from '@/lib/format'
+import PotmPolls from '@/components/PotmPolls'
+import type { PotmPoll } from '@/lib/potm'
 
 export type Poll = {
   id: string
@@ -21,9 +23,11 @@ const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 export default function PollsClient({
   polls,
+  potmPolls,
   myPlayerId,
 }: {
   polls: Poll[]
+  potmPolls: PotmPoll[]
   myPlayerId: string | null
 }) {
   const [showModal, setShowModal] = useState(false)
@@ -89,7 +93,9 @@ export default function PollsClient({
         </button>
       </div>
 
-      {polls.length === 0 && (
+      <PotmPolls polls={potmPolls} myPlayerId={myPlayerId} />
+
+      {polls.length === 0 && potmPolls.length === 0 && (
         <p className="py-4 text-center text-sm text-slate-500">No polls yet. Create one above.</p>
       )}
 

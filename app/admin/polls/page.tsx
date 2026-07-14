@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import PollsClient from './PollsClient'
+import { getPotmPolls } from '@/lib/potm'
 
 export default async function AdminPollsPage() {
   const supabase = createClient()
@@ -8,7 +9,7 @@ export default async function AdminPollsPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [{ data: me }, { data: polls, error }] = await Promise.all([
+  const [{ data: me }, { data: polls, error }, { polls: potmPolls }] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     supabase
       .from('polls')
@@ -16,6 +17,7 @@ export default async function AdminPollsPage() {
         'id, question, is_active, closes_at, created_at, poll_options(id, label, sort_order), poll_votes(id, poll_option_id, player_id)'
       )
       .order('created_at', { ascending: false }),
+    getPotmPolls(),
   ])
 
   if (error) {
@@ -26,5 +28,5 @@ export default async function AdminPollsPage() {
     )
   }
 
-  return <PollsClient polls={polls ?? []} myPlayerId={me?.id ?? null} />
+  return <PollsClient polls={polls ?? []} potmPolls={potmPolls} myPlayerId={me?.id ?? null} />
 }

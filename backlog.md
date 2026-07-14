@@ -12,28 +12,6 @@
 
 ## Backlog
 
-## 5. Vote POTM system
-
-A match-linked POTM vote that replaces the current admin-only manual `potm` entry (table `potm`, currently populated by admins). Players vote 1st / 2nd / 3rd from the match's published team list; results stay secret until the poll closes.
-
-- **Auto-create:** when a match is over (date/time passed), automatically create a POTM poll linked to that match.
-- **Single-choice, 3 ranks:** the poll is single-choice but captures **1st / 2nd / 3rd choice** for POTM (three separate rank selections, not a multi-select).
-- **Linked to the match:** the selectable options are the players in that match's **published team list** only (`match_team_lists` where `team_list_status = 'published'`).
-- **Eligibility:** only players who are in that same team list may **vote** (everyone can **see** the poll, but voting is restricted to listed players).
-- **Secret until closed:** poll results are hidden until the poll is **closed**.
-- **Confirm to lock:** a **Confirm** button locks in the vote. Before confirming, show the **selected vote**; after confirming, show a **warning** that no changes are allowed.
-- **Auto-close:** the poll **auto-closes** once **every eligible voter has voted**.
-- **Not-yet-voted list:** show players who haven't voted as small, legible **tags** (not a one-name-per-line list). The **current user's tag is highlighted green** if present (i.e. if they haven't voted yet). Once they vote, their tag disappears. These tags **update live** — no refresh needed.
-- **Result display:** after the poll closes, show the POTM result (1st / 2nd / 3rd). Display the POTM in the **match detail view** alongside the match result (fills the blank POTM space from #4).
-
-Must reference only UI-visible elements (Schedule tab, match detail modal, team list, polls). Internal data shape TBD.
-
-*Open questions to resolve at build time:*
-- *This reuses the existing `polls` / `poll_options` / `poll_votes` tables or a new POTM-specific structure? The 1st/2nd/3rd rank + game link + secret-until-closed + auto-close suggest a new `potm_polls` / `potm_votes` model rather than stretching the general poll (which is multi-choice, open to all). Decide before build.*
-- *Existing `potm` table (1st/2nd/3rd, points derived in app) — the vote result should populate it, replacing admin manual entry. Confirm the migration path and that points stay derived.*
-- *RLS: voting restricted to team-list members needs a policy; viewing open to all authenticated. Auto-create likely needs a server function / trigger on match end.*
-- *Tie-breaking / shared places for POTM (the `potm` table already allows shared places) — how does the rank tally resolve ties?*
-
 ## 6. Self-serve player onboarding via whitelist + email set-password link
 
 Replace the manual (Supabase-dashboard) onboarding with an in-app flow driven by the existing `player_whitelist` table. Each new player gets a **private, per-user setup link by email** — no shared or app-generated temporary password is ever transmitted.
@@ -70,6 +48,25 @@ Must reference only UI-visible elements (player profile photo, Home hero, Schedu
 ---
 
 ## Archived
+
+### 5. Vote POTM system ✓ July 2026
+
+Match-linked POTM vote replacing admin-only manual `potm` entry. Surfaced in the Polls
+tab (both player and admin): a poll auto-creates lazily on Polls-tab load for every
+played match with a published team list (`ensure_potm_polls()`; no scheduler). Eligible
+voters and candidates are that published team list. Voters rank 1st/2nd/3rd via three
+dropdowns (each rank excludes the others' picks), see a confirm-to-lock preview, then a
+locked warning after confirming. Ballots are secret: choices live in `potm_votes` (admin-
+only RLS) while a public `potm_ballots` receipt drives the live "yet to vote" tags — the
+current user's tag is green, and tags update live via Supabase Realtime (first use of
+Realtime in the app; the ssr browser client must set the auth token on the socket or the
+authenticated-only RLS filters events out). The poll auto-closes once every listed player
+has voted; `close_potm_poll()` tallies 3/2/1 points and writes places 1/2/3 (shared on
+ties via dense_rank) into the existing `potm` table, so season stats keep deriving
+unchanged. Closed results show in the Polls card and fill the reserved POTM slot in the
+match result modal (#4). New migration `008_potm_vote.sql` (tables, definer functions,
+RLS, Realtime publication). Build questions resolved with Jeremy: Realtime over polling,
+Polls-tab entry point, lazy creation, points-weighted tally.
 
 ### 4. Update match result ✓ July 2026
 

@@ -7,7 +7,7 @@ import { fmtDateTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/li
 import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { TeamListModal } from './TeamListModal'
-import { MatchResultModal } from './MatchResultModal'
+import { MatchResultModal, type PotmPlacing } from './MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 
 export type Game = {
@@ -109,6 +109,7 @@ export function EventDetailModal({
   now,
   goalsByGame,
   cardsByGame,
+  potmByGame,
   onClose,
   onSaveGame,
   onSaveTraining,
@@ -125,6 +126,7 @@ export function EventDetailModal({
   now: string
   goalsByGame: Record<string, GoalRow[]>
   cardsByGame: Record<string, CardRow[]>
+  potmByGame: Record<string, PotmPlacing[]>
   onClose: () => void
   onSaveGame: (id: string, data: GameInput) => void
   onSaveTraining: (id: string, data: TrainingInput) => void
@@ -241,6 +243,7 @@ export function EventDetailModal({
         roster={roster}
         initialGoals={localGoals ?? goalsByGame[sessionId] ?? []}
         initialCards={localCards ?? cardsByGame[sessionId] ?? []}
+        potm={potmByGame[sessionId] ?? []}
         onClose={() => setShowResult(false)}
         onScoreChange={(gf, ga, result) => setLocalScore({ gf, ga, result })}
         onGoalsChange={setLocalGoals}
