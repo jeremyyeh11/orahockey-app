@@ -1,80 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-import { PlayerProfilePage } from '@/components/PlayerProfilePage'
-import { computeSeason, seasonsOf, type PlayerLite, type GameLite, type SeasonStat, type PotmRow, type AttendanceRow, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
-import type { RosterPlayer } from '@/components/RosterList'
-import { getNow } from '@/lib/preview'
-import { LEAGUE } from '@/lib/constants'
+import { PlayerProfileView } from '@/components/PlayerProfileView'
 
 export default async function PlayerProfileRoute({
   params,
 }: {
   params: { playerId: string }
 }) {
-  const supabase = createClient()
-
-  const [
-    { data: player, error: playerErr },
-    { data: games },
-    { data: stats },
-    { data: potm },
-    { data: att },
-    { data: cardRows },
-  ] = await Promise.all([
-    supabase
-      .from('players')
-      .select('id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year')
-      .eq('id', params.playerId)
-      .single(),
-    supabase.from('games').select('id, game_date, result, goals_against').order('game_date', { ascending: false }),
-    supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
-    supabase.from('potm').select('game_id, player_id, place'),
-    supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending'),
-    supabase.from('match_cards').select('player_id, game_id, card_type, created_at'),
-  ])
-
-  if (playerErr || !player) {
-    return <div className="p-4 text-sm text-red-400">Player not found.</div>
-  }
-
-  const players: (PlayerLite & RosterPlayer)[] = [player as (PlayerLite & RosterPlayer)]
-  const cards = (cardRows ?? []) as MatchCardRow[]
-  const seasons = seasonsOf(games ?? [])
-  const currentSeason = seasons[0] ?? String(getNow().getFullYear())
-
-  let seasonRow: LeaderboardRow | undefined
-  let careerRow: LeaderboardRow | undefined
-
-  try {
-    const { leaderboard: seasonLb } = computeSeason({
-      players,
-      games: games ?? [],
-      stats: stats ?? [],
-      potm: potm ?? [],
-      attendance: att ?? [],
-      cards,
-      season: currentSeason,
-    })
-    const { leaderboard: careerLb } = computeSeason({
-      players,
-      games: games ?? [],
-      stats: stats ?? [],
-      potm: potm ?? [],
-      attendance: att ?? [],
-      cards,
-      season: 'all',
-    })
-    seasonRow = seasonLb.find((r) => r.player.id === player.id)
-    careerRow = careerLb.find((r) => r.player.id === player.id)
-  } catch (e) {
-    // computeSeason may crash if data is incomplete — that's fine, just show no stats
-  }
-
-  return (
-    <PlayerProfilePage
-      player={player}
-      seasonRow={seasonRow}
-      careerRow={careerRow}
-      seasonLabel={`${LEAGUE} ${currentSeason}`}
-    />
-  )
+  return <PlayerProfileView playerId={params.playerId} />
 }

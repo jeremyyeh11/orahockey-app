@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signOut } from '@/lib/auth'
-import { CLUB_NAME } from '@/lib/constants'
-import BottomNav, { type NavItem } from '@/components/BottomNav'
+import AppShell from '@/components/AppShell'
+import { type NavItem } from '@/components/BottomNav'
 import { HomeIcon, UsersIcon, CalendarIcon, PollIcon } from '@/components/icons'
 
 const NAV: NavItem[] = [
@@ -32,44 +31,18 @@ export default function DashboardLayout({
     router.push('/admin/dashboard')
   }
 
-  async function handleLogout() {
-    await signOut()
-    router.push('/login')
-  }
+  const adminViewButton = isAdminPreview ? (
+    <button
+      onClick={returnToAdmin}
+      className="rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light transition hover:bg-brand/20"
+    >
+      Admin view
+    </button>
+  ) : null
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
-        <span className="flex items-center gap-2">
-          <img src="/crest-white.png" alt={CLUB_NAME} className="h-8 w-8 object-contain" />
-          <span className="font-display text-lg font-bold tracking-tight text-white">
-            ORA <span className="text-brand-light">Hockey</span>
-          </span>
-        </span>
-        <div className="flex items-center gap-3">
-          {isAdminPreview && (
-            <button
-              onClick={returnToAdmin}
-              className="rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light transition hover:bg-brand/20"
-            >
-              Admin view
-            </button>
-          )}
-          <button
-            onClick={handleLogout}
-            className="text-xs font-medium text-slate-400 transition hover:text-white"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {/* Page content — padded bottom so it isn't hidden behind the floating nav */}
-      <main className="flex-1 overflow-y-auto pb-28">{children}</main>
-
-      {/* Floating pill nav */}
-      <BottomNav items={NAV} />
-    </div>
+    <AppShell nav={NAV} headerActions={adminViewButton}>
+      {children}
+    </AppShell>
   )
 }
