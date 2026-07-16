@@ -92,3 +92,17 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* iOS Safari sizes date/time inputs to their content and lets them overflow
+   the container even with width:100%. Normalise them to the standard box model.
+   Scoped to iOS (via -webkit-touch-callout) so desktop keeps its native picker. */
+@supports (-webkit-touch-callout: none) {
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='time'] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
