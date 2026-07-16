@@ -316,6 +316,7 @@ export function EventDetailModal({
       isOpen={!!item}
       onClose={onClose}
       isAdmin={isAdmin}
+      editInHeader
       editMode={editMode}
       onEnterEdit={() => setEditMode(true)}
       onSave={() => {

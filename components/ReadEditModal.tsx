@@ -15,6 +15,8 @@ export type ReadEditModalProps = {
   isPending: boolean
   children: ReactNode
   onDelete?: () => void
+  /** Render the admin Edit trigger in the header (next to titleAction) instead of the footer. */
+  editInHeader?: boolean
 }
 
 export function ReadEditModal({
@@ -30,6 +32,7 @@ export function ReadEditModal({
   isPending,
   children,
   onDelete,
+  editInHeader = false,
 }: ReadEditModalProps) {
   // Prevent body scroll while modal is open
   useEffect(() => {
@@ -50,7 +53,18 @@ export function ReadEditModal({
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
         <div className="mb-5 flex items-center justify-between gap-3">
           <h2 className="min-w-0 truncate text-lg font-bold text-white">{title}</h2>
-          {titleAction}
+          <div className="flex shrink-0 items-center gap-2">
+            {titleAction}
+            {editInHeader && isAdmin && !editMode && (
+              <button
+                type="button"
+                onClick={onEnterEdit}
+                className="shrink-0 rounded-lg border border-surface-border px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-slate-700"
+              >
+                Edit
+              </button>
+            )}
+          </div>
         </div>
 
         {children}
@@ -65,13 +79,15 @@ export function ReadEditModal({
             >
               Close
             </button>
-            <button
-              type="button"
-              onClick={onEnterEdit}
-              className="flex-1 rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-700"
-            >
-              Edit
-            </button>
+            {!editInHeader && (
+              <button
+                type="button"
+                onClick={onEnterEdit}
+                className="flex-1 rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-700"
+              >
+                Edit
+              </button>
+            )}
           </div>
         )}
 
