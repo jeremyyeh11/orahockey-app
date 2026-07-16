@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { signOut } from '@/lib/auth'
+import { CLUB_NAME } from '@/lib/constants'
 import BottomNav, { type NavItem } from '@/components/BottomNav'
 import { HomeIcon, UsersIcon, CalendarIcon, PollIcon } from '@/components/icons'
 
@@ -32,11 +33,7 @@ export default function DashboardLayout({
   }
 
   async function handleLogout() {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    await supabase.auth.signOut()
+    await signOut()
     router.push('/login')
   }
 
@@ -45,7 +42,7 @@ export default function DashboardLayout({
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
         <span className="flex items-center gap-2">
-          <img src="/crest-white.png" alt="ORA Hockey" className="h-8 w-8 object-contain" />
+          <img src="/crest-white.png" alt={CLUB_NAME} className="h-8 w-8 object-contain" />
           <span className="font-display text-lg font-bold tracking-tight text-white">
             ORA <span className="text-brand-light">Hockey</span>
           </span>

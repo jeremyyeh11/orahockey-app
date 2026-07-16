@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
+import { LEAGUE } from '@/lib/constants'
 
 function firstName(full: string) {
   const f = full.split(/\s+/)[0] ?? ''
@@ -84,7 +85,7 @@ export default async function PlayerDashboardPage() {
       {/* Season record hero */}
       <div className="bg-accent relative mt-4 overflow-hidden rounded-[1.5rem] p-5">
         <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/70">
-          Season 2026 · MHL1
+          Season {nowDate.getFullYear()} · {LEAGUE}
         </div>
         <div className="mt-2 flex items-end gap-3">
           <span className="font-display text-4xl font-extrabold leading-none text-white">

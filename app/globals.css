@@ -69,6 +69,11 @@
   .bg-accent {
     background-image: linear-gradient(180deg, #35784a 0%, #2e6b3e 100%);
   }
+
+  /* Gold gradient — secondary accent (sign-in CTA) */
+  .bg-gold {
+    background-image: linear-gradient(180deg, #E0C070 0%, #C0A050 100%);
+  }
 }
 
 /* ── Menu dock — dark glassmorphism pill nav with green accent ── */

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { CLUB_NAME, LEAGUE } from '@/lib/constants'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -68,12 +69,12 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo / Title */}
         <div className="mb-9 text-center">
-          <img src="/crest-white.png" alt="ORA Hockey" className="mx-auto mb-5 h-20 w-20 object-contain" />
+          <img src="/crest-white.png" alt={CLUB_NAME} className="mx-auto mb-5 h-20 w-20 object-contain" />
           <h1 className="font-display text-[1.7rem] font-bold tracking-tight text-white">
-            ORA <span className="text-[#E0C070]">Hockey</span>
+            ORA <span className="text-gold">Hockey</span>
           </h1>
           <p className="mt-2.5 text-[11px] font-medium uppercase tracking-[0.28em] text-slate-500">
-            MHL1 Team Portal
+            {LEAGUE} Team Portal
           </p>
         </div>
 
@@ -97,7 +98,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 transition focus:border-[#E0C070]/60 focus:outline-none focus:ring-1 focus:ring-[#E0C070]/60"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 transition focus:border-gold/60 focus:outline-none focus:ring-1 focus:ring-gold/60"
               placeholder="you@example.com"
             />
           </div>
@@ -116,7 +117,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 transition focus:border-[#E0C070]/60 focus:outline-none focus:ring-1 focus:ring-[#E0C070]/60"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 transition focus:border-gold/60 focus:outline-none focus:ring-1 focus:ring-gold/60"
               placeholder="••••••••"
             />
           </div>
@@ -130,7 +131,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 w-full rounded-xl bg-[linear-gradient(180deg,#E0C070_0%,#C0A050_100%)] py-3 font-display text-sm font-semibold tracking-wide text-black shadow-[0_2px_10px_-2px_rgba(0,0,0,0.6)] transition hover:brightness-[1.08] disabled:opacity-50"
+            className="bg-gold mt-1 w-full rounded-xl py-3 font-display text-sm font-semibold tracking-wide text-black shadow-[0_2px_10px_-2px_rgba(0,0,0,0.6)] transition hover:brightness-[1.08] disabled:opacity-50"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>

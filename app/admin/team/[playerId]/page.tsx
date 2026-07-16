@@ -3,6 +3,7 @@ import { PlayerProfilePage } from '@/components/PlayerProfilePage'
 import { computeSeason, seasonsOf, type PlayerLite, type GameLite, type SeasonStat, type PotmRow, type AttendanceRow, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
 import { getNow } from '@/lib/preview'
+import { LEAGUE } from '@/lib/constants'
 
 export default async function AdminPlayerProfileRoute({
   params,
@@ -73,7 +74,7 @@ export default async function AdminPlayerProfileRoute({
       player={player}
       seasonRow={seasonRow}
       careerRow={careerRow}
-      seasonLabel={`MHL1 ${currentSeason}`}
+      seasonLabel={`${LEAGUE} ${currentSeason}`}
     />
   )
 }

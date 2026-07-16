@@ -295,7 +295,7 @@ export default function ScheduleClient({
 
       {/* Past */}
       <h2 className="mb-2 text-sm font-semibold text-white">
-        {upcoming.length > 0 ? 'Past' : 'Season 2026'}
+        {upcoming.length > 0 ? 'Past' : `Season ${new Date(now).getFullYear()}`}
       </h2>
       <div className="space-y-2">
         {past.length === 0 && upcoming.length === 0 && (

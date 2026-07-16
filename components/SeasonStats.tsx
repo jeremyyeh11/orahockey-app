@@ -1,6 +1,7 @@
 'use client'
 
 import { preferredName } from './RosterList'
+import { LEAGUE } from '@/lib/constants'
 
 // Re-export types and pure functions from lib/stats.ts so existing imports work
 export type { PlayerLite, GameLite, SeasonStat, PotmRow, AttendanceRow, MatchCardRow, LeaderboardRow } from '@/lib/stats'
@@ -25,7 +26,7 @@ export function SeasonSelect({
     >
       {seasons.map((s) => (
         <option key={s} value={s}>
-          MHL1 {s}
+          {LEAGUE} {s}
         </option>
       ))}
     </select>

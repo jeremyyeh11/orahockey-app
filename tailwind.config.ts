@@ -20,6 +20,11 @@ const config: Config = {
           DEFAULT: '#2e6b3e',
           light: '#5aa971',
         },
+        // Gold — secondary accent (login mark, sign-in CTA)
+        gold: {
+          DEFAULT: '#E0C070',
+          dark: '#C0A050',
+        },
         // Grey/black surfaces
         surface: {
           DEFAULT: '#131315',
