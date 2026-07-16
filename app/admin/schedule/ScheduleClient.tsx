@@ -12,24 +12,11 @@ import {
   type TrainingInput,
 } from './actions'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
-import { fmtTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/lib/format'
+import { fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
+import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
-
-type EventItem =
-  | { kind: 'game'; date: string; game: Game }
-  | { kind: 'training'; date: string; training: Training }
-
-type MyStatus = 'attending' | 'not_attending' | 'maybe'
-
-const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
-  win: { label: 'W', cls: 'bg-green-900/60 text-green-300' },
-  loss: { label: 'L', cls: 'bg-red-900/60 text-red-300' },
-  tie: { label: 'D', cls: 'bg-slate-700 text-slate-300' },
-  ot_win: { label: 'W·OT', cls: 'bg-green-900/60 text-green-300' },
-  ot_loss: { label: 'L·OT', cls: 'bg-red-900/60 text-red-300' },
-}
 
 const inputCls =
   'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -399,55 +386,6 @@ export default function ScheduleClient({
             <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
         </Modal>
-      )}
-    </div>
-  )
-}
-
-function EventRow({ item, attending }: { item: EventItem; attending: Record<string, number> }) {
-  const isGame = item.kind === 'game'
-  const id = isGame ? item.game.id : item.training.id
-  const block = dateBlock(item.date)
-  const going = attending[id]
-
-  return (
-    <div className="flex w-full items-center gap-3">
-      <div className="flex w-11 shrink-0 flex-col items-center justify-center leading-tight">
-        <span className="text-xl font-bold text-white">{block.day}</span>
-        <span className="text-[10px] uppercase tracking-wide text-slate-400">{block.mon}</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-white">
-            {isGame ? `vs ${item.game.opponent}` : 'Training'}
-          </span>
-          {isGame && item.game.game_type !== 'regular' && (
-            <span className="rounded bg-amber-900/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-300">
-              {item.game.game_type}
-            </span>
-          )}
-        </div>
-        <div className="mt-0.5 truncate text-xs text-slate-400">
-          {fmtTime(item.date)}
-          {(isGame ? item.game.location : item.training.location) &&
-            ` · ${isGame ? item.game.location : item.training.location}`}
-          {isGame && item.game.home_away && ` · ${item.game.home_away === 'home' ? 'Home' : 'Away'}`}
-        </div>
-        {going != null && <div className="mt-0.5 text-[11px] text-slate-500">{going} attending</div>}
-      </div>
-      {isGame && item.game.result && (
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <span
-            className={`rounded px-1.5 py-0.5 text-xs font-bold ${
-              RESULT_BADGE[item.game.result]?.cls ?? 'bg-slate-700 text-slate-300'
-            }`}
-          >
-            {RESULT_BADGE[item.game.result]?.label ?? item.game.result}
-          </span>
-          <span className="text-sm font-semibold text-white">
-            {item.game.goals_for}–{item.game.goals_against}
-          </span>
-        </div>
       )}
     </div>
   )
