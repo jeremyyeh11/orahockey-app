@@ -63,6 +63,7 @@ export function TeamListModal({
     setSelections((prev) => ({ ...prev, [playerId]: !prev[playerId] }))
   }
 
+  // Save Draft doubles as Close: it persists the draft and dismisses the modal.
   function handleSaveDraft() {
     setIsPending(true)
     const entries: TeamListEntry[] = attendingPlayers.map((p) => ({
@@ -71,9 +72,8 @@ export function TeamListModal({
     }))
     saveTeamList(game.id, entries, 'draft')
       .then(() => {
-        setCurrentStatus('draft')
         onStatusChange('draft')
-        setIsPending(false)
+        onClose()
       })
       .catch((err) => {
         console.error(err)
@@ -89,9 +89,8 @@ export function TeamListModal({
     }))
     saveTeamList(game.id, entries, 'published')
       .then(() => {
-        setCurrentStatus('published')
         onStatusChange('published')
-        setIsPending(false)
+        onClose()
       })
       .catch((err) => {
         console.error(err)
@@ -242,13 +241,6 @@ export function TeamListModal({
               </button>
             </div>
           )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-700"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>
