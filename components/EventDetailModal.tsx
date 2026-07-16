@@ -337,19 +337,6 @@ export function EventDetailModal({
                 <DetailRow label="Opponent" value={currentItem.game.opponent} />
                 <DetailRow label="Home / Away" value={currentItem.game.home_away ? (currentItem.game.home_away === 'home' ? 'Home' : 'Away') : '—'} />
                 <DetailRow label="Type" value={currentItem.game.game_type.charAt(0).toUpperCase() + currentItem.game.game_type.slice(1)} />
-                {effectiveScore && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-400">Result</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${RESULT_BADGE[effectiveScore.result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
-                        {RESULT_BADGE[effectiveScore.result]?.label ?? effectiveScore.result}
-                      </span>
-                      <span className="text-sm font-semibold text-white">
-                        {effectiveScore.gf}–{effectiveScore.ga}
-                      </span>
-                    </div>
-                  </div>
-                )}
               </>
             )}
             <DetailRow label="Venue" value={location || 'TBD'} />
@@ -358,7 +345,7 @@ export function EventDetailModal({
           {/* Match Result — shown once the score has been entered */}
           {isGame && hasResult && (
             <CollapsibleSection key={`result-${stage}`} title="Match Result" defaultOpen>
-              <MatchResultSummary goals={resultGoals} cards={resultCards} potm={resultPotm} nameOf={nameOf} />
+              <MatchResultSummary score={effectiveScore} goals={resultGoals} cards={resultCards} potm={resultPotm} nameOf={nameOf} />
             </CollapsibleSection>
           )}
 
@@ -594,13 +581,15 @@ function CollapsibleSection({
   )
 }
 
-/** Read-only match result: scorers (with assists), cards and POTM placings. */
+/** Read-only match result: prominent score, then scorers (with assists), cards and POTM. */
 function MatchResultSummary({
+  score,
   goals,
   cards,
   potm,
   nameOf,
 }: {
+  score: { gf: number; ga: number; result: string } | null
   goals: GoalRow[]
   cards: CardRow[]
   potm: PotmPlacing[]
@@ -626,6 +615,17 @@ function MatchResultSummary({
 
   return (
     <div className="space-y-4">
+      {score && (
+        <div className="flex flex-col items-center gap-1 pb-1">
+          <span className="font-display text-4xl font-extrabold leading-none text-white">
+            {score.gf}<span className="text-slate-500">–</span>{score.ga}
+          </span>
+          <span className={`rounded px-2 py-0.5 text-xs font-bold ${RESULT_BADGE[score.result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
+            {RESULT_BADGE[score.result]?.label ?? score.result}
+          </span>
+        </div>
+      )}
+
       <div>
         <div className="mb-1.5 text-[11px] font-medium text-slate-500">Scorers</div>
         {sortedGoals.length === 0 ? (
