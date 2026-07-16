@@ -5,17 +5,9 @@ import { createPoll, setPollActive, deletePoll } from './actions'
 import { votePoll } from '@/app/dashboard/polls/actions'
 import { fmtDateTime, fromDatetimeLocal } from '@/lib/format'
 import PotmPolls from '@/components/PotmPolls'
+import { PollResults } from '@/components/PollResults'
 import type { PotmPoll } from '@/lib/potm'
-
-export type Poll = {
-  id: string
-  question: string
-  is_active: boolean
-  closes_at: string | null
-  created_at: string
-  poll_options: { id: string; label: string; sort_order: number }[]
-  poll_votes: { id: string; poll_option_id: string; player_id: string }[]
-}
+import type { Poll } from '@/lib/polls'
 
 const inputCls =
   'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -278,32 +270,7 @@ function PollCard({
       </div>
 
       {/* Result bars */}
-      <div className="mt-3 space-y-2">
-        {sorted.map((opt) => {
-          const count = poll.poll_votes.filter((v) => v.poll_option_id === opt.id).length
-          const pct = total > 0 ? Math.round((count / total) * 100) : 0
-          const isMine = myVote === opt.id
-          return (
-            <div key={opt.id}>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className={isMine ? 'font-semibold text-brand-light' : 'text-slate-300'}>
-                  {opt.label}
-                  {isMine && ' · your vote'}
-                </span>
-                <span className="text-slate-500">
-                  {count} · {pct}%
-                </span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-                <div
-                  className={`h-full rounded-full ${isMine ? 'bg-brand-light' : 'bg-brand-light/80'}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      <PollResults poll={poll} myVote={myVote} mutedBarClass="bg-brand-light/80" />
 
       {/* Cast your own vote (admins are players too) */}
       {canVote && (
