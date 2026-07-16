@@ -1,11 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import RosterList from '@/components/RosterList'
 import {
-  computeSeason,
-  seasonsOf,
+  useSeasonStats,
   SeasonSelect,
   PotsCard,
   TopScorersCard,
@@ -38,22 +36,14 @@ export default function SquadClient({
   myPlayerId: string | null
 }) {
   const router = useRouter()
-  const seasons = seasonsOf(games)
-  const [season, setSeason] = useState<string>(
-    seasons[0] ?? String(new Date().getFullYear())
-  )
-
-  const { seasonGames, leaderboard, pots, topScorerGroups } = computeSeason({
+  const { seasons, season, setSeason, seasonGames, pots, topScorerGroups, statsMap } = useSeasonStats({
     players,
     games,
     stats,
     potm,
     attendance,
     cards,
-    season,
   })
-
-  const statsMap = new Map(leaderboard.map((r) => [r.player.id, r]))
 
   const currentYear = String(new Date().getFullYear())
   const seasonGameIds = new Set(seasonGames.map((g) => g.id))

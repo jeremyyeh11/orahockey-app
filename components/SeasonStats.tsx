@@ -1,13 +1,63 @@
 'use client'
 
+import { useState } from 'react'
 import { preferredName } from './RosterList'
 import { LEAGUE } from '@/lib/constants'
 
 // Re-export types and pure functions from lib/stats.ts so existing imports work
 export type { PlayerLite, GameLite, SeasonStat, PotmRow, AttendanceRow, MatchCardRow, LeaderboardRow } from '@/lib/stats'
-export { computeSeason, seasonsOf } from '@/lib/stats'
 
-import type { LeaderboardRow } from '@/lib/stats'
+import { computeSeason, seasonsOf } from '@/lib/stats'
+export { computeSeason, seasonsOf }
+import type {
+  PlayerLite,
+  GameLite,
+  SeasonStat,
+  PotmRow,
+  AttendanceRow,
+  MatchCardRow,
+  LeaderboardRow,
+} from '@/lib/stats'
+
+/**
+ * Season selection + leaderboard computation for the squad screens. Owns the
+ * selected-season state (defaulting to the most recent season), runs
+ * computeSeason, and exposes the id→row map the roster needs. Shared by the
+ * admin and player SquadClients, which differ only in how they filter the
+ * roster and whether they can edit it.
+ */
+export function useSeasonStats({
+  players,
+  games,
+  stats,
+  potm,
+  attendance,
+  cards,
+}: {
+  players: PlayerLite[]
+  games: GameLite[]
+  stats: SeasonStat[]
+  potm: PotmRow[]
+  attendance: AttendanceRow[]
+  cards: MatchCardRow[]
+}) {
+  const seasons = seasonsOf(games)
+  const [season, setSeason] = useState<string>(seasons[0] ?? String(new Date().getFullYear()))
+
+  const { seasonGames, leaderboard, pots, topScorerGroups } = computeSeason({
+    players,
+    games,
+    stats,
+    potm,
+    attendance,
+    cards,
+    season,
+  })
+
+  const statsMap = new Map<string, LeaderboardRow>(leaderboard.map((r) => [r.player.id, r]))
+
+  return { seasons, season, setSeason, seasonGames, leaderboard, pots, topScorerGroups, statsMap }
+}
 
 export function SeasonSelect({
   seasons,

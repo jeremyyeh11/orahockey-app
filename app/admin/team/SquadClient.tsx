@@ -6,8 +6,7 @@ import { addPlayer, togglePlayerActive } from './actions'
 import RosterList from '@/components/RosterList'
 import { defaultPreferredName } from '@/components/RosterList'
 import {
-  computeSeason,
-  seasonsOf,
+  useSeasonStats,
   SeasonSelect,
   PotsCard,
   TopScorersCard,
@@ -71,20 +70,14 @@ export default function SquadClient({
   const [error, setError] = useState<string | null>(null)
 
   // Season stats state
-  const seasons = seasonsOf(games as unknown as GameLite[])
-  const [season, setSeason] = useState<string>(seasons[0] ?? String(new Date().getFullYear()))
-
-  const { leaderboard, pots, topScorerGroups } = computeSeason({
+  const { seasons, season, setSeason, pots, topScorerGroups, statsMap } = useSeasonStats({
     players,
     games: games as unknown as GameLite[],
     stats,
     potm,
     attendance,
     cards,
-    season,
   })
-
-  const statsMap = new Map(leaderboard.map((r) => [r.player.id, r]))
 
   const visible = showInactive ? players : players.filter((p) => p.is_active)
 
