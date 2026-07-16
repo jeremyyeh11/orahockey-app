@@ -7,7 +7,15 @@ import { fmtDateTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/li
 import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { TeamListModal } from './TeamListModal'
-import { MatchResultModal, type PotmPlacing } from './MatchResultModal'
+import {
+  MatchResultModal,
+  type PotmPlacing,
+  CARD_SHAPES,
+  POTM_PLACE_LABEL,
+  POTM_PLACE_CLS,
+  consolidateCards,
+} from './MatchResultModal'
+import { ChevronRightIcon } from './icons'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 
 export type Game = {
@@ -193,6 +201,29 @@ export function EventDetailModal({
     .filter((p) => teamListSelections[p.id] === true && attendingPlayerIds.has(p.id))
     .sort((a, b) => a.full_name.localeCompare(b.full_name))
 
+  // Match result data for the read-only summary
+  const resultGoals = localGoals ?? goalsByGame[sessionId] ?? []
+  const resultCards = localCards ?? cardsByGame[sessionId] ?? []
+  const resultPotm = potmByGame[sessionId] ?? []
+  const nameOf = (id: string | null) => {
+    if (!id) return ''
+    const p = roster.find((r) => r.id === id)
+    return p ? preferredName(p) : '?'
+  }
+  const attendingCount = attendingPlayerIds.size
+
+  // Section lifecycle: attendance → team list → result. As each later stage is
+  // reached, earlier sections default to collapsed (still user-expandable). The
+  // `stage` key remounts the sections so the defaults re-apply when it advances.
+  const hasResult = !!effectiveScore
+  const stage: 'pre' | 'teamlist' | 'result' = hasResult
+    ? 'result'
+    : isGame && isTeamListPublished
+    ? 'teamlist'
+    : 'pre'
+  const teamListDefaultOpen = stage !== 'result'
+  const attendanceDefaultOpen = stage === 'pre'
+
   function handleRespond(status: MyStatus) {
     setLocalMyStatus(status)
     setRespondingId(sessionId)
@@ -324,10 +355,21 @@ export function EventDetailModal({
             <DetailRow label="Venue" value={location || 'TBD'} />
           </div>
 
+          {/* Match Result — shown once the score has been entered */}
+          {isGame && hasResult && (
+            <CollapsibleSection key={`result-${stage}`} title="Match Result" defaultOpen>
+              <MatchResultSummary goals={resultGoals} cards={resultCards} potm={resultPotm} nameOf={nameOf} />
+            </CollapsibleSection>
+          )}
+
           {/* Team List — published view (all users) or admin button */}
           {isGame && (
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Team List</h3>
+            <CollapsibleSection
+              key={`teamlist-${stage}`}
+              title="Team List"
+              defaultOpen={teamListDefaultOpen}
+              summary={isTeamListPublished ? `${selectedPlayers.length} named` : undefined}
+            >
               {isTeamListPublished ? (
                 /* Published: show the selected players with jersey numbers */
                 <div className="space-y-1">
@@ -368,42 +410,45 @@ export function EventDetailModal({
                 /* Player: not published yet */
                 <p className="text-xs text-slate-500">To be announced</p>
               )}
-            </div>
+            </CollapsibleSection>
           )}
 
-          {/* Attendance voting */}
-          <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Your attendance</h3>
-            <div className="flex gap-2">
-              {([
-                ['attending', "I'm in"],
-                ['maybe', 'Maybe'],
-                ['not_attending', 'Out'],
-              ] as const).map(([status, label]) => (
-                <button
-                  key={status}
-                  onClick={() => handleRespond(status)}
-                  disabled={respondingId === sessionId}
-                  className={`flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
-                    localMyStatus === status
-                      ? status === 'attending'
-                        ? 'bg-accent text-white ring-1 ring-white/10'
-                        : status === 'maybe'
-                        ? 'bg-amber-900/60 text-amber-300'
-                        : 'bg-slate-700 text-slate-300'
-                      : 'border border-surface-border text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+          {/* Attendance — your RSVP + the full breakdown */}
+          <CollapsibleSection
+            key={`attendance-${stage}`}
+            title="Attendance"
+            defaultOpen={attendanceDefaultOpen}
+            summary={`${attendingCount} in`}
+          >
+            <div className="mb-4">
+              <div className="mb-2 text-[11px] font-medium text-slate-500">Your response</div>
+              <div className="flex gap-2">
+                {([
+                  ['attending', "I'm in"],
+                  ['maybe', 'Maybe'],
+                  ['not_attending', 'Out'],
+                ] as const).map(([status, label]) => (
+                  <button
+                    key={status}
+                    onClick={() => handleRespond(status)}
+                    disabled={respondingId === sessionId}
+                    className={`flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
+                      localMyStatus === status
+                        ? status === 'attending'
+                          ? 'bg-accent text-white ring-1 ring-white/10'
+                          : status === 'maybe'
+                          ? 'bg-amber-900/60 text-amber-300'
+                          : 'bg-slate-700 text-slate-300'
+                        : 'border border-surface-border text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Attendance breakdown */}
-          {breakdown.length > 0 && (
-            <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Attendance</h3>
+            {breakdown.length > 0 && (
               <div className="space-y-2">
                 {breakdown.map((group) => (
                   <div key={group.label}>
@@ -420,8 +465,8 @@ export function EventDetailModal({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </CollapsibleSection>
 
           {/* Additional Information */}
           {notes && (
@@ -509,6 +554,126 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between">
       <span className="text-xs font-medium text-slate-400">{label}</span>
       <span className="text-sm text-white">{value}</span>
+    </div>
+  )
+}
+
+/** A titled, expandable section. Starts open/closed per `defaultOpen`; the caller
+ *  changes the `key` when the event's stage advances so the default re-applies. */
+function CollapsibleSection({
+  title,
+  defaultOpen,
+  summary,
+  children,
+}: {
+  title: string
+  defaultOpen: boolean
+  summary?: React.ReactNode
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="overflow-hidden rounded-xl border border-white/5">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-white/[0.02]"
+      >
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</span>
+        <span className="flex items-center gap-2">
+          {!open && summary != null && (
+            <span className="text-[11px] font-medium text-slate-500">{summary}</span>
+          )}
+          <ChevronRightIcon
+            className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-90' : ''}`}
+          />
+        </span>
+      </button>
+      {open && <div className="border-t border-white/5 px-3 pb-3 pt-3">{children}</div>}
+    </div>
+  )
+}
+
+/** Read-only match result: scorers (with assists), cards and POTM placings. */
+function MatchResultSummary({
+  goals,
+  cards,
+  potm,
+  nameOf,
+}: {
+  goals: GoalRow[]
+  cards: CardRow[]
+  potm: PotmPlacing[]
+  nameOf: (id: string | null) => string
+}) {
+  const sortedGoals = [...goals].sort((a, b) => a.goal_number - b.goal_number)
+  const consolidated = consolidateCards(cards).sort((a, b) =>
+    nameOf(a.player_id).localeCompare(nameOf(b.player_id))
+  )
+  const potmByPlace = [1, 2, 3]
+    .map((place) => ({
+      place,
+      names: potm.filter((p) => p.place === place).map((p) => nameOf(p.player_id)),
+    }))
+    .filter((row) => row.names.length > 0)
+
+  function assistLabel(g: GoalRow): string {
+    if (!g.assist_kind) return ''
+    if (g.assist_kind === 'pc') return 'PC'
+    if (g.assist_kind === 'ps') return 'PS'
+    return g.assist_player_id ? nameOf(g.assist_player_id) : ''
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <div className="mb-1.5 text-[11px] font-medium text-slate-500">Scorers</div>
+        {sortedGoals.length === 0 ? (
+          <p className="text-[11px] text-slate-500">No goals scored.</p>
+        ) : (
+          <div className="space-y-1">
+            {sortedGoals.map((g) => {
+              const assist = assistLabel(g)
+              return (
+                <div key={g.id} className="flex items-baseline gap-2 text-xs">
+                  <span className="w-4 shrink-0 text-center text-slate-500">{g.goal_number}</span>
+                  <span className="text-white">{nameOf(g.scorer_id)}</span>
+                  {assist && <span className="text-slate-500">· {assist}</span>}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {consolidated.length > 0 && (
+        <div>
+          <div className="mb-1.5 text-[11px] font-medium text-slate-500">Cards</div>
+          <div className="space-y-0.5">
+            {consolidated.map((c) => (
+              <div key={`${c.player_id}-${c.card_type}`} className="flex items-center gap-2 text-xs">
+                <span className="min-w-0 flex-1 truncate text-slate-300">{nameOf(c.player_id)}</span>
+                <span className={CARD_SHAPES[c.card_type].cls}>{CARD_SHAPES[c.card_type].shape}</span>
+                <span className="text-slate-500">{c.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {potmByPlace.length > 0 && (
+        <div>
+          <div className="mb-1.5 text-[11px] font-medium text-slate-500">Player of the Match</div>
+          <div className="space-y-0.5">
+            {potmByPlace.map(({ place, names }) => (
+              <div key={place} className="text-xs">
+                <span className={`font-bold ${POTM_PLACE_CLS[place]}`}>{POTM_PLACE_LABEL[place]}</span>{' '}
+                <span className="text-white">{names.join(', ')}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

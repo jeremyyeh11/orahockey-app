@@ -14,7 +14,7 @@ import {
   type CardRow,
 } from '@/app/dashboard/schedule/resultActions'
 
-const CARD_SHAPES: Record<CardRow['card_type'], { shape: string; cls: string; label: string }> = {
+export const CARD_SHAPES: Record<CardRow['card_type'], { shape: string; cls: string; label: string }> = {
   green: { shape: '▲', cls: 'text-green-400', label: 'Green' },
   yellow: { shape: '■', cls: 'text-yellow-400', label: 'Yellow' },
   red: { shape: '●', cls: 'text-red-400', label: 'Red' },
@@ -23,8 +23,8 @@ const CARD_SHAPES: Record<CardRow['card_type'], { shape: string; cls: string; la
 // Placings from the vote-POTM system (#5); populated once a poll closes.
 export type PotmPlacing = { player_id: string; place: number }
 
-const POTM_PLACE_LABEL: Record<number, string> = { 1: '1st', 2: '2nd', 3: '3rd' }
-const POTM_PLACE_CLS: Record<number, string> = {
+export const POTM_PLACE_LABEL: Record<number, string> = { 1: '1st', 2: '2nd', 3: '3rd' }
+export const POTM_PLACE_CLS: Record<number, string> = {
   1: 'text-yellow-300',
   2: 'text-slate-300',
   3: 'text-amber-600',
@@ -485,7 +485,7 @@ function buildSlots(goals: GoalRow[], goalsFor: number): (GoalRow | null)[] {
   return slots
 }
 
-function consolidateCards(cards: CardRow[]) {
+export function consolidateCards(cards: CardRow[]) {
   const groups = new Map<string, { player_id: string; card_type: CardRow['card_type']; count: number }>()
   for (const c of cards) {
     const key = `${c.player_id}-${c.card_type}`
