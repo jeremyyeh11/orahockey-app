@@ -8,12 +8,16 @@ import { useEffect, useRef, useState } from 'react'
  * top of the scroll area and releasing past the threshold triggers a full
  * `window.location.reload()` (the browser-reload equivalent, not a soft router refresh).
  *
- * Renders the scrollable <main> itself so it owns the scroll container: the gesture
- * only engages when that container is at the very top (scrollTop <= 0) and the drag is
- * clearly vertical, so it never hijacks normal scrolling or horizontal swipes.
+ * Renders the scrollable <main> so it owns the scroll container. Two iOS gotchas drive
+ * the shape of this:
+ *   1. If the first downward touchmove isn't preventDefault()-ed, Safari commits the
+ *      gesture to its native rubber-band and then ignores later preventDefault — so we
+ *      claim the gesture on the very first downward move, no direction-lock delay.
+ *   2. The spinner is position:fixed (not a child of the overflow container) so it's
+ *      never clipped and always shows at the top while pulling / reloading.
  */
 const THRESHOLD = 70 // px of pull needed to trigger a reload
-const MAX_PULL = 110 // px the indicator can travel
+const MAX_PULL = 120 // px the indicator can travel
 const RESISTANCE = 0.5 // drag feels heavier than the finger
 
 export default function PullToRefresh({
@@ -27,8 +31,8 @@ export default function PullToRefresh({
   const [pull, setPull] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
 
-  // Live gesture state kept in refs so the listeners register once (depending on
-  // `pull` here would re-run the effect every frame and reset the drag mid-gesture).
+  // Live gesture state in refs so the listeners register once (depending on `pull`
+  // here would re-run the effect every frame and reset the drag mid-gesture).
   const pullRef = useRef(0)
   const refreshingRef = useRef(false)
 
@@ -38,54 +42,56 @@ export default function PullToRefresh({
 
     let startY = 0
     let startX = 0
-    let active = false // engaged a valid pull-from-top gesture
-    let decided = false // locked in vertical (vs horizontal) intent
+    let tracking = false // finger down while at the top
+    let pulling = false // committed to a downward pull
 
     const setPullDist = (d: number) => {
       pullRef.current = d
       setPull(d)
     }
 
+    // At the top regardless of whether <main> or the document is the actual scroller.
+    const atTop = () => el.scrollTop <= 0 && window.scrollY <= 0
+
     const onStart = (e: TouchEvent) => {
-      if (refreshingRef.current || el.scrollTop > 0 || e.touches.length !== 1) {
-        active = false
+      if (refreshingRef.current || e.touches.length !== 1 || !atTop()) {
+        tracking = false
         return
       }
       startY = e.touches[0].clientY
       startX = e.touches[0].clientX
-      active = true
-      decided = false
+      tracking = true
+      pulling = false
     }
 
     const onMove = (e: TouchEvent) => {
-      if (!active || refreshingRef.current) return
+      if (!tracking || refreshingRef.current) return
       const dy = e.touches[0].clientY - startY
       const dx = e.touches[0].clientX - startX
 
-      if (!decided) {
-        // Ignore until the gesture shows a clear direction.
-        if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return
-        // Horizontal or upward — not a pull-to-refresh; let the browser handle it.
-        if (Math.abs(dx) > Math.abs(dy) || dy <= 0) {
-          active = false
+      if (!pulling) {
+        if (dy <= 0) {
+          // Upward / no vertical movement yet — let native scrolling happen.
+          if (dy < 0) tracking = false
           return
         }
-        decided = true
+        // Clearly horizontal — don't hijack side swipes.
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+          tracking = false
+          return
+        }
+        pulling = true
       }
 
-      if (dy <= 0) {
-        setPullDist(0)
-        return
-      }
-      // Pulling down at the top: take over from the native rubber-band.
+      // Downward pull at the top: take over from iOS's native overscroll immediately.
       e.preventDefault()
       setPullDist(Math.min(dy * RESISTANCE, MAX_PULL))
     }
 
     const onEnd = () => {
-      if (!active) return
-      active = false
-      if (pullRef.current >= THRESHOLD) {
+      if (!tracking) return
+      tracking = false
+      if (pulling && pullRef.current >= THRESHOLD) {
         refreshingRef.current = true
         setRefreshing(true)
         setPullDist(THRESHOLD)
@@ -93,9 +99,10 @@ export default function PullToRefresh({
       } else {
         setPullDist(0)
       }
+      pulling = false
     }
 
-    // Non-passive so onMove can preventDefault the native overscroll bounce.
+    // Non-passive touchmove so onMove can preventDefault the native overscroll bounce.
     el.addEventListener('touchstart', onStart, { passive: true })
     el.addEventListener('touchmove', onMove, { passive: false })
     el.addEventListener('touchend', onEnd, { passive: true })
@@ -110,42 +117,41 @@ export default function PullToRefresh({
 
   const progress = Math.min(pull / THRESHOLD, 1)
   const ready = pull >= THRESHOLD
+  const visible = pull > 0 || refreshing
 
   return (
-    <main
-      ref={mainRef}
-      className={className}
-      style={{ overscrollBehaviorY: 'contain' }}
-    >
-      {/* Pull indicator, revealed in the space above the content as it slides down. */}
+    <>
+      {/* Fixed spinner pinned near the top — never clipped by the scroll container.
+          Fades and slides in as you pull; spins while the reload is in flight. */}
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center"
+        aria-hidden={!visible}
+        className="pointer-events-none fixed inset-x-0 top-[64px] z-40 flex justify-center"
         style={{
-          transform: `translateY(${pull - 40}px)`,
+          transform: `translateY(${(refreshing ? THRESHOLD : pull) * 0.35}px)`,
           opacity: refreshing ? 1 : progress,
-          transition: pull === 0 && !refreshing ? 'transform 0.2s, opacity 0.2s' : 'none',
+          transition: !visible ? 'transform 0.2s, opacity 0.2s' : 'none',
         }}
       >
-        <span className="mt-2 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-surface-card shadow-lg">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-surface-card shadow-lg shadow-black/40">
           <svg
-            className={`h-4 w-4 text-brand-light ${refreshing ? 'animate-spin' : ''}`}
+            className={`h-5 w-5 text-brand-light ${refreshing ? 'animate-spin' : ''}`}
             viewBox="0 0 24 24"
             fill="none"
             style={{
               transform: refreshing ? undefined : `rotate(${ready ? 180 : progress * 180}deg)`,
+              transition: refreshing ? undefined : 'transform 0.1s',
             }}
           >
             {refreshing ? (
               <>
-                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" opacity="0.25" />
-                <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
+                <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
               </>
             ) : (
               <path
                 d="M12 5v14M12 19l-5-5M12 19l5-5"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -154,15 +160,17 @@ export default function PullToRefresh({
         </span>
       </div>
 
-      {/* Content follows the finger, then springs back on release. */}
-      <div
-        style={{
-          transform: `translateY(${pull}px)`,
-          transition: pull === 0 && !refreshing ? 'transform 0.2s' : 'none',
-        }}
-      >
-        {children}
-      </div>
-    </main>
+      <main ref={mainRef} className={className} style={{ overscrollBehaviorY: 'contain' }}>
+        {/* Content follows the finger, then springs back on release. */}
+        <div
+          style={{
+            transform: `translateY(${refreshing ? THRESHOLD : pull}px)`,
+            transition: pull === 0 && !refreshing ? 'transform 0.25s' : 'none',
+          }}
+        >
+          {children}
+        </div>
+      </main>
+    </>
   )
 }
