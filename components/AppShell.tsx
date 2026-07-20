@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { signOut } from '@/lib/auth'
 import { CLUB_NAME } from '@/lib/constants'
 import BottomNav, { type NavItem } from '@/components/BottomNav'
+import PullToRefresh from '@/components/PullToRefresh'
 
 /**
  * Shared app chrome for the admin and player areas: sticky top bar (crest +
@@ -52,8 +53,9 @@ export default function AppShell({
         </div>
       </header>
 
-      {/* Page content — padded bottom so it isn't hidden behind the floating nav */}
-      <main className="flex-1 overflow-y-auto pb-28">{children}</main>
+      {/* Page content — padded bottom so it isn't hidden behind the floating nav.
+          Pull down from the top to reload (the only way to refresh in the standalone PWA). */}
+      <PullToRefresh className="relative flex-1 overflow-y-auto pb-28">{children}</PullToRefresh>
 
       {/* Floating pill nav */}
       <BottomNav items={nav} />
