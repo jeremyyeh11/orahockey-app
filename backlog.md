@@ -21,23 +21,27 @@ verified custom domain. If the club ever gets a domain (or routes via Gmail SMTP
 app password), wire `generateSetupLink`'s output into Supabase `inviteUserByEmail` /
 `resetPasswordForEmail` and add a self-serve "Forgot password?" flow on the login page.
 
-## 7. Live player photos + dynamic season labels
+## 7. Live player photos
 
-Two spots still not driven by live data (flagged during the July 2026 hardcoded-stats audit):
+Player photos are still not driven by live data (flagged during the July 2026 hardcoded-stats audit):
 
 - **Player photos:** the player profile page loads the trading-card photo from files committed to the
   repo (`public/players/{playerId}.png` — only one photo exists). Adding a player's photo currently
   means a git commit + deploy. Move photos to Supabase Storage with an in-app upload (admin edit mode
   on the player profile), keeping the silhouette fallback for players without one.
-- **Season labels:** the "Season 2026 · MHL1" hero label on the player Home page and the "Season 2026"
-  heading on both Schedule tabs are hardcoded strings that will silently go stale in 2027. Derive the
-  season from game dates (the Squad tab's season selector already does this).
 
-Must reference only UI-visible elements (player profile photo, Home hero, Schedule tab heading).
+Must reference only UI-visible elements (player profile photo and admin edit mode).
 
 ---
 
 ## Archived
+
+### 7.1 Dynamic season labels ✓ July 2026
+
+The player Home hero and both Schedule tabs now derive their season labels from game dates,
+using the newest available game year with the current year only as an empty-state fallback.
+The Home hero and admin Schedule record are scoped to that derived season so their numbers
+stay consistent with the displayed label.
 
 ### 6. Self-serve player onboarding via whitelist + invite links ✓ July 2026
 

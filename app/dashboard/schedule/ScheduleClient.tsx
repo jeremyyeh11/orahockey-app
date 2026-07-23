@@ -8,6 +8,7 @@ import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
 import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { updateGame, updateTraining, deleteGame, deleteTraining } from '@/app/admin/schedule/actions'
+import { seasonsOf } from '@/lib/stats'
 
 export default function ScheduleClient({
   games,
@@ -55,6 +56,7 @@ export default function ScheduleClient({
   const past = items
     .filter((i) => new Date(i.date).getTime() < nowMs)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const season = seasonsOf(games)[0] ?? String(new Date(now).getFullYear())
 
   function respond(item: EventItem, status: MyStatus) {
     const id = item.kind === 'game' ? item.game.id : item.training.id
@@ -185,7 +187,7 @@ export default function ScheduleClient({
 
       {/* Past — read-only with my status */}
       <h2 className="mb-2 text-sm font-semibold text-white">
-        {upcoming.length > 0 ? 'Past' : `Season ${new Date(now).getFullYear()}`}
+        {upcoming.length > 0 ? 'Past' : `Season ${season}`}
       </h2>
       <div className="space-y-2">
         {past.length === 0 && upcoming.length === 0 && (

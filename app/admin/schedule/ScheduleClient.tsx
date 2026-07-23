@@ -17,6 +17,7 @@ import { EventDetailModal, type Game, type Training, type AttendanceRow, type Pl
 import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
+import { seasonsOf } from '@/lib/stats'
 
 const inputCls =
   'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -73,7 +74,10 @@ export default function ScheduleClient({
     .filter((i) => new Date(i.date).getTime() < nowMs)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  const played = games.filter((g) => g.result)
+  const season = seasonsOf(games)[0] ?? String(new Date(now).getFullYear())
+  const played = games.filter(
+    (g) => g.result && String(new Date(g.game_date).getFullYear()) === season
+  )
   const record = {
     w: played.filter((g) => g.result === 'win' || g.result === 'ot_win').length,
     d: played.filter((g) => g.result === 'tie').length,
@@ -282,7 +286,7 @@ export default function ScheduleClient({
 
       {/* Past */}
       <h2 className="mb-2 text-sm font-semibold text-white">
-        {upcoming.length > 0 ? 'Past' : `Season ${new Date(now).getFullYear()}`}
+        {upcoming.length > 0 ? 'Past' : `Season ${season}`}
       </h2>
       <div className="space-y-2">
         {past.length === 0 && upcoming.length === 0 && (

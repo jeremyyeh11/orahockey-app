@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { LEAGUE } from '@/lib/constants'
+import { seasonsOf } from '@/lib/stats'
 
 function firstName(full: string) {
   const f = full.split(/\s+/)[0] ?? ''
@@ -30,7 +31,6 @@ export default async function PlayerDashboardPage() {
       supabase
         .from('games')
         .select('id, opponent, game_date, goals_for, goals_against, result, game_type')
-        .not('result', 'is', null)
         .order('game_date', { ascending: false }),
       supabase.from('games').select('opponent, game_date, location').gte('game_date', now).order('game_date').limit(1).maybeSingle(),
       supabase.from('training_sessions').select('session_date, location').gte('session_date', now).order('session_date').limit(1).maybeSingle(),
@@ -44,8 +44,15 @@ export default async function PlayerDashboardPage() {
     supabase.from('polls').select('*', { count: 'exact', head: true }).eq('is_active', true),
     ])
 
-  // Only games on or before "now" — keeps date preview consistent
-  const played = (games ?? []).filter((g) => new Date(g.game_date).getTime() <= nowDate.getTime())
+  const season = seasonsOf(games ?? [])[0] ?? String(nowDate.getFullYear())
+
+  // Only completed games in the latest season on or before "now" — keeps date preview consistent
+  const played = (games ?? []).filter(
+    (g) =>
+      g.result !== null &&
+      String(new Date(g.game_date).getFullYear()) === season &&
+      new Date(g.game_date).getTime() <= nowDate.getTime()
+  )
   const record = {
     w: played.filter((g) => g.result === 'win' || g.result === 'ot_win').length,
     d: played.filter((g) => g.result === 'tie').length,
@@ -85,7 +92,7 @@ export default async function PlayerDashboardPage() {
       {/* Season record hero */}
       <div className="bg-accent relative mt-4 overflow-hidden rounded-[1.5rem] p-5">
         <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/70">
-          Season {nowDate.getFullYear()} · {LEAGUE}
+          Season {season} · {LEAGUE}
         </div>
         <div className="mt-2 flex items-end gap-3">
           <span className="font-display text-4xl font-extrabold leading-none text-white">
