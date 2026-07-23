@@ -12,24 +12,14 @@
 
 ## Backlog
 
-## 6. Self-serve player onboarding via whitelist + email set-password link
+## 6.1 Emailed invites (deferred from #6)
 
-Replace the manual (Supabase-dashboard) onboarding with an in-app flow driven by the existing `player_whitelist` table. Each new player gets a **private, per-user setup link by email** — no shared or app-generated temporary password is ever transmitted.
-
-- **Admin adds email to whitelist:** from the admin Squad (or a dedicated admin control), an admin adds a player's email to the `player_whitelist` table. This is the gate — only whitelisted emails can self-register.
-- **App creates the auth user + emails a set-password link:** when the whitelist entry is created, the app (server action using the service-role admin client) creates the Supabase auth user for that email with `email_confirm: true`, then uses Supabase's native email (`inviteUserByEmail` / `generateLink` "invite" or "recovery" type) to **email the player a private set-password link**. The player sets their own password via that link — nothing sensitive is handled by the app itself.
-- **First login:** the player clicks the emailed link, sets a password, then signs in at `/login` normally. (No shared `orahockey` password, no app-side temp-password storage.)
-- **Player row auto-created/linked:** the `players` row is created/linked to the new auth user (role defaults to `player`), removing the manual `auth_user_id` linking step. Use the existing `002_link_player_function.sql` pattern (match on email) so the row links automatically.
-- **Prerequisite:** Supabase project SMTP must be configured so Supabase can send the invite/recovery email. (Supabase sends it — the app does not run its own mail server.)
-
-Must reference only UI-visible elements (login page, admin Squad / whitelist control). Internal data shape TBD.
-
-*Open questions to resolve at build time:*
-- *Service-role key: the auth-user creation must run server-side with the admin client; confirm the key lives in a server-only env var and is never exposed to the client.*
-- *The `player_whitelist` table currently has no `used` / `claimed` flag — add one so a whitelisted email can't be re-used and we know the invite was sent/completed.*
-- *RLS: the whitelist is currently admin-only readable — broaden so the signup/invite server action can verify the email is whitelisted before creating the auth user (client must not be able to read the whole list).*
-- *Edge: what if the admin whitelists an email that already has an auth user? Decide (link existing vs reject).*
-- *SMTP in Supabase: confirm it is enabled in the project, or this flow silently fails to email the player.*
+Deferred at build time: sending invite/reset links by email instead of admin copy-link.
+Blocked on an email service — Supabase free-plan built-in email is ~2/hour and only
+delivers to project team members, and external SMTP providers (Resend etc.) need a
+verified custom domain. If the club ever gets a domain (or routes via Gmail SMTP with an
+app password), wire `generateSetupLink`'s output into Supabase `inviteUserByEmail` /
+`resetPasswordForEmail` and add a self-serve "Forgot password?" flow on the login page.
 
 ## 7. Live player photos + dynamic season labels
 
@@ -48,6 +38,24 @@ Must reference only UI-visible elements (player profile photo, Home hero, Schedu
 ---
 
 ## Archived
+
+### 6. Self-serve player onboarding via whitelist + invite links ✓ July 2026
+
+Replaced manual Supabase-dashboard onboarding. Design changed at build time: links are
+**hand-delivered by the admin (copy / WhatsApp share), not emailed** — free-plan Supabase
+email is ~2/hour and team-members-only, and external SMTP needs a custom domain (deferred
+to #6.1). Admin flow: every Squad card shows an account-status dot (green active / amber
+invited / grey none); the player profile (admin view) gains an ACCOUNT panel whose button
+mints a private one-time link — "Invite link" for new players (24h expiry, creates the
+auth user), "Password reset link" for active ones (1h expiry). Links land on a
+set-password page, then the app links the roster row by email and routes by role. The
+roster is the gate: adding a player auto-whitelists their email (trigger), and
+`generateSetupLink` (server action, service-role client via server-only
+`SUPABASE_SERVICE_ROLE_KEY` env) refuses non-roster emails. Whitelist rows track
+`invited_at`/`claimed_at` (migration `010_onboarding.sql`). Login page: expired-link
+notice + "ask your coach/manager for a reset link" hint. Build questions resolved with
+Jeremy: copy-link over email/both; resets also admin-mediated. Shipped alongside a fix to
+PullToRefresh (its always-on transform collapsed the fixed-layer profile hero to blank).
 
 ### 5. Vote POTM system ✓ July 2026
 

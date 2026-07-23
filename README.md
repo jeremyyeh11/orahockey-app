@@ -29,6 +29,13 @@ Admins also get a **Profile** tab and a **Dashboard** tab. Players see **Home**,
 
 ---
 
+## Getting into the app
+
+- **New players** don't sign up themselves. A coach/manager sends you a **private setup link** (usually by WhatsApp). Open it, choose your own password, and you're in — the app matches you to your roster spot automatically. The link is single-use and expires after 24 hours; if it stops working, just ask for a new one.
+- **Forgot your password?** Ask a coach/manager — they can send you a reset link the same way (that one expires after 1 hour).
+
+---
+
 ## How to use - Players
 
 ### Home
@@ -65,6 +72,14 @@ Manage the roster.
 - Tap a player to **edit** their details.
 - Toggle a player **active / inactive**; use "show inactive" to see everyone.
 - Season stats, the POTS race, and top scorers are shown here just like the player view, driven by the selected season.
+
+**Inviting players (accounts):** each Squad card shows a small dot - green = account active, amber = invited but not set up yet, grey = no account. Tap a player and scroll to the **Account** panel:
+
+- **Invite link** creates their account and gives you a private one-time setup link - copy it or share straight to WhatsApp. The player opens it and picks their own password. Links expire after 24 hours; generating a new one is always one tap.
+- **Password reset link** does the same for players who already have an account and got locked out (expires after 1 hour).
+- Generate links as you send them (don't stockpile them the night before).
+
+**Removing a player:** toggle them **inactive** - they keep their stats and history but drop out of the default roster. Deleting a player outright also deletes their stats, attendance, and votes, so inactive is almost always what you want.
 
 ### Schedule
 - **+ Game** / **+ Training** adds an event (opponent, date/time, venue, home/away, type, score, notes). Leave the score blank until the game is played - the W/L/D result is worked out from the score automatically.
