@@ -30,6 +30,9 @@ export default function PullToRefresh({
   const mainRef = useRef<HTMLElement>(null)
   const [pull, setPull] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
+  // True while the content springs back after a released (sub-threshold) pull —
+  // keeps the transform on just long enough for the return animation.
+  const [settling, setSettling] = useState(false)
 
   // Live gesture state in refs so the listeners register once (depending on `pull`
   // here would re-run the effect every frame and reset the drag mid-gesture).
@@ -97,6 +100,7 @@ export default function PullToRefresh({
         setPullDist(THRESHOLD)
         window.location.reload()
       } else {
+        if (pullRef.current > 0) setSettling(true)
         setPullDist(0)
       }
       pulling = false
@@ -161,11 +165,24 @@ export default function PullToRefresh({
       </div>
 
       <main ref={mainRef} className={className} style={{ overscrollBehaviorY: 'contain' }}>
-        {/* Content follows the finger, then springs back on release. */}
+        {/* Content follows the finger, then springs back on release.
+            IMPORTANT: the transform is only applied while a pull is in flight.
+            A permanent transform (even translateY(0)) makes this div the
+            containing block for every position:fixed descendant — which
+            collapses fixed-layer pages like the player profile hero and can
+            misplace modals. Idle = no transform = fixed works normally. */}
         <div
           style={{
-            transform: `translateY(${refreshing ? THRESHOLD : pull}px)`,
+            transform:
+              pull > 0 || refreshing || settling
+                ? `translateY(${refreshing ? THRESHOLD : pull}px)`
+                : undefined,
             transition: pull === 0 && !refreshing ? 'transform 0.25s' : 'none',
+          }}
+          onTransitionEnd={(e) => {
+            if (e.target === e.currentTarget && e.propertyName === 'transform') {
+              setSettling(false)
+            }
           }}
         >
           {children}
