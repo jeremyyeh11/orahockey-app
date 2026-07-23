@@ -5,7 +5,6 @@ import RosterList from '@/components/RosterList'
 import {
   useSeasonStats,
   SeasonSelect,
-  PotsCard,
   TopScorersCard,
   type PlayerLite,
   type GameLite,
@@ -36,7 +35,7 @@ export default function SquadClient({
   myPlayerId: string | null
 }) {
   const router = useRouter()
-  const { seasons, season, setSeason, seasonGames, pots, topScorerGroups, statsMap } = useSeasonStats({
+  const { seasons, season, setSeason, seasonGames, topScorerGroups, statsMap } = useSeasonStats({
     players,
     games,
     stats,
@@ -79,8 +78,7 @@ export default function SquadClient({
         <SeasonSelect seasons={seasons} value={season} onChange={setSeason} />
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3">
-        <PotsCard pots={pots} />
+      <div className="mb-4">
         <TopScorersCard groups={topScorerGroups} />
       </div>
 
