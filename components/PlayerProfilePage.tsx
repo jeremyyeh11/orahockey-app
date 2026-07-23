@@ -1,9 +1,12 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { preferredName, splitName, sortPositions } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
+import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
+
+export type AccountStatus = 'none' | 'invited' | 'active'
 
 // useLayoutEffect on the server warns; fall back to useEffect there.
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
@@ -96,18 +99,63 @@ function CardBadges({ row }: { row: LeaderboardRow }) {
   )
 }
 
+const ACCOUNT_LABEL: Record<AccountStatus, { text: string; dot: string }> = {
+  none: { text: 'No account yet', dot: 'bg-slate-500' },
+  invited: { text: 'Invited — not claimed', dot: 'bg-amber-400' },
+  active: { text: 'Active', dot: 'bg-green-400' },
+}
+
 export function PlayerProfilePage({
   player,
   seasonRow,
   careerRow,
   seasonLabel,
+  accountStatus,
 }: {
   player: ProfilePlayer
   seasonRow: LeaderboardRow | undefined
   careerRow: LeaderboardRow | undefined
   seasonLabel: string
+  /** Admin view only — enables the account/invite panel */
+  accountStatus?: AccountStatus
 }) {
   const router = useRouter()
+
+  // Invite link generation (admin view only)
+  const [linkLoading, setLinkLoading] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
+  const [link, setLink] = useState<SetupLink | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  async function handleGenerateLink() {
+    setLinkLoading(true)
+    setLinkError(null)
+    setCopied(false)
+    try {
+      setLink(await generateSetupLink(player.id))
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLinkLoading(false)
+    }
+  }
+
+  async function handleCopy() {
+    if (!link) return
+    try {
+      await navigator.clipboard.writeText(link.url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard API unavailable — the link is selectable in the input
+    }
+  }
+
+  const whatsappText = link
+    ? `Hi ${preferredName(player)} — here's your private ORA Hockey app ${
+        link.kind === 'invite' ? 'setup' : 'password reset'
+      } link. Open it and set your password:\n\n${link.url}\n\n(The link expires in ${link.expiresIn} — ask me for a new one if it stops working.)`
+    : ''
   const { before, beforeSep, preferred, afterSep, after } = splitName(player)
   const positions = sortPositions(player.position)
 
@@ -281,7 +329,88 @@ export function PlayerProfilePage({
             <p className="text-center text-sm text-slate-500">No stats recorded yet.</p>
           </div>
         )}
+
+        {/* Account / invite panel — admin view only */}
+        {accountStatus && (
+          <div className="bg-black/80 backdrop-blur-sm px-6 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Account
+                </span>
+                <div className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-200">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${ACCOUNT_LABEL[accountStatus].dot}`} />
+                  <span className="truncate">{ACCOUNT_LABEL[accountStatus].text}</span>
+                </div>
+              </div>
+              <button
+                onClick={handleGenerateLink}
+                disabled={linkLoading}
+                className="bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+              >
+                {linkLoading
+                  ? 'Creating…'
+                  : accountStatus === 'active'
+                    ? 'Password reset link'
+                    : accountStatus === 'invited'
+                      ? 'New invite link'
+                      : 'Invite link'}
+              </button>
+            </div>
+            {linkError && (
+              <p className="mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-300">{linkError}</p>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Invite link modal */}
+      {link && (
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setLink(null)} />
+          <div className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
+            <h2 className="text-lg font-bold text-white mb-1">
+              {link.kind === 'invite' ? 'Invite link ready' : 'Reset link ready'}
+            </h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Send this private link to {preferredName(player)} — they&apos;ll set their own
+              password. It expires in {link.expiresIn}; generate a new one any time.
+            </p>
+
+            <input
+              readOnly
+              value={link.url}
+              onFocus={(e) => e.currentTarget.select()}
+              className="mb-3 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-xs text-slate-300 focus:border-brand focus:outline-none"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCopy}
+                className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
+              >
+                {copied ? 'Copied ✓' : 'Copy link'}
+              </button>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 rounded-lg border border-surface-border py-2.5 text-center text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+              >
+                WhatsApp
+              </a>
+            </div>
+
+            <button
+              onClick={() => setLink(null)}
+              className="mt-3 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
     </>
   )

@@ -1,25 +1,29 @@
 import { createClient } from '@/lib/supabase/server'
-import { PlayerProfilePage, type ProfilePlayer } from '@/components/PlayerProfilePage'
+import { PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
 import { computeSeason, seasonsOf, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
 import { getNow } from '@/lib/preview'
 import { LEAGUE } from '@/lib/constants'
 
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
-// Admin view additionally exposes contact/role fields.
-const ADMIN_FIELDS = `${BASE_FIELDS}, email, role`
+// Admin view additionally exposes contact/role fields (+ auth link for account status).
+const ADMIN_FIELDS = `${BASE_FIELDS}, email, role, auth_user_id`
 
 /**
  * Shared loader + render for the player profile route. Used by both the admin
  * and player `[playerId]` routes — they differ only in whether the contact
- * (email/role) fields are selected, controlled by `includeContact`.
+ * (email/role) fields are selected, controlled by `includeContact`, and
+ * whether the account/invite panel shows, controlled by `includeAccount`
+ * (admin route only — it reads the admin-only player_whitelist table).
  */
 export async function PlayerProfileView({
   playerId,
   includeContact = false,
+  includeAccount = false,
 }: {
   playerId: string
   includeContact?: boolean
+  includeAccount?: boolean
 }) {
   const supabase = createClient()
 
@@ -48,6 +52,18 @@ export async function PlayerProfileView({
   }
 
   const profile = player as unknown as ProfilePlayer
+
+  // Account status for the admin invite panel
+  let accountStatus: AccountStatus | undefined
+  if (includeAccount) {
+    const p = player as unknown as { email: string; auth_user_id: string | null }
+    const { data: wl } = await supabase
+      .from('player_whitelist')
+      .select('invited_at')
+      .eq('email', p.email)
+      .maybeSingle()
+    accountStatus = p.auth_user_id ? 'active' : wl?.invited_at ? 'invited' : 'none'
+  }
   const players: (PlayerLite & RosterPlayer)[] = [player as unknown as PlayerLite & RosterPlayer]
   const cards = (cardRows ?? []) as MatchCardRow[]
   const seasons = seasonsOf(games ?? [])
@@ -87,6 +103,7 @@ export async function PlayerProfileView({
       seasonRow={seasonRow}
       careerRow={careerRow}
       seasonLabel={`${LEAGUE} ${currentSeason}`}
+      accountStatus={accountStatus}
     />
   )
 }

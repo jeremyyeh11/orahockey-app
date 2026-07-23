@@ -5,5 +5,5 @@ export default async function AdminPlayerProfileRoute({
 }: {
   params: { playerId: string }
 }) {
-  return <PlayerProfileView playerId={params.playerId} includeContact />
+  return <PlayerProfileView playerId={params.playerId} includeContact includeAccount />
 }

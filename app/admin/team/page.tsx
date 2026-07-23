@@ -17,6 +17,7 @@ export default async function AdminSquadPage() {
     { data: potm },
     { data: att },
     { data: cards },
+    { data: whitelist },
   ] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     supabase
@@ -38,6 +39,7 @@ export default async function AdminSquadPage() {
       .eq('session_type', 'game')
       .eq('status', 'attending'),
     supabase.from('match_cards').select('player_id, game_id, card_type, created_at'),
+    supabase.from('player_whitelist').select('email, invited_at, claimed_at'),
   ])
 
   if (error) {
@@ -57,6 +59,7 @@ export default async function AdminSquadPage() {
       attendance={att ?? []}
       cards={(cards ?? []) as MatchCardRow[]}
       myPlayerId={me?.id ?? null}
+      whitelist={whitelist ?? []}
     />
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { CLUB_NAME, LEAGUE } from '@/lib/constants'
@@ -11,6 +11,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  // Invite/reset links that fail verification land here with ?error=
+  useEffect(() => {
+    const err = new URLSearchParams(window.location.search).get('error')
+    if (err === 'link_expired') {
+      setNotice('That link has expired or was already used. Ask your coach or manager for a fresh one.')
+    } else if (err === 'auth_callback_failed') {
+      setNotice('Sign-in link failed — please try again or sign in with your password.')
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -122,6 +133,12 @@ export default function LoginPage() {
             />
           </div>
 
+          {notice && !error && (
+            <p className="rounded-lg border border-amber-500/20 bg-amber-950/40 px-4 py-2 text-sm text-amber-200">
+              {notice}
+            </p>
+          )}
+
           {error && (
             <p className="rounded-lg border border-red-500/20 bg-red-950/40 px-4 py-2 text-sm text-red-300">
               {error}
@@ -135,6 +152,10 @@ export default function LoginPage() {
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
+
+          <p className="pt-1 text-center text-xs text-slate-500">
+            Forgot your password? Ask your coach or manager for a reset link.
+          </p>
         </form>
       </div>
     </main>

@@ -17,13 +17,15 @@ import {
   type AttendanceRow,
   type MatchCardRow,
 } from '@/components/SeasonStats'
-import type { RosterPlayer } from '@/components/RosterList'
+import type { RosterPlayer, AccountStatus } from '@/components/RosterList'
 
 type Player = RosterPlayer & PlayerLite & {
   email: string
   role: 'player' | 'admin'
   auth_user_id: string | null
 }
+
+type WhitelistRow = { email: string; invited_at: string | null; claimed_at: string | null }
 
 type Game = {
   id: string
@@ -53,6 +55,7 @@ export default function SquadClient({
   attendance,
   cards,
   myPlayerId,
+  whitelist,
 }: {
   players: Player[]
   games: Game[]
@@ -61,6 +64,7 @@ export default function SquadClient({
   attendance: AttendanceRow[]
   cards: MatchCardRow[]
   myPlayerId: string | null
+  whitelist: WhitelistRow[]
 }) {
   const router = useRouter()
   const [showAddModal, setShowAddModal] = useState(false)
@@ -78,6 +82,17 @@ export default function SquadClient({
     attendance,
     cards,
   })
+
+  // Account status per player: green = signed in before, amber = invited
+  // but not claimed, grey = no account yet
+  const wlByEmail = new Map(whitelist.map((w) => [w.email, w]))
+  const accountMap = new Map<string, AccountStatus>(
+    players.map((p) => {
+      const wl = wlByEmail.get(p.email)
+      const status: AccountStatus = p.auth_user_id ? 'active' : wl?.invited_at ? 'invited' : 'none'
+      return [p.id, status]
+    })
+  )
 
   const visible = showInactive ? players : players.filter((p) => p.is_active)
 
@@ -173,6 +188,7 @@ export default function SquadClient({
           myPlayerId={myPlayerId}
           onSelect={(p) => router.push(`/admin/team/${p.id}`)}
           statsMap={statsMap}
+          accountMap={accountMap}
         />
       )}
 

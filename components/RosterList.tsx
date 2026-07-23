@@ -11,6 +11,15 @@ export type RosterPlayer = {
   is_active: boolean
 }
 
+/** Login-account state shown as a dot on admin roster cards */
+export type AccountStatus = 'none' | 'invited' | 'active'
+
+const ACCOUNT_DOT: Record<AccountStatus, { cls: string; title: string }> = {
+  active: { cls: 'bg-green-400', title: 'Account active' },
+  invited: { cls: 'bg-amber-400', title: 'Invited — not claimed yet' },
+  none: { cls: 'bg-slate-500', title: 'No account yet' },
+}
+
 const POSITION_ORDER: Record<string, number> = { FWD: 0, MID: 1, DEF: 2, GK: 3 }
 
 /** Default preferred name = first word of full_name, uppercased */
@@ -186,11 +195,14 @@ export default function RosterList<T extends RosterPlayer>({
   myPlayerId,
   onSelect,
   statsMap,
+  accountMap,
 }: {
   players: T[]
   myPlayerId: string | null
   onSelect?: (player: T) => void
   statsMap?: Map<string, LeaderboardRow>
+  /** Admin view only: player id → login-account status dot */
+  accountMap?: Map<string, AccountStatus>
 }) {
   const sorted = [...players].sort((a, b) => {
     // User's row always first
@@ -206,6 +218,7 @@ export default function RosterList<T extends RosterPlayer>({
       {sorted.map((player) => {
         const isMe = player.id === myPlayerId
         const stats = statsMap?.get(player.id)
+        const account = accountMap?.get(player.id)
         const cardCls = `relative block w-full overflow-hidden rounded-xl px-4 py-3 text-left transition ${
           isMe ? 'bg-accent ring-1 ring-white/10' : 'border border-surface-border bg-surface-card'
         } ${!player.is_active ? 'opacity-50' : ''}`
@@ -219,6 +232,13 @@ export default function RosterList<T extends RosterPlayer>({
               >
                 {player.jersey_number}
               </span>
+            )}
+
+            {account && (
+              <span
+                title={ACCOUNT_DOT[account].title}
+                className={`absolute right-3 top-3 h-2 w-2 rounded-full ${ACCOUNT_DOT[account].cls}`}
+              />
             )}
 
             <div className="relative min-w-0 pr-16">
