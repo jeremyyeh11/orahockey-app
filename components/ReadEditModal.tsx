@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { useModalScrollLock } from '@/lib/useModalScrollLock'
 
 export type ReadEditModalProps = {
   title: string
@@ -34,15 +35,7 @@ export function ReadEditModal({
   onDelete,
   editInHeader = false,
 }: ReadEditModalProps) {
-  // Prevent body scroll while modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.body.style.overflow = ''
-      }
-    }
-  }, [isOpen])
+  useModalScrollLock(isOpen)
 
   if (!isOpen) return null
 

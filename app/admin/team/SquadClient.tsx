@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { addPlayer, togglePlayerActive } from './actions'
 import RosterList from '@/components/RosterList'
 import { defaultPreferredName } from '@/components/RosterList'
+import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import {
   useSeasonStats,
   SeasonSelect,
@@ -72,6 +73,7 @@ export default function SquadClient({
   const [showInactive, setShowInactive] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  useModalScrollLock(showAddModal)
 
   // Season stats state
   const { seasons, season, setSeason, pots, topScorerGroups, statsMap } = useSeasonStats({

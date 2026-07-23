@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { preferredName } from './RosterList'
+import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import type { PlayerLite } from './EventDetailModal'
 import { saveTeamList, unpublishTeamList, type TeamListEntry } from '@/app/admin/schedule/teamListActions'
 import type { Game } from './EventDetailModal'
@@ -53,11 +54,7 @@ export function TeamListModal({
   const [isPending, setIsPending] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(teamListStatus)
 
-  // Prevent body scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
+  useModalScrollLock()
 
   function togglePlayer(playerId: string) {
     setSelections((prev) => ({ ...prev, [playerId]: !prev[playerId] }))

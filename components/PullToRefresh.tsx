@@ -55,9 +55,10 @@ export default function PullToRefresh({
 
     // At the top regardless of whether <main> or the document is the actual scroller.
     const atTop = () => el.scrollTop <= 0 && window.scrollY <= 0
+    const modalOpen = () => document.documentElement.dataset.modalOpen === 'true'
 
     const onStart = (e: TouchEvent) => {
-      if (refreshingRef.current || e.touches.length !== 1 || !atTop()) {
+      if (modalOpen() || refreshingRef.current || e.touches.length !== 1 || !atTop()) {
         tracking = false
         return
       }
@@ -69,6 +70,12 @@ export default function PullToRefresh({
 
     const onMove = (e: TouchEvent) => {
       if (!tracking || refreshingRef.current) return
+      if (modalOpen()) {
+        tracking = false
+        pulling = false
+        setPullDist(0)
+        return
+      }
       const dy = e.touches[0].clientY - startY
       const dx = e.touches[0].clientX - startX
 

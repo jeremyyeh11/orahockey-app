@@ -70,6 +70,7 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
 
 const inputCls =
   'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 type BreakdownGroup = { label: string; players: string[] }
@@ -477,7 +478,7 @@ export function EventDetailModal({
               </div>
               <div>
                 <label className={labelCls}>Date &amp; time *</label>
-                <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={inputCls} />
+                <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={dateInputCls} />
               </div>
               <div>
                 <label className={labelCls}>Location</label>
@@ -519,7 +520,7 @@ export function EventDetailModal({
             <>
               <div>
                 <label className={labelCls}>Date &amp; time *</label>
-                <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={inputCls} />
+                <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={dateInputCls} />
               </div>
               <div>
                 <label className={labelCls}>Location</label>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition } from 'react'
 import {
   addGame,
   updateGame,
@@ -18,9 +18,11 @@ import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 import { seasonsOf } from '@/lib/stats'
+import { useModalScrollLock } from '@/lib/useModalScrollLock'
 
 const inputCls =
   'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 export default function ScheduleClient({
@@ -336,7 +338,7 @@ export default function ScheduleClient({
             </div>
             <div>
               <label className={labelCls}>Date &amp; time *</label>
-              <input name="game_date" type="datetime-local" required className={inputCls} />
+              <input name="game_date" type="datetime-local" required className={dateInputCls} />
             </div>
             <div>
               <label className={labelCls}>Location</label>
@@ -376,7 +378,7 @@ export default function ScheduleClient({
           <form onSubmit={submitAddTraining} className="space-y-4">
             <div>
               <label className={labelCls}>Date &amp; time *</label>
-              <input name="session_date" type="datetime-local" required className={inputCls} />
+              <input name="session_date" type="datetime-local" required className={dateInputCls} />
             </div>
             <div>
               <label className={labelCls}>Location</label>
@@ -415,10 +417,7 @@ function EventCard({
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
+  useModalScrollLock()
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />

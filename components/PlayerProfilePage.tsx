@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { preferredName, splitName, sortPositions } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
+import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
 
 export type AccountStatus = 'none' | 'invited' | 'active'
@@ -193,11 +194,7 @@ export function PlayerProfilePage({
     return () => window.removeEventListener('resize', fit)
   }, [before, beforeSep, preferred, afterSep, after])
 
-  // Lock body scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
+  useModalScrollLock()
 
   return (
     <>

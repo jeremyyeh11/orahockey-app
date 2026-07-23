@@ -8,9 +8,11 @@ import PotmPolls from '@/components/PotmPolls'
 import { PollResults } from '@/components/PollResults'
 import type { PotmPoll } from '@/lib/potm'
 import type { Poll } from '@/lib/polls'
+import { useModalScrollLock } from '@/lib/useModalScrollLock'
 
 const inputCls =
   'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 export default function PollsClient({
@@ -26,6 +28,7 @@ export default function PollsClient({
   const [options, setOptions] = useState<string[]>(['', ''])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  useModalScrollLock(showModal)
 
   const active = polls.filter((p) => p.is_active)
   const closed = polls.filter((p) => !p.is_active)
@@ -187,7 +190,7 @@ export default function PollsClient({
 
               <div>
                 <label className={labelCls}>Closes at (optional)</label>
-                <input name="closes_at" type="datetime-local" className={inputCls} />
+                <input name="closes_at" type="datetime-local" className={dateInputCls} />
               </div>
 
               {error && <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}

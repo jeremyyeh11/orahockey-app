@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { preferredName } from './RosterList'
+import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import type { Game, PlayerLite } from './EventDetailModal'
 import {
   setMatchScore,
@@ -87,10 +88,7 @@ export function MatchResultModal({
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const drag = useRef({ from: -1, startY: 0, rowH: 48, moved: false })
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
+  useModalScrollLock()
 
   // Report changes up so the detail view (and a reopened modal) stays fresh
   const report = useRef({ onGoalsChange, onCardsChange })

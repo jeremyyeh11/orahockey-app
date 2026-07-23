@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
+import { useModalScrollLock } from '@/lib/useModalScrollLock'
 
 const PREVIEW_COOKIE = 'ora-preview-date'
 const VIEW_COOKIE = 'ora-view'
@@ -31,6 +32,7 @@ export default function AdminBadge() {
   const [previewDate, setPreviewDate] = useState<string | null>(null)
   const [dateInput, setDateInput] = useState('')
   const lastTap = useRef(0)
+  useModalScrollLock(open)
 
   // Read the cookie after mount only — avoids SSR/client mismatch
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function AdminBadge() {
                   type="date"
                   value={dateInput}
                   onChange={(e) => setDateInput(e.target.value)}
-                  className="flex-1 rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="h-[42px] flex-1 rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
                 <button
                   onClick={applyDate}
