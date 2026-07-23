@@ -115,6 +115,10 @@ the codebase.** The graph is faster, cheaper (fewer tokens), and gives
 you structural context (callers, dependents, test coverage) that file
 scanning cannot.
 
+When a graph tool accepts `repo_root`, pass this repository's absolute root
+explicitly. Hermes uses one shared MCP server for several repositories; relying
+on the server process's working directory can query the wrong project.
+
 ### When to use graph tools FIRST
 
 - **Exploring code**: `semantic_search_nodes` or `query_graph` instead of Grep
