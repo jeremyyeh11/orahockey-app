@@ -69,11 +69,11 @@ export default function SquadClient({
         )
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white">Squad</h1>
-          <p className="text-sm text-slate-400">{visible.length} players</p>
+    <div className="liga-page p-4">
+      <div className="liga-page-header mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="liga-page-title text-white">Squad</h1>
+          <p className="liga-meta text-xs text-slate-400">{visible.length} players</p>
         </div>
         <SeasonSelect seasons={seasons} value={season} onChange={setSeason} />
       </div>

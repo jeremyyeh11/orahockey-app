@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Sora } from 'next/font/google'
+import { IBM_Plex_Mono, Inter, Sora } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({
@@ -14,6 +14,14 @@ const sora = Sora({
   weight: ['500', '600', '700', '800'],
   variable: '--font-sora',
   display: 'swap',
+})
+
+const ligaMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-liga-mono',
+  display: 'swap',
+  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -36,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`dark ${inter.variable} ${sora.variable}`}>
+    <html lang="en" className={`dark ${inter.variable} ${sora.variable} ${ligaMono.variable}`}>
       <body>{children}</body>
     </html>
   )

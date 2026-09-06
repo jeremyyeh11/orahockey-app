@@ -86,6 +86,193 @@
   box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.8);
 }
 
+/* Liga pilot — opt-in so Home, Polls, Profile and authentication keep their UI. */
+.liga-ui {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+.liga-ui h1,
+.liga-ui h2,
+.liga-ui h3,
+.liga-ui .font-display,
+.liga-ui .app-wordmark {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+.liga-ui .card {
+  background-color: #1e1e21;
+  border: 1px solid #323238;
+  border-radius: 8px;
+}
+
+.liga-ui .liga-roster-card {
+  background-color: #1e1e21;
+  border: 1px solid #323238;
+  border-radius: 8px;
+}
+
+.liga-ui .app-header {
+  background-color: #131315;
+  background-image: none;
+  border-color: #323238;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.liga-ui .app-wordmark {
+  font-weight: 600;
+}
+
+.liga-ui .menu-dock {
+  background: #1e1e21;
+  border-color: #323238;
+  border-radius: 8px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.liga-ui .menu-dock a {
+  min-height: 44px;
+  border-radius: 6px;
+}
+
+.liga-ui .menu-dock a[aria-current='page'] {
+  background-image: linear-gradient(180deg, #35784a 0%, #2e6b3e 100%);
+}
+
+.liga-ui .liga-page {
+  margin-inline: auto;
+  max-width: 52rem;
+  width: 100%;
+}
+
+.liga-ui .liga-page-header {
+  border-bottom: 1px solid #323238;
+  padding-bottom: 0.75rem;
+}
+
+.liga-ui .liga-page-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.liga-ui .liga-meta {
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.035em;
+  line-height: 1.45;
+}
+
+.liga-ui .liga-section-title {
+  color: #94a3b8;
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.liga-ui .liga-button {
+  min-height: 44px;
+  align-items: center;
+  border-radius: 6px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.liga-ui .liga-button-primary {
+  background-image: linear-gradient(180deg, #35784a 0%, #2e6b3e 100%);
+}
+
+.liga-ui .liga-button-secondary {
+  border-color: #323238;
+}
+
+.liga-ui .liga-tabs {
+  border-bottom: 1px solid #323238;
+  gap: 0.25rem;
+}
+
+.liga-ui .liga-tab {
+  min-height: 44px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: #94a3b8;
+  padding: 0.625rem 0.75rem;
+}
+
+.liga-ui .liga-tab[aria-pressed='true'] {
+  background-color: transparent;
+  background-image: none;
+  border-bottom-color: #5aa971;
+  color: #fff;
+}
+
+.liga-ui .liga-event-card {
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.liga-ui .liga-event-row {
+  align-items: flex-start;
+}
+
+.liga-ui .liga-event-date {
+  border-right: 1px solid #323238;
+  padding-right: 0.75rem;
+}
+
+.liga-ui .liga-event-date-day,
+.liga-ui .liga-event-score {
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.liga-ui .liga-event-title {
+  overflow-wrap: break-word;
+}
+
+.liga-ui .liga-event-meta {
+  color: #94a3b8;
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  overflow-wrap: break-word;
+}
+
+.liga-ui .liga-event-actions {
+  border-top-color: #323238;
+}
+
+.liga-ui .liga-roster-name {
+  overflow-wrap: break-word;
+}
+
+.liga-ui .liga-roster-position {
+  color: #94a3b8;
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+}
+
+.liga-ui .liga-roster-card .liga-meta {
+  font-size: 0.6875rem;
+}
+
+.liga-ui .liga-rank {
+  border-bottom: 1px solid #323238;
+  font-variant-numeric: tabular-nums;
+}
+
+.liga-ui .liga-rank:last-child {
+  border-bottom: 0;
+}
+
 /* Hide scrollbar but allow scrolling */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide {

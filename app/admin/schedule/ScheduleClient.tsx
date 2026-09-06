@@ -179,20 +179,20 @@ export default function ScheduleClient({
   }
 
   return (
-    <div className="p-4">
+    <div className="liga-page p-4">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Schedule</h1>
+      <div className="liga-page-header mb-4 flex items-center justify-between gap-3">
+        <h1 className="liga-page-title text-xl text-white">Schedule</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAddModal('training')}
-            className="rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+            className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
           >
             + Training
           </button>
           <button
             onClick={() => setAddModal('game')}
-            className="bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
+            className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
           >
             + Game
           </button>
@@ -201,7 +201,7 @@ export default function ScheduleClient({
 
       {/* Season record */}
       {played.length > 0 && (
-        <div className="mb-4 flex gap-4 text-sm text-slate-400">
+        <div className="liga-meta mb-4 flex gap-4 text-sm text-slate-400">
           <span>
             <span className="font-semibold text-white">{record.w}W</span> ·{' '}
             <span className="font-semibold text-white">{record.d}D</span> ·{' '}
@@ -212,7 +212,7 @@ export default function ScheduleClient({
       )}
 
       {/* Filter chips */}
-      <div className="mb-4 flex gap-1.5">
+      <div className="liga-tabs mb-4 flex gap-1.5">
         {(
           [
             ['all', 'All'],
@@ -223,7 +223,8 @@ export default function ScheduleClient({
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+            aria-pressed={filter === key}
+            className={`liga-tab liga-button rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
               filter === key
                 ? 'bg-accent text-white ring-1 ring-white/10'
                 : 'border border-surface-border text-slate-400 hover:text-white'
@@ -237,13 +238,13 @@ export default function ScheduleClient({
       {/* Upcoming */}
       {upcoming.length > 0 && (
         <>
-          <h2 className="mb-2 text-sm font-semibold text-white">Upcoming</h2>
+          <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">Upcoming</h2>
           <div className="mb-6 space-y-2">
             {upcoming.map((item) => {
               const id = item.kind === 'game' ? item.game.id : item.training.id
               const mine = myStatus[id]
               return (
-                <div key={`${item.kind}-${id}`} className="card px-4 py-3">
+                <div key={`${item.kind}-${id}`} className="liga-event-card card px-4 py-3">
                   <div
                     role="button"
                     tabIndex={0}
@@ -253,7 +254,7 @@ export default function ScheduleClient({
                   >
                     <EventRow item={item} attending={attending} />
                   </div>
-                  <div className="mt-3 flex gap-2 border-t border-white/5 pt-3">
+                  <div className="liga-event-actions mt-3 flex gap-2 border-t border-white/5 pt-3">
                     {(
                       [
                         ['attending', "I'm in"],
@@ -265,7 +266,7 @@ export default function ScheduleClient({
                         key={status}
                         onClick={() => respond(item, status)}
                         disabled={isPending && respondingId === id}
-                        className={`flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
+                        className={`liga-button flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
                           mine === status
                             ? status === 'attending'
                               ? 'bg-accent text-white ring-1 ring-white/10'
@@ -287,7 +288,7 @@ export default function ScheduleClient({
       )}
 
       {/* Past */}
-      <h2 className="mb-2 text-sm font-semibold text-white">
+      <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
         {upcoming.length > 0 ? 'Past' : `Season ${season}`}
       </h2>
       <div className="space-y-2">
@@ -409,7 +410,7 @@ function EventCard({
   return (
     <button
       onClick={onClick}
-      className="card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
+      className="liga-event-card card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
     >
       <EventRow item={item} attending={attending} />
     </button>

@@ -149,14 +149,14 @@ export default function SquadClient({
   const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
   return (
-    <div className="p-4">
+    <div className="liga-page p-4">
       {/* Header + season selector + add player */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Squad</h1>
-        <div className="flex items-center gap-2">
+      <div className="liga-page-header mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="liga-page-title text-white">Squad</h1>
+        <div className="liga-squad-actions flex min-w-0 flex-wrap items-center gap-2">
           <button
             onClick={openAdd}
-            className="bg-accent rounded-lg border border-surface-border px-3 py-2 text-sm font-semibold text-white transition hover:brightness-110 focus:outline-none focus:ring-1 focus:ring-brand"
+            className="liga-button liga-button-primary min-h-[44px] bg-accent rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-white transition hover:brightness-110 focus:outline-none focus:ring-1 focus:ring-brand"
           >
             + Add Player
           </button>
@@ -164,14 +164,14 @@ export default function SquadClient({
         </div>
       </div>
 
-      {/* POTS race + Top scorers — side by side */}
-      <div className="mb-4 grid grid-cols-2 gap-3">
+      {/* POTS race + Top scorers — stack when space is tight */}
+      <div className="liga-squad-summaries mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <PotsCard pots={pots} />
         <TopScorersCard groups={topScorerGroups} />
       </div>
 
       {players.some((p) => !p.is_active) && (
-        <label className="flex items-center gap-2 text-sm text-slate-400 mb-4 cursor-pointer w-fit">
+        <label className="liga-inactive-toggle liga-meta flex min-h-[44px] items-center gap-2 text-xs text-slate-400 mb-4 cursor-pointer w-fit">
           <input
             type="checkbox"
             checked={showInactive}
