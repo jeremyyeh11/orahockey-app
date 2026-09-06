@@ -218,6 +218,52 @@
   transition: border-color 150ms ease, background-color 150ms ease;
 }
 
+.liga-ui .liga-event-card.card {
+  background-color: transparent;
+  border: 0;
+  border-bottom: 1px solid #323238;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0.75rem 0;
+}
+
+.liga-ui .liga-event-card.card:first-child {
+  padding-top: 0.25rem;
+}
+
+.liga-ui .liga-event-card.card:last-child {
+  border-bottom: 0;
+  padding-bottom: 0.25rem;
+}
+
+.liga-ui .liga-event-actions {
+  border-top: 0;
+  justify-content: space-between;
+  padding-top: 0;
+}
+
+.liga-ui .liga-event-actions .liga-button {
+  border: 0;
+  border-radius: 4px;
+  flex: 0 1 6rem;
+  min-width: 5.5rem;
+}
+
+.liga-ui .liga-event-actions .liga-event-action-quiet {
+  background-color: transparent;
+  background-image: none;
+  border-radius: 0;
+  color: #94a3b8;
+}
+
+.liga-ui .liga-event-result .liga-result-badge,
+.liga-ui .liga-event-type {
+  background-color: transparent;
+  background-image: none;
+  border-radius: 0;
+  padding: 0;
+}
+
 .liga-ui .liga-event-row {
   align-items: flex-start;
 }

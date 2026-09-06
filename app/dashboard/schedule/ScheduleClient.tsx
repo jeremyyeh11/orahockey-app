@@ -140,7 +140,7 @@ export default function ScheduleClient({
       {upcoming.length > 0 && (
         <>
           <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">Upcoming</h2>
-          <div className="mb-6 space-y-2">
+          <div className="liga-event-list mb-6">
             {upcoming.map((item) => {
               const id = item.kind === 'game' ? item.game.id : item.training.id
               const mine = myStatus[id]
@@ -155,7 +155,7 @@ export default function ScheduleClient({
                   >
                     <EventRow item={item} />
                   </div>
-                  <div className="liga-event-actions mt-3 flex gap-2 border-t border-white/5 pt-3">
+                  <div className="liga-event-actions mt-2 flex gap-2">
                     {(
                       [
                         ['attending', "I'm in"],
@@ -174,7 +174,7 @@ export default function ScheduleClient({
                               : status === 'maybe'
                               ? 'bg-amber-900/60 text-amber-300'
                               : 'bg-slate-700 text-slate-300'
-                            : 'border border-surface-border text-slate-400 hover:text-white'
+                            : 'liga-event-action-quiet text-slate-400 hover:text-white'
                         }`}
                       >
                         {label}
@@ -192,7 +192,7 @@ export default function ScheduleClient({
       <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
         {upcoming.length > 0 ? 'Past' : `Season ${season}`}
       </h2>
-      <div className="space-y-2">
+      <div className="liga-event-list">
         {past.length === 0 && upcoming.length === 0 && (
           <p className="py-4 text-center text-sm text-slate-500">Nothing scheduled yet.</p>
         )}
