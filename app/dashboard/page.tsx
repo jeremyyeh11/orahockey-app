@@ -81,16 +81,21 @@ export default async function PlayerDashboardPage() {
   const RESULT_LABEL: Record<string, string> = { win: 'Win', loss: 'Loss', tie: 'Draw', ot_win: 'OT Win', ot_loss: 'OT Loss' }
 
   return (
-    <div className="p-4">
+    <div className="liga-page liga-home p-4">
       {/* Greeting */}
-      <h1 className="text-xl font-bold text-white">
-        {me ? `Hi, ${me.preferred_name?.trim() || firstName(me.full_name)}` : 'Home'}
-        {me?.jersey_number != null && <span className="ml-2 text-slate-500">#{me.jersey_number}</span>}
-      </h1>
+      <div className="liga-page-header mb-4 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="liga-section-title">Home</div>
+          <h1 className="liga-page-title mt-1 text-white">
+            {me ? `Hi, ${me.preferred_name?.trim() || firstName(me.full_name)}` : 'Home'}
+          </h1>
+        </div>
+        {me?.jersey_number != null && <span className="liga-meta shrink-0 pb-1 text-slate-500">#{me.jersey_number}</span>}
+      </div>
 
       {/* Season record hero */}
-      <div className="bg-accent relative mt-4 overflow-hidden rounded-[1.5rem] p-5">
-        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/70">
+      <div className="liga-hero bg-accent relative overflow-hidden rounded-[1.5rem] p-5">
+        <div className="liga-meta text-white/70">
           Season {season} · {LEAGUE}
         </div>
         <div className="mt-2 flex items-end gap-3">
@@ -104,36 +109,36 @@ export default async function PlayerDashboardPage() {
       </div>
 
       {/* My stats tiles */}
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="liga-stat-grid mt-4 grid grid-cols-3 gap-3">
         <Tile value={myGoals} label="Goals" />
         <Tile value={myAssists} label="Assists" />
         <Tile value={`${attendancePct}%`} label="Attendance" />
       </div>
 
       {/* Next up / season complete */}
-      <h2 className="mt-6 text-sm font-semibold text-white">Next up</h2>
+      <h2 className="liga-section-title mt-6">Next up</h2>
       {next ? (
-        <Link href="/dashboard/schedule" className="card mt-2 block p-4 transition hover:border-white/15">
-          <div className="text-sm font-semibold text-white">{next.title}</div>
-          <div className="mt-0.5 text-xs text-slate-400">
+        <Link href="/dashboard/schedule" className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
+          <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
+          <div className="liga-meta mt-0.5 text-slate-400">
             {next.kind} · {fmtDateTime(next.when)}
             {next.place ? ` · ${next.place}` : ''}
           </div>
         </Link>
       ) : (
-        <div className="card mt-2 p-4">
-          <div className="text-sm font-semibold text-white">Season complete</div>
-          <div className="mt-0.5 text-xs text-slate-400">Nothing scheduled — enjoy the off-season.</div>
+        <div className="liga-link-row card mt-2 p-4">
+          <div className="liga-link-title text-sm font-semibold text-white">Season complete</div>
+          <div className="liga-meta mt-0.5 text-slate-400">Nothing scheduled — enjoy the off-season.</div>
         </div>
       )}
 
       {/* Last result */}
       {lastGame && (
         <>
-          <h2 className="mt-6 text-sm font-semibold text-white">Last game</h2>
-          <Link href="/dashboard/schedule" className="card mt-2 flex items-center gap-4 p-4 transition hover:border-white/15">
+          <h2 className="liga-section-title mt-6">Last game</h2>
+          <Link href="/dashboard/schedule" className="liga-link-row card mt-2 flex items-center gap-4 p-4 transition hover:border-white/15">
             <div
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
+              className={`liga-result-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
                 lastGame.result === 'win' || lastGame.result === 'ot_win'
                   ? 'bg-green-900/50 text-green-300'
                   : lastGame.result === 'tie'
@@ -144,8 +149,8 @@ export default async function PlayerDashboardPage() {
               {lastGame.goals_for}–{lastGame.goals_against}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-white">vs {lastGame.opponent}</div>
-              <div className="mt-0.5 text-xs text-slate-400">
+              <div className="liga-link-title break-words text-sm font-semibold text-white">vs {lastGame.opponent}</div>
+              <div className="liga-meta mt-0.5 text-slate-400">
                 {RESULT_LABEL[lastGame.result ?? ''] ?? ''}
                 {lastGame.game_type !== 'regular' ? ` · ${lastGame.game_type}` : ''} ·{' '}
                 {fmtDateTime(lastGame.game_date)}
@@ -159,10 +164,10 @@ export default async function PlayerDashboardPage() {
       {(activePolls ?? 0) > 0 && (
         <Link
           href="/dashboard/polls"
-          className="card mt-6 flex items-center justify-between p-4 transition hover:border-white/15"
+          className="liga-link-row card mt-6 flex items-center justify-between p-4 transition hover:border-white/15"
         >
           <div>
-            <div className="text-sm font-semibold text-white">
+            <div className="liga-link-title text-sm font-semibold text-white">
               {activePolls} active poll{activePolls === 1 ? '' : 's'}
             </div>
             <div className="mt-0.5 text-xs text-slate-400">Your vote is needed</div>
@@ -176,7 +181,7 @@ export default async function PlayerDashboardPage() {
 
 function Tile({ value, label }: { value: number | string; label: string }) {
   return (
-    <div className="card flex flex-col items-center gap-1 p-3.5">
+    <div className="liga-stat-tile card flex flex-col items-center gap-1 p-3.5">
       <div className="font-display text-2xl font-bold leading-none text-white">{value}</div>
       <div className="text-[11px] text-slate-400">{label}</div>
     </div>

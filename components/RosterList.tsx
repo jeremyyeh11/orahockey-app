@@ -204,7 +204,7 @@ export default function RosterList<T extends RosterPlayer>({
   })
 
   return (
-    <div className="space-y-2">
+    <div className="liga-roster-list space-y-2">
       {sorted.map((player) => {
         const isMe = player.id === myPlayerId
         const stats = statsMap?.get(player.id)

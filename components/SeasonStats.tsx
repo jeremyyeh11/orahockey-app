@@ -87,7 +87,7 @@ export function SeasonSelect({
 export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
   if (pots.length === 0) return null
   return (
-    <div className="card overflow-hidden">
+    <div className="liga-panel card overflow-hidden">
       <h2 className="liga-panel-heading border-b border-white/10 px-3 py-2 text-xs font-medium text-slate-400">
         POTS Race
       </h2>
@@ -110,7 +110,7 @@ export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
 export function TopScorersCard({ groups }: { groups: LeaderboardRow[][] }) {
   if (groups.length === 0) return null
   return (
-    <div className="card overflow-hidden">
+    <div className="liga-panel card overflow-hidden">
       <h2 className="liga-panel-heading border-b border-white/10 px-3 py-2 text-xs font-medium text-slate-400">
         Top Scorers
       </h2>
@@ -145,7 +145,7 @@ export function LeaderboardTable({
     )
   }
   return (
-    <div className="card overflow-hidden">
+    <div className="liga-panel card overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-slate-500">

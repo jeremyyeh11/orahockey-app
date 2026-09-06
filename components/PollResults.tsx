@@ -18,7 +18,7 @@ export function PollResults({
   const sorted = [...poll.poll_options].sort((a, b) => a.sort_order - b.sort_order)
 
   return (
-    <div className="mt-3 space-y-2">
+    <div className="liga-poll-results mt-3 space-y-2">
       {sorted.map((opt) => {
         const count = poll.poll_votes.filter((v) => v.poll_option_id === opt.id).length
         const pct = total > 0 ? Math.round((count / total) * 100) : 0

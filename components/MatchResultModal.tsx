@@ -32,7 +32,7 @@ export const POTM_PLACE_CLS: Record<number, string> = {
 }
 
 const selectCls =
-  'rounded-lg border border-surface-border bg-surface px-2 py-2 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-40'
+  'liga-field rounded-lg border border-surface-border bg-surface px-2 py-2 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-40'
 
 /**
  * Result entry for a played match (backlog #4). Open to ALL players:
@@ -261,15 +261,15 @@ export function MatchResultModal({
     .filter((row) => row.names.length > 0)
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-full overflow-y-auto scrollbar-hide rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-md sm:rounded-2xl">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
+    <div className="liga-modal fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
+      <div className="liga-modal-backdrop absolute inset-0 bg-black/70" onClick={onClose} />
+      <div className="liga-modal-panel relative max-h-[90vh] w-full overflow-y-auto scrollbar-hide rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-md sm:rounded-2xl">
+        <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
 
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">Match Result</h2>
-          <span className="text-xs text-slate-400">vs {game.opponent}</span>
+          <span className="liga-meta text-slate-400">vs {game.opponent}</span>
         </div>
 
         {/* Score */}
@@ -287,7 +287,7 @@ export function MatchResultModal({
               inputMode="numeric"
               value={gfInput}
               onChange={(e) => setGfInput(e.target.value)}
-              className="w-16 rounded-lg border border-surface-border bg-surface py-2 text-center text-2xl font-bold text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="liga-field liga-score-input w-16 rounded-lg border border-surface-border bg-surface py-2 text-center text-2xl font-bold text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
             <span className="text-xl font-bold text-slate-500">–</span>
             <input
@@ -297,7 +297,7 @@ export function MatchResultModal({
               inputMode="numeric"
               value={gaInput}
               onChange={(e) => setGaInput(e.target.value)}
-              className="w-16 rounded-lg border border-surface-border bg-surface py-2 text-center text-2xl font-bold text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="liga-field liga-score-input w-16 rounded-lg border border-surface-border bg-surface py-2 text-center text-2xl font-bold text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
           {scoreChanged && (
@@ -305,7 +305,7 @@ export function MatchResultModal({
               type="button"
               onClick={handleSaveScore}
               disabled={busy || !scoreValid}
-              className="bg-accent mt-3 w-full rounded-lg py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+              className="liga-button liga-button-primary bg-accent mt-3 w-full rounded-lg py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
             >
               {busy ? 'Saving…' : 'Save score'}
             </button>
@@ -313,8 +313,8 @@ export function MatchResultModal({
         </div>
 
         {/* POTM — result from the vote-POTM system (#5), shown once the poll closes */}
-        <div className="mb-5 border-b border-white/5 pb-4 text-center">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Player of the Match</div>
+        <div className="liga-divider mb-5 border-b border-white/5 pb-4 text-center">
+          <div className="liga-section-title text-slate-500">Player of the Match</div>
           {potmByPlace.length === 0 ? (
             <div className="mt-0.5 text-xs text-slate-600">To be decided</div>
           ) : (
@@ -331,7 +331,7 @@ export function MatchResultModal({
 
         {/* Scorers */}
         <div className="mb-5">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Scorers</h3>
+          <h3 className="liga-section-title mb-2">Scorers</h3>
           {!hasScore && (
             <p className="text-xs text-slate-500">Enter the final score above to record scorers.</p>
           )}
@@ -392,7 +392,7 @@ export function MatchResultModal({
 
         {/* Cards — consolidated, bottom of the result view */}
         <div className="mb-2">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Cards</h3>
+          <h3 className="liga-section-title mb-2">Cards</h3>
           {consolidated.length === 0 && !addingCard && (
             <p className="mb-2 text-xs text-slate-500">No cards.</p>
           )}

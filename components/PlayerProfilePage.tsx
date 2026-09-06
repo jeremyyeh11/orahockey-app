@@ -199,9 +199,9 @@ export function PlayerProfilePage({
   return (
     <>
     {/* Background layer — extends behind header to avoid seam */}
-    <div className="fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
+    <div className="liga-profile-backdrop fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
 
-    <div className="fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide">
+    <div className="liga-profile-screen fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide">
 
       {/* Large faded jersey number — aligned with back button */}
       {player.jersey_number != null && (
@@ -214,7 +214,7 @@ export function PlayerProfilePage({
       )}
 
       {/* Player image — real photo scaled to cover, silhouette fallback */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="liga-profile-image absolute inset-0 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`/players/${player.id}.png`}
@@ -244,7 +244,7 @@ export function PlayerProfilePage({
       {/* Back button — top left */}
       <button
         onClick={() => router.back()}
-        className="fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
+        className="liga-icon-button fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
         aria-label="Back"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -255,7 +255,7 @@ export function PlayerProfilePage({
       {/* Layer 2: Translucent stats overlay at bottom */}
       <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
-        <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
+        <div className="liga-profile-identity bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
           {/* Name — preferred fixed at 48px, rest auto-shrinks to stay one line */}
           <div
             ref={nameRef}
@@ -287,7 +287,7 @@ export function PlayerProfilePage({
           {positions.length > 0 && (
             <div className="mt-1.5 flex gap-1.5">
               {positions.map((pos) => (
-                <span key={pos} className="rounded bg-white/[0.1] px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
+                <span key={pos} className="liga-position-label text-[10px] font-medium text-slate-300">
                   {pos}
                 </span>
               ))}
@@ -297,7 +297,7 @@ export function PlayerProfilePage({
 
         {/* Translucent stat panel */}
         {seasonRow && (
-          <div className="bg-black/50 backdrop-blur-sm px-6 py-3">
+          <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 {seasonLabel}
@@ -310,7 +310,7 @@ export function PlayerProfilePage({
 
         {/* Career stats */}
         {careerRow && (
-          <div className="bg-black/70 backdrop-blur-sm px-6 py-3">
+          <div className="liga-profile-panel bg-black/70 backdrop-blur-sm px-6 py-3">
             <div className="mb-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 Career
@@ -322,14 +322,14 @@ export function PlayerProfilePage({
 
         {/* No stats */}
         {!seasonRow && !careerRow && (
-          <div className="bg-black/50 backdrop-blur-sm px-6 py-4">
+          <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-4">
             <p className="text-center text-sm text-slate-500">No stats recorded yet.</p>
           </div>
         )}
 
         {/* Account / invite panel — admin view only */}
         {accountStatus && (
-          <div className="bg-black/80 backdrop-blur-sm px-6 py-3">
+          <div className="liga-profile-panel bg-black/80 backdrop-blur-sm px-6 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
@@ -343,7 +343,7 @@ export function PlayerProfilePage({
               <button
                 onClick={handleGenerateLink}
                 disabled={linkLoading}
-                className="bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+                className="liga-button liga-button-primary bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
               >
                 {linkLoading
                   ? 'Creating…'
@@ -355,7 +355,7 @@ export function PlayerProfilePage({
               </button>
             </div>
             {linkError && (
-              <p className="mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-300">{linkError}</p>
+              <p className="liga-alert liga-alert-error mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-300">{linkError}</p>
             )}
           </div>
         )}
@@ -363,10 +363,10 @@ export function PlayerProfilePage({
 
       {/* Invite link modal */}
       {link && (
-        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setLink(null)} />
-          <div className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
+        <div className="liga-modal fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="liga-modal-backdrop absolute inset-0 bg-black/70" onClick={() => setLink(null)} />
+          <div className="liga-modal-panel relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
+            <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
             <h2 className="text-lg font-bold text-white mb-1">
               {link.kind === 'invite' ? 'Invite link ready' : 'Reset link ready'}
             </h2>
@@ -379,13 +379,13 @@ export function PlayerProfilePage({
               readOnly
               value={link.url}
               onFocus={(e) => e.currentTarget.select()}
-              className="mb-3 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-xs text-slate-300 focus:border-brand focus:outline-none"
+              className="liga-field mb-3 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-xs text-slate-300 focus:border-brand focus:outline-none"
             />
 
             <div className="flex gap-3">
               <button
                 onClick={handleCopy}
-                className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
+                className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
               >
                 {copied ? 'Copied ✓' : 'Copy link'}
               </button>
@@ -393,7 +393,7 @@ export function PlayerProfilePage({
                 href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 rounded-lg border border-surface-border py-2.5 text-center text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+                className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-center text-sm font-medium text-slate-200 transition hover:bg-slate-700"
               >
                 WhatsApp
               </a>
@@ -401,7 +401,7 @@ export function PlayerProfilePage({
 
             <button
               onClick={() => setLink(null)}
-              className="mt-3 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+              className="liga-button liga-button-secondary mt-3 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
             >
               Close
             </button>

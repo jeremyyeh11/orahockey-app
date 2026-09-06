@@ -69,7 +69,7 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
@@ -308,7 +308,7 @@ export function EventDetailModal({
             type="button"
             onClick={() => setShowResult(true)}
             disabled={!hasStarted}
-            className="shrink-0 rounded-lg border border-surface-border px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
+            className="liga-compact-button liga-button-secondary shrink-0 rounded-lg border border-surface-border px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
           >
             Update result
           </button>
@@ -380,7 +380,7 @@ export function EventDetailModal({
                     <button
                       type="button"
                       onClick={() => setShowTeamList(true)}
-                      className="mt-2 w-full rounded-lg border border-surface-border py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-700"
+                      className="liga-button liga-button-secondary mt-2 w-full rounded-lg border border-surface-border py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-700"
                     >
                       Edit Team List
                     </button>
@@ -391,7 +391,7 @@ export function EventDetailModal({
                 <button
                   type="button"
                   onClick={() => setShowTeamList(true)}
-                  className="w-full rounded-lg border border-surface-border py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-700"
+                  className="liga-button liga-button-secondary w-full rounded-lg border border-surface-border py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-700"
                 >
                   {teamListStatus === 'draft' ? 'Edit Team List (Draft)' : 'Select Team List'}
                 </button>
@@ -421,7 +421,7 @@ export function EventDetailModal({
                     key={status}
                     onClick={() => handleRespond(status)}
                     disabled={respondingId === sessionId}
-                    className={`flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
+                    className={`liga-button liga-attendance-choice flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
                       localMyStatus === status
                         ? status === 'attending'
                           ? 'bg-accent text-white ring-1 ring-white/10'
@@ -460,7 +460,7 @@ export function EventDetailModal({
           {/* Additional Information */}
           {notes && (
             <div>
-              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Additional Information</h3>
+              <h3 className="liga-section-title mb-1.5">Additional Information</h3>
               <p className="text-sm text-slate-300">{notes}</p>
             </div>
           )}
@@ -562,13 +562,13 @@ function CollapsibleSection({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="overflow-hidden rounded-xl border border-white/5">
+    <div className="liga-collapsible overflow-hidden rounded-xl border border-white/5">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-white/[0.02]"
+        className="liga-collapsible-header flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition hover:bg-white/[0.02]"
       >
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</span>
+        <span className="liga-section-title">{title}</span>
         <span className="flex items-center gap-2">
           {!open && summary != null && (
             <span className="text-[11px] font-medium text-slate-500">{summary}</span>
@@ -578,7 +578,7 @@ function CollapsibleSection({
           />
         </span>
       </button>
-      {open && <div className="border-t border-white/5 px-3 pb-3 pt-3">{children}</div>}
+      {open && <div className="liga-collapsible-content border-t border-white/5 px-3 pb-3 pt-3">{children}</div>}
     </div>
   )
 }
@@ -622,7 +622,7 @@ function MatchResultSummary({
           <span className="font-display text-4xl font-extrabold leading-none text-white">
             {score.gf}<span className="text-slate-500">–</span>{score.ga}
           </span>
-          <span className={`rounded px-2 py-0.5 text-xs font-bold ${RESULT_BADGE[score.result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
+          <span className={`liga-status-label liga-result-label text-xs font-bold ${RESULT_BADGE[score.result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
             {RESULT_BADGE[score.result]?.label ?? score.result}
           </span>
         </div>

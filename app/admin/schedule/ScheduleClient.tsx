@@ -21,7 +21,7 @@ import { seasonsOf } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
 
 const inputCls =
-  'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
@@ -367,7 +367,7 @@ export default function ScheduleClient({
               <label className={labelCls}>Notes</label>
               <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-            {error && <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
             <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
         </Modal>
@@ -389,7 +389,7 @@ export default function ScheduleClient({
               <label className={labelCls}>Notes</label>
               <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-            {error && <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
             <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
         </Modal>
@@ -420,10 +420,10 @@ function EventCard({
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   useModalScrollLock()
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-full overflow-y-auto scrollbar-hide rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
+    <div className="liga-modal fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
+      <div className="liga-modal-backdrop absolute inset-0 bg-black/70" onClick={onClose} />
+      <div className="liga-modal-panel relative max-h-[90vh] w-full overflow-y-auto scrollbar-hide rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
+        <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
         <h2 className="mb-5 text-lg font-bold text-white">{title}</h2>
         {children}
       </div>
@@ -437,14 +437,14 @@ function ModalButtons({ isPending, onCancel }: { isPending: boolean; onCancel: (
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+        className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={isPending}
-        className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+        className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
       >
         {isPending ? 'Saving…' : 'Save'}
       </button>

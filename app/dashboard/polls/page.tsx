@@ -22,8 +22,8 @@ export default async function PlayerPollsPage() {
 
   if (error) {
     return (
-      <div className="p-4">
-        <p className="text-sm text-red-400">Error loading polls: {error.message}</p>
+      <div className="liga-page liga-error-state p-4">
+        <p className="liga-alert liga-alert-error text-sm text-red-400">Error loading polls: {error.message}</p>
       </div>
     )
   }

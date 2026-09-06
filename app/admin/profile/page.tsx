@@ -27,19 +27,21 @@ export default async function AdminProfilePage() {
   const positions = Array.isArray(player?.position) ? player!.position : []
 
   return (
-    <div className="p-4">
-      <h1 className="mb-4 text-xl font-bold text-white">Profile</h1>
+    <div className="liga-page liga-profile p-4">
+      <div className="liga-page-header mb-4">
+        <h1 className="liga-page-title text-white">Profile</h1>
+      </div>
 
       {/* Identity card */}
-      <div className="card p-6">
+      <div className="liga-profile-card card p-6">
         <div className="flex items-center gap-4">
-          <div className="bg-accent flex h-16 w-16 shrink-0 items-center justify-center rounded-full font-display text-xl font-bold text-white ring-1 ring-white/10">
+          <div className="liga-avatar bg-accent flex h-16 w-16 shrink-0 items-center justify-center rounded-full font-display text-xl font-bold text-white ring-1 ring-white/10">
             {initials(name)}
           </div>
           <div className="min-w-0">
             <div className="truncate font-display text-lg font-bold text-white">{name}</div>
             <div className="truncate text-sm text-slate-400">{email}</div>
-            <span className="mt-1.5 inline-block rounded-full border border-brand/30 bg-brand/10 px-2.5 py-0.5 text-xs font-semibold capitalize text-brand-light">
+            <span className="liga-role-label mt-1.5 inline-block text-xs font-semibold capitalize text-brand-light">
               {role}
             </span>
           </div>

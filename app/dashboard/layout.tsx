@@ -34,7 +34,7 @@ export default function DashboardLayout({
   const adminViewButton = isAdminPreview ? (
     <button
       onClick={returnToAdmin}
-      className="rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light transition hover:bg-brand/20"
+      className="liga-compact-button liga-button-secondary ml-1 border border-brand/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light transition hover:text-white"
     >
       Admin view
     </button>

@@ -26,8 +26,10 @@ export default function PollsClient({
   const closed = polls.filter((p) => !open.includes(p))
 
   return (
-    <div className="p-4">
-      <h1 className="mb-4 text-xl font-bold text-white">Polls</h1>
+    <div className="liga-page liga-polls p-4">
+      <div className="liga-page-header mb-4">
+        <h1 className="liga-page-title text-white">Polls</h1>
+      </div>
 
       <PotmPolls polls={potmPolls} myPlayerId={myPlayerId} />
 
@@ -37,8 +39,8 @@ export default function PollsClient({
 
       {open.length > 0 && (
         <>
-          <h2 className="mb-2 text-sm font-semibold text-white">Open</h2>
-          <div className="mb-6 space-y-3">
+          <h2 className="liga-section-title mb-2">Open</h2>
+          <div className="liga-poll-list mb-6 space-y-0">
             {open.map((poll) => (
               <PollCard key={poll.id} poll={poll} myPlayerId={myPlayerId} votable />
             ))}
@@ -48,8 +50,8 @@ export default function PollsClient({
 
       {closed.length > 0 && (
         <>
-          <h2 className="mb-2 text-sm font-semibold text-white">Closed</h2>
-          <div className="space-y-3">
+          <h2 className="liga-section-title mb-2">Closed</h2>
+          <div className="liga-poll-list space-y-0">
             {closed.map((poll) => (
               <PollCard key={poll.id} poll={poll} myPlayerId={myPlayerId} />
             ))}
@@ -94,9 +96,9 @@ function PollCard({
   }
 
   return (
-    <div className="card p-4">
-      <div className="text-sm font-semibold text-white">{poll.question}</div>
-      <div className="mt-0.5 text-xs text-slate-500">
+    <div className="liga-poll-card card p-4">
+      <div className="liga-poll-title text-sm font-semibold text-white">{poll.question}</div>
+      <div className="liga-meta mt-0.5 text-slate-500">
         {total} vote{total === 1 ? '' : 's'}
         {poll.closes_at && ` · ${votable ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
       </div>
@@ -110,7 +112,7 @@ function PollCard({
               <button
                 key={opt.id}
                 onClick={() => setSelected(opt.id)}
-                className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition ${
+                className={`liga-poll-option liga-button flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition ${
                   selected === opt.id
                     ? 'border-brand bg-brand/10 text-white'
                     : 'border-surface-border text-slate-300 hover:border-slate-500'
@@ -128,12 +130,12 @@ function PollCard({
             ))}
           </div>
 
-          {error && <p className="mt-3 rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+          {error && <p className="liga-alert liga-alert-error mt-3 rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
 
           <button
             onClick={handleVote}
             disabled={!selected || isPending}
-            className="bg-accent mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
+            className="liga-button liga-button-primary bg-accent mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
           >
             {isPending ? 'Voting…' : 'Vote'}
           </button>

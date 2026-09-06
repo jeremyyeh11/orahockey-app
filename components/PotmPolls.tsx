@@ -88,9 +88,9 @@ export default function PotmPolls({
   }
 
   return (
-    <div className="mb-6">
-      <h2 className="mb-2 text-sm font-semibold text-white">Player of the Match</h2>
-      <div className="space-y-3">
+    <div className="liga-potm-list mb-6">
+      <h2 className="liga-section-title mb-2">Player of the Match</h2>
+      <div className="liga-poll-list space-y-0">
         {open.map((p) => (
           <PotmCard key={p.id} poll={p} myPlayerId={myPlayerId} onVoted={handleVoted} />
         ))}
@@ -158,19 +158,19 @@ function PotmCard({
   }
 
   return (
-    <div className="card p-4">
+    <div className="liga-poll-card card p-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-white">POTM · vs {poll.opponent}</div>
-          <div className="mt-0.5 text-xs text-slate-500">
+          <div className="liga-poll-title text-sm font-semibold text-white">POTM · vs {poll.opponent}</div>
+          <div className="liga-meta mt-0.5 text-slate-500">
             {poll.game_date && fmtDateTime(poll.game_date)}
             {' · '}
             {isClosed ? 'closed' : `${votedCount}/${totalEligible} voted`}
           </div>
         </div>
         {!isClosed && (
-          <span className="shrink-0 rounded-full bg-green-900/50 px-2 py-0.5 text-[10px] font-semibold uppercase text-green-300">
+          <span className="liga-status-label shrink-0 text-[10px] font-semibold uppercase text-green-300">
             Open
           </span>
         )}
@@ -197,7 +197,7 @@ function PotmCard({
 
       {/* Open + eligible + not yet voted → rank selectors + confirm-to-lock */}
       {!isClosed && canVote && (
-        <div className="mt-4 border-t border-white/5 pt-3">
+        <div className="liga-divider mt-4 border-t border-white/5 pt-3">
           <div className="mb-2 text-xs font-medium text-slate-400">Your vote</div>
           <div className="space-y-2">
             <RankSelect
@@ -227,7 +227,7 @@ function PotmCard({
           </div>
 
           {allPicked && (
-            <div className="mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-slate-200">
+            <div className="liga-alert liga-alert-info mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-slate-200">
               You’re voting — <span className="text-yellow-300">1st</span> {nameOf(first)},{' '}
               <span className="text-slate-300">2nd</span> {nameOf(second)},{' '}
               <span className="text-amber-600">3rd</span> {nameOf(third)}. This can’t be changed
@@ -236,13 +236,13 @@ function PotmCard({
           )}
 
           {error && (
-            <p className="mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-400">{error}</p>
+            <p className="liga-alert liga-alert-error mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-400">{error}</p>
           )}
 
           <button
             onClick={handleConfirm}
             disabled={!allPicked || busy}
-            className="bg-accent mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
+            className="liga-button liga-button-primary bg-accent mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
           >
             {busy ? 'Confirming…' : 'Confirm vote'}
           </button>
@@ -251,7 +251,7 @@ function PotmCard({
 
       {/* Open + already voted → locked warning */}
       {!isClosed && hasVoted && (
-        <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300">
+        <div className="liga-alert liga-alert-info mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300">
           🔒 Your vote is locked in — no changes allowed. Results show once the poll closes.
         </div>
       )}
@@ -270,7 +270,7 @@ function PotmCard({
 
       {/* Not-yet-voted tags (live). Current user's tag highlighted green if still pending. */}
       {!isClosed && notVoted.length > 0 && (
-        <div className="mt-4 border-t border-white/5 pt-3">
+        <div className="liga-divider mt-4 border-t border-white/5 pt-3">
           <div className="mb-2 text-xs font-medium text-slate-400">Yet to vote</div>
           <div className="flex flex-wrap gap-1.5">
             {notVoted.map((c) => {
@@ -278,7 +278,7 @@ function PotmCard({
               return (
                 <span
                   key={c.id}
-                  className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                  className={`liga-status-label rounded-full border px-2 py-0.5 text-[11px] font-medium ${
                     isMe
                       ? 'border-green-500/60 bg-green-900/40 text-green-300'
                       : 'border-surface-border text-slate-400'
@@ -317,7 +317,7 @@ function RankSelect({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="min-w-0 flex-1 rounded-lg border border-surface-border bg-surface px-2 py-2 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-40"
+        className="liga-field min-w-0 flex-1 rounded-lg border border-surface-border bg-surface px-2 py-2 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-40"
       >
         <option value="">— select player —</option>
         {candidates

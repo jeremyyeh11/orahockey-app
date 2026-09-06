@@ -85,10 +85,10 @@ export default function AdminBadge() {
           containing block that would otherwise trap this fixed overlay */}
       {open &&
         createPortal(
-        <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} />
-          <div className="relative w-full rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
+        <div className="liga-modal fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
+          <div className="liga-modal-backdrop absolute inset-0 bg-black/70" onClick={() => setOpen(false)} />
+          <div className="liga-modal-panel relative w-full rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
+            <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
             <h2 className="text-lg font-bold text-white">Admin Controls</h2>
             <p className="mt-0.5 text-xs text-slate-500">Testing tools — double-tap ADMIN to open this panel.</p>
 
@@ -98,13 +98,13 @@ export default function AdminBadge() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setOpen(false)}
-                  className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10"
+                  className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10"
                 >
                   Admin
                 </button>
                 <button
                   onClick={switchToPlayerView}
-                  className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+                  className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
                 >
                   Player
                 </button>
@@ -122,12 +122,12 @@ export default function AdminBadge() {
                   type="date"
                   value={dateInput}
                   onChange={(e) => setDateInput(e.target.value)}
-                  className="h-[42px] flex-1 rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="liga-field h-[42px] flex-1 rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
                 <button
                   onClick={applyDate}
                   disabled={!dateInput}
-                  className="bg-accent rounded-lg px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
+                  className="liga-button liga-button-primary bg-accent rounded-lg px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
                 >
                   Apply
                 </button>
@@ -148,7 +148,7 @@ export default function AdminBadge() {
 
             <button
               onClick={() => setOpen(false)}
-              className="mt-6 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+              className="liga-button liga-button-secondary mt-6 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
             >
               Close
             </button>

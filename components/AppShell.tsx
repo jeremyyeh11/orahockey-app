@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { isLigaPilotPath } from '@/lib/liga-ui'
+import { isLigaAppPath } from '@/lib/liga-ui'
 import { signOut } from '@/lib/auth'
 import { CLUB_NAME } from '@/lib/constants'
 import BottomNav, { type NavItem } from '@/components/BottomNav'
@@ -27,7 +27,7 @@ export default function AppShell({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-  const ligaPilot = isLigaPilotPath(pathname)
+  const ligaApp = isLigaAppPath(pathname)
 
   async function handleLogout() {
     await signOut()
@@ -35,7 +35,7 @@ export default function AppShell({
   }
 
   return (
-    <div className={`flex min-h-screen flex-col ${ligaPilot ? 'liga-ui' : ''}`}>
+    <div className={`flex min-h-screen flex-col ${ligaApp ? 'liga-ui' : ''}`}>
       {/* Top bar */}
       <header className="app-header sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
         <span className="flex items-center gap-2">

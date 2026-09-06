@@ -48,7 +48,7 @@ export async function PlayerProfileView({
   ])
 
   if (playerErr || !player) {
-    return <div className="p-4 text-sm text-red-400">Player not found.</div>
+    return <div className="liga-page liga-error-state p-4 text-sm text-red-400">Player not found.</div>
   }
 
   const profile = player as unknown as ProfilePlayer

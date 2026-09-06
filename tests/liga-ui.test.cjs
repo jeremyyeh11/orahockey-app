@@ -15,10 +15,15 @@ function declarations(selector) {
   return result
 }
 
-test('pilot typography, controls and shell are scoped to the four listing routes', () => {
-  assert.match(read('components/AppShell.tsx'), /isLigaPilotPath\(pathname\)/)
-  assert.match(read('app/dashboard/schedule/ScheduleClient.tsx'), /liga-page/)
-  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /liga-page/)
+test('authenticated app typography, controls and shell are scoped to app routes', () => {
+  assert.match(read('components/AppShell.tsx'), /isLigaAppPath\(pathname\)/)
+  for (const file of [
+    'app/dashboard/page.tsx',
+    'app/dashboard/polls/PollsClient.tsx',
+    'app/admin/polls/PollsClient.tsx',
+    'app/admin/profile/page.tsx',
+    'components/admin/DashboardView.tsx',
+  ]) assert.match(read(file), /liga-page/, `${file} exposes the shared page frame`)
   assert.match(read('app/dashboard/schedule/ScheduleClient.tsx'), /liga-event-list/)
   assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /liga-event-list/)
   assert.match(read('components/EventRow.tsx'), /liga-event-row/)
@@ -31,18 +36,39 @@ test('pilot typography, controls and shell are scoped to the four listing routes
   assert.equal(declarations('.liga-ui .liga-meta')['font-family'], 'var(--font-liga-mono), ui-monospace, monospace')
   assert.equal(declarations('.liga-ui .liga-button')['min-height'], '44px')
   assert.equal(declarations('.liga-ui .liga-page')['margin-inline'], 'auto')
-  assert.deepEqual(declarations('.liga-meta'), {}, 'metadata styles stay scoped to the pilot')
-  assert.deepEqual(declarations('.liga-button'), {}, 'button styles stay scoped to the pilot')
-  assert.deepEqual(declarations('.liga-page'), {}, 'page framing stays scoped to the pilot')
+  assert.deepEqual(declarations('.liga-meta'), {}, 'metadata styles stay scoped to the app shell')
+  assert.deepEqual(declarations('.liga-button'), {}, 'button styles stay scoped to the app shell')
+  assert.deepEqual(declarations('.liga-page'), {}, 'page framing stays scoped to the app shell')
   assert.equal(declarations('.liga-ui .menu-dock')['backdrop-filter'], 'none')
   assert.match(read('components/BottomNav.tsx'), /safe-area-inset-bottom\)\+24px/)
   const ts = require('typescript')
   const compiled = ts.transpileModule(read('lib/liga-ui.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
   const module = { exports: {} }
   new Function('exports', 'module', compiled)(module.exports, module)
-  const { isLigaPilotPath } = module.exports
-  for (const p of ['/dashboard/team', '/dashboard/schedule', '/admin/team', '/admin/schedule']) assert.equal(isLigaPilotPath(p), true)
-  for (const p of ['/login', '/dashboard', '/admin/profile', '/dashboard/team/123', '/dashboard/polls', null]) assert.equal(isLigaPilotPath(p), false)
+  const { isLigaAppPath } = module.exports
+  for (const p of [
+    '/dashboard', '/dashboard/team', '/dashboard/team/123', '/dashboard/schedule', '/dashboard/polls',
+    '/admin', '/admin/dashboard', '/admin/team', '/admin/schedule', '/admin/polls', '/admin/profile', '/admin/team/123',
+  ]) assert.equal(isLigaAppPath(p), true)
+  for (const p of ['/', '/login', '/auth/confirm', '/auth/set-password', null]) assert.equal(isLigaAppPath(p), false)
+})
+
+test('shared app pages expose consistent list, surface and modal hooks', () => {
+  for (const file of [
+    'components/PollResults.tsx',
+    'components/PotmPolls.tsx',
+    'components/ReadEditModal.tsx',
+    'components/MatchResultModal.tsx',
+    'components/TeamListModal.tsx',
+    'components/PlayerProfilePage.tsx',
+    'components/SignOutButton.tsx',
+  ]) assert.match(read(file), /liga-/, `${file} exposes a shared Liga hook`)
+  assert.equal(declarations('.liga-ui .liga-hero')['border-radius'], '8px')
+  assert.equal(declarations('.liga-ui .liga-link-row.card')['background-color'], 'transparent')
+  assert.equal(declarations('.liga-ui .liga-panel.card')['background-color'], 'transparent')
+  assert.equal(declarations('.liga-ui .liga-poll-card.card')['border-bottom'], '1px solid #323238')
+  assert.equal(declarations('.liga-ui .liga-modal-panel')['border-radius'], '8px')
+  assert.equal(declarations('.liga-ui input.liga-field')['height'], '42px')
 })
 
 test('Liga surfaces are opt-in and preserve the existing palette', () => {

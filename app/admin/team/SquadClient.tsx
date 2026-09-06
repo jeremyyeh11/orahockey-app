@@ -145,7 +145,7 @@ export default function SquadClient({
   }
 
   const inputCls =
-    'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+    'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
   const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
   return (
@@ -196,10 +196,10 @@ export default function SquadClient({
 
       {/* Add Player modal (separate from profile) */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => { setShowAddModal(false); setError(null) }} />
-          <div className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
+        <div className="liga-modal fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="liga-modal-backdrop absolute inset-0 bg-black/70" onClick={() => { setShowAddModal(false); setError(null) }} />
+          <div className="liga-modal-panel relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
+            <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
             <h2 className="text-lg font-bold text-white mb-5">Add Player</h2>
             <form onSubmit={handleAddSubmit} className="space-y-4">
               <div>
@@ -227,7 +227,7 @@ export default function SquadClient({
                         key={pos}
                         type="button"
                         onClick={() => togglePosition(pos)}
-                        className={`rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
+                        className={`liga-button rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
                           selectedPositions.includes(pos)
                             ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
                             : 'border-surface-border text-slate-400 hover:text-white hover:border-slate-500'
@@ -247,20 +247,20 @@ export default function SquadClient({
                 </select>
               </div>
               {error && (
-                <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
+                <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
               )}
               <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => { setShowAddModal(false); setError(null) }}
-                  className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 transition"
+                  className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+                  className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
                 >
                   {isPending ? 'Saving…' : 'Save'}
                 </button>

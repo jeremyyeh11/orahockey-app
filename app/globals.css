@@ -105,10 +105,229 @@
   border-radius: 8px;
 }
 
-.liga-ui .liga-roster-card {
-  background-color: #1e1e21;
-  border: 1px solid #323238;
+.liga-ui .liga-hero {
   border-radius: 8px;
+}
+
+.liga-ui .liga-stat-grid {
+  border-bottom: 1px solid #323238;
+  border-top: 1px solid #323238;
+  gap: 0;
+}
+
+.liga-ui .liga-stat-tile.card {
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.liga-ui .liga-stat-grid .liga-stat-tile + .liga-stat-tile {
+  border-left: 1px solid #323238;
+}
+
+.liga-ui .liga-link-row.card {
+  background-color: transparent;
+  border: 0;
+  border-bottom: 1px solid #323238;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.liga-ui .liga-link-row.card:hover {
+  background-color: rgba(255, 255, 255, 0.025);
+  border-bottom-color: #5aa971;
+}
+
+.liga-ui .liga-result-mark {
+  border-radius: 4px;
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.liga-ui .liga-poll-list,
+.liga-ui .liga-roster-list {
+  row-gap: 0;
+}
+
+.liga-ui .liga-poll-list > .liga-poll-card:last-child,
+.liga-ui .liga-roster-list > .liga-roster-card:last-child {
+  border-bottom: 0;
+}
+
+.liga-ui .liga-panel.card {
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.liga-ui .liga-panel-heading {
+  border-top: 1px solid #323238;
+  border-bottom-color: #323238;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.liga-ui .liga-panel-row {
+  border-color: #323238;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.liga-ui .liga-poll-card.card {
+  background-color: transparent;
+  border: 0;
+  border-bottom: 1px solid #323238;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.liga-ui .liga-poll-option {
+  border-radius: 4px;
+}
+
+.liga-ui .liga-poll-option.liga-button {
+  justify-content: flex-start;
+}
+
+.liga-ui .liga-status-label {
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  padding: 0;
+}
+
+.liga-ui .liga-position-label {
+  display: inline-flex;
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+
+.liga-ui .liga-divider,
+.liga-ui .liga-actions {
+  border-color: #323238;
+}
+
+.liga-ui .liga-button-primary {
+  border-color: transparent;
+}
+
+.liga-ui .liga-button-secondary {
+  background-color: transparent;
+  background-image: none;
+}
+
+.liga-ui .liga-button-danger {
+  background-color: transparent;
+  background-image: none;
+}
+
+.liga-ui .liga-compact-button {
+  align-items: center;
+  border-radius: 4px;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 32px;
+}
+
+.liga-ui .liga-field {
+  background-color: #1e1e21;
+  border-color: #323238;
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.liga-ui input.liga-field {
+  height: 42px;
+}
+
+.liga-ui .liga-modal-panel {
+  background-color: #1e1e21;
+  border-color: #323238;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.liga-ui .liga-modal-handle {
+  background-color: #5aa971;
+}
+
+.liga-ui .liga-alert {
+  border-radius: 4px;
+}
+
+.liga-ui .liga-profile-screen {
+  background-color: #131315;
+}
+
+.liga-ui .liga-profile-panel {
+  background-color: rgba(19, 19, 21, 0.84);
+  backdrop-filter: none;
+  border-top: 1px solid rgba(50, 50, 56, 0.9);
+  -webkit-backdrop-filter: none;
+}
+
+.liga-ui .liga-profile-mark {
+  border-radius: 4px;
+}
+
+.liga-ui .liga-icon-button {
+  background-color: transparent;
+  border-color: #323238;
+  border-radius: 6px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.liga-ui .liga-skeleton-hero,
+.liga-ui .liga-skeleton-line {
+  border-radius: 6px;
+}
+
+.liga-ui .liga-week-day {
+  border-radius: 6px;
+}
+
+.liga-ui .liga-attendance-choice {
+  border-radius: 4px;
+}
+
+.liga-ui .liga-collapsible {
+  border: 0;
+  border-bottom: 1px solid #323238;
+  border-radius: 0;
+}
+
+.liga-ui .liga-collapsible-header,
+.liga-ui .liga-collapsible-content {
+  border-color: #323238;
+}
+
+.liga-ui .liga-result-label {
+  background-color: transparent;
+  background-image: none;
+  padding: 0;
+}
+
+.liga-ui .liga-roster-card:not(.bg-accent) {
+  background-color: transparent;
+  border: 0;
+  border-bottom: 1px solid #323238;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.liga-ui .liga-roster-card.bg-accent {
+  border: 0;
+  border-radius: 6px;
+}
+
+.liga-ui .liga-roster-list > .liga-roster-card:not(.bg-accent) {
+  margin-top: 0;
 }
 
 .liga-ui .app-header {
