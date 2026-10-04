@@ -36,29 +36,34 @@ export default function AppShell({
 
   return (
     <div className={`flex min-h-screen flex-col ${ligaApp ? 'liga-ui' : ''}`}>
-      {/* Top bar */}
-      <header className="app-header sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3.5 backdrop-blur-xl">
-        <span className="flex items-center gap-2">
-          <img src="/crest-white.png" alt={CLUB_NAME} className="h-8 w-8 object-contain" />
-          <span className="app-wordmark font-display text-lg font-bold tracking-tight text-white">
-            ORA <span className="text-brand-light">Hockey</span>
-            {titleExtra}
+      {/* Top bar — background spans the window; its contents align with the page column */}
+      <header className="app-header sticky top-0 z-30 border-b border-white/10 bg-white/[0.03] backdrop-blur-xl">
+        <div className="app-container flex items-center justify-between px-4 py-3.5">
+          <span className="flex items-center gap-2">
+            <img src="/crest-white.png" alt={CLUB_NAME} className="h-8 w-8 object-contain" />
+            <span className="app-wordmark font-display text-lg font-bold tracking-tight text-white">
+              ORA <span className="text-brand-light">Hockey</span>
+              {titleExtra}
+            </span>
           </span>
-        </span>
-        <div className="flex items-center gap-3">
-          {headerActions}
-          <button
-            onClick={handleLogout}
-            className="text-xs font-medium text-slate-400 transition hover:text-white"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            {headerActions}
+            <button
+              onClick={handleLogout}
+              className="text-xs font-medium text-slate-400 transition hover:text-white"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Page content — padded bottom so it isn't hidden behind the floating nav.
-          Pull down from the top to reload (the only way to refresh in the standalone PWA). */}
-      <PullToRefresh className="flex-1 overflow-y-auto pb-28">{children}</PullToRefresh>
+      {/* Page content — capped at the app width and padded bottom so it isn't hidden
+          behind the floating nav. Pull down from the top to reload (the only way to
+          refresh in the standalone PWA). */}
+      <PullToRefresh className="flex-1 overflow-y-auto pb-28">
+        <div className="app-container">{children}</div>
+      </PullToRefresh>
 
       {/* Floating pill nav */}
       <BottomNav items={nav} />

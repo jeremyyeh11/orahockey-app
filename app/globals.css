@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Widest the app UI grows on desktop; content centres inside it. */
+    --app-max-width: 1200px;
+  }
+
   html {
     @apply text-white;
     background-color: #131315;
@@ -47,6 +52,13 @@
 }
 
 @layer components {
+  /* Centred column that caps the UI at --app-max-width on wide screens. */
+  .app-container {
+    width: 100%;
+    max-width: var(--app-max-width);
+    margin-inline: auto;
+  }
+
   /* Flat card — the primary surface. Solid grey, hairline border, generous radius. */
   .card {
     background-color: #1e1e21;
@@ -362,7 +374,6 @@
 
 .liga-ui .liga-page {
   margin-inline: auto;
-  max-width: 52rem;
   width: 100%;
 }
 

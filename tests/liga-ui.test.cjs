@@ -71,6 +71,17 @@ test('shared app pages expose consistent list, surface and modal hooks', () => {
   assert.equal(declarations('.liga-ui input.liga-field')['height'], '42px')
 })
 
+test('app UI caps at a single 1200px width shared by header and page content', () => {
+  assert.equal(declarations(':root')['--app-max-width'], '1200px')
+  const container = declarations('.app-container')
+  assert.equal(container['max-width'], 'var(--app-max-width)')
+  assert.equal(container['margin-inline'], 'auto')
+  assert.match(read('tailwind.config.ts'), /app: 'var\(--app-max-width\)'/)
+  const shell = read('components/AppShell.tsx')
+  assert.equal((shell.match(/className="app-container[ "]/g) ?? []).length, 2, 'header row and page content share the container')
+  assert.equal(declarations('.liga-ui .liga-page')['max-width'], undefined, 'pages defer to the app container width')
+})
+
 test('Liga surfaces are opt-in and preserve the existing palette', () => {
   const panel = declarations('.liga-ui .card')
   assert.equal(panel['border-radius'], '8px')
