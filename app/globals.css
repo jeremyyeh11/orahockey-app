@@ -13,6 +13,9 @@
   html {
     @apply text-white;
     background-color: #131315;
+    /* Keep the scrollbar's space reserved so the page doesn't shift sideways when
+       a modal locks scrolling or a route is too short to scroll. */
+    scrollbar-gutter: stable;
   }
 
   body {

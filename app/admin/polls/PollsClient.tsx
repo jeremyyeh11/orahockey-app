@@ -8,7 +8,7 @@ import PotmPolls from '@/components/PotmPolls'
 import { PollResults } from '@/components/PollResults'
 import type { PotmPoll } from '@/lib/potm'
 import type { Poll } from '@/lib/polls'
-import { useModalScrollLock } from '@/lib/useModalScrollLock'
+import Modal from '@/components/Modal'
 
 const inputCls =
   'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -28,7 +28,6 @@ export default function PollsClient({
   const [options, setOptions] = useState<string[]>(['', ''])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  useModalScrollLock(showModal)
 
   const active = polls.filter((p) => p.is_active)
   const closed = polls.filter((p) => !p.is_active)
@@ -132,88 +131,84 @@ export default function PollsClient({
 
       {/* Create modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setShowModal(false)} />
-          <div className="liga-modal-panel relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-            <h2 className="mb-5 text-lg font-bold text-white">New Poll</h2>
+        <Modal onClose={() => setShowModal(false)} scrollable>
+          <h2 className="mb-5 text-lg font-bold text-white">New Poll</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className={labelCls}>Question *</label>
-                <input
-                  name="question"
-                  type="text"
-                  required
-                  className={inputCls}
-                  placeholder="Which night should we train?"
-                />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className={labelCls}>Question *</label>
+              <input
+                name="question"
+                type="text"
+                required
+                className={inputCls}
+                placeholder="Which night should we train?"
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>Options *</label>
+              <div className="space-y-2">
+                {options.map((opt, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={opt}
+                      onChange={(e) =>
+                        setOptions((prev) => prev.map((o, j) => (j === i ? e.target.value : o)))
+                      }
+                      className={inputCls}
+                      placeholder={`Option ${i + 1}`}
+                    />
+                    {options.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setOptions((prev) => prev.filter((_, j) => j !== i))}
+                        className="shrink-0 rounded-lg border border-surface-border px-3 text-slate-400 transition hover:text-white"
+                        aria-label="Remove option"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-
-              <div>
-                <label className={labelCls}>Options *</label>
-                <div className="space-y-2">
-                  {options.map((opt, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={opt}
-                        onChange={(e) =>
-                          setOptions((prev) => prev.map((o, j) => (j === i ? e.target.value : o)))
-                        }
-                        className={inputCls}
-                        placeholder={`Option ${i + 1}`}
-                      />
-                      {options.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => setOptions((prev) => prev.filter((_, j) => j !== i))}
-                          className="shrink-0 rounded-lg border border-surface-border px-3 text-slate-400 transition hover:text-white"
-                          aria-label="Remove option"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {options.length < 6 && (
-                  <button
-                    type="button"
-                    onClick={() => setOptions((prev) => [...prev, ''])}
-                    className="mt-2 text-xs font-medium text-brand-light transition hover:text-white"
-                  >
-                    + Add option
-                  </button>
-                )}
-              </div>
-
-              <div>
-                <label className={labelCls}>Closes at (optional)</label>
-                <input name="closes_at" type="datetime-local" className={dateInputCls} />
-              </div>
-
-              {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-
-              <div className="flex gap-3 pt-1">
+              {options.length < 6 && (
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+                  onClick={() => setOptions((prev) => [...prev, ''])}
+                  className="mt-2 text-xs font-medium text-brand-light transition hover:text-white"
                 >
-                  Cancel
+                  + Add option
                 </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-                >
-                  {isPending ? 'Creating…' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              )}
+            </div>
+
+            <div>
+              <label className={labelCls}>Closes at (optional)</label>
+              <input name="closes_at" type="datetime-local" className={dateInputCls} />
+            </div>
+
+            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+              >
+                {isPending ? 'Creating…' : 'Create'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   )

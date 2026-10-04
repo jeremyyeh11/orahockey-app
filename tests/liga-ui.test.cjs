@@ -120,6 +120,34 @@ test('desktop (lg+) lifts small metadata to 12px and swaps greys that fail 4.5:1
   assert.equal(declarations('.liga-ui .liga-meta')['font-family'], 'var(--font-liga-mono), ui-monospace, monospace', 'touch layouts keep the mono metadata')
 })
 
+test('every modal uses the shared dialog shell (Esc, focus, labelling, desktop width)', () => {
+  const modal = read('components/Modal.tsx')
+  assert.match(modal, /role="dialog"/)
+  assert.match(modal, /aria-modal="true"/)
+  assert.match(modal, /setAttribute\('aria-labelledby', heading\.id\)/)
+  assert.match(modal, /e\.key === 'Escape'/)
+  assert.match(modal, /e\.key !== 'Tab'/, 'Tab is kept inside the open dialog')
+  assert.match(modal, /opener\?\.isConnected\) opener\.focus/, 'focus returns to the opener on close')
+  assert.match(modal, /sm: 'sm:max-w-sm lg:max-w-md'/)
+  assert.match(modal, /md: 'sm:max-w-md lg:max-w-lg'/)
+  assert.match(modal, /useModalScrollLock\(\)/)
+  for (const file of [
+    'app/admin/polls/PollsClient.tsx',
+    'app/admin/schedule/ScheduleClient.tsx',
+    'app/admin/team/SquadClient.tsx',
+    'components/AdminControlPanel.tsx',
+    'components/MatchResultModal.tsx',
+    'components/PlayerProfilePage.tsx',
+    'components/ReadEditModal.tsx',
+    'components/TeamListModal.tsx',
+  ]) {
+    const src = read(file)
+    assert.match(src, /<Modal\b/, `${file} uses the shared Modal`)
+    assert.doesNotMatch(src, /liga-modal-backdrop/, `${file} has no hand-rolled backdrop`)
+  }
+  assert.equal(declarations('html')['scrollbar-gutter'], 'stable', 'no sideways jump when scrolling locks')
+})
+
 test('Liga surfaces are opt-in and preserve the existing palette', () => {
   const panel = declarations('.liga-ui .card')
   assert.equal(panel['border-radius'], '8px')

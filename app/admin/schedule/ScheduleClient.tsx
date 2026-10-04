@@ -18,7 +18,7 @@ import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 import { seasonsOf } from '@/lib/stats'
-import { useModalScrollLock } from '@/lib/useModalScrollLock'
+import Modal from '@/components/Modal'
 
 const inputCls =
   'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -331,7 +331,7 @@ export default function ScheduleClient({
 
       {/* Add Game Modal */}
       {addModal === 'game' && (
-        <Modal title="Add Game" onClose={() => { setAddModal(null); setError(null) }}>
+        <FormModal title="Add Game" onClose={() => { setAddModal(null); setError(null) }}>
           <form onSubmit={submitAddGame} className="space-y-4">
             <div>
               <label className={labelCls}>Opponent *</label>
@@ -370,12 +370,12 @@ export default function ScheduleClient({
             {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
             <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
-        </Modal>
+        </FormModal>
       )}
 
       {/* Add Training Modal */}
       {addModal === 'training' && (
-        <Modal title="Add Training" onClose={() => { setAddModal(null); setError(null) }}>
+        <FormModal title="Add Training" onClose={() => { setAddModal(null); setError(null) }}>
           <form onSubmit={submitAddTraining} className="space-y-4">
             <div>
               <label className={labelCls}>Date &amp; time *</label>
@@ -392,7 +392,7 @@ export default function ScheduleClient({
             {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
             <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
-        </Modal>
+        </FormModal>
       )}
     </div>
   )
@@ -417,17 +417,12 @@ function EventCard({
   )
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  useModalScrollLock()
+function FormModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="liga-modal fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="liga-modal-backdrop absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="liga-modal-panel relative max-h-[90vh] w-full overflow-y-auto scrollbar-hide rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
-        <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-        <h2 className="mb-5 text-lg font-bold text-white">{title}</h2>
-        {children}
-      </div>
-    </div>
+    <Modal onClose={onClose} scrollable>
+      <h2 className="mb-5 text-lg font-bold text-white">{title}</h2>
+      {children}
+    </Modal>
   )
 }
 

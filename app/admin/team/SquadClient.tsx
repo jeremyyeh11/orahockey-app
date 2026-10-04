@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { addPlayer, togglePlayerActive } from './actions'
 import RosterList from '@/components/RosterList'
 import { defaultPreferredName } from '@/components/RosterList'
-import { useModalScrollLock } from '@/lib/useModalScrollLock'
+import Modal from '@/components/Modal'
 import {
   useSeasonStats,
   SeasonSelect,
@@ -72,7 +72,6 @@ export default function SquadClient({
   const [showInactive, setShowInactive] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  useModalScrollLock(showAddModal)
 
   // Season stats state
   const { seasons, season, setSeason, topScorerGroups, statsMap } = useSeasonStats({
@@ -193,78 +192,74 @@ export default function SquadClient({
 
       {/* Add Player modal (separate from profile) */}
       {showAddModal && (
-        <div className="liga-modal fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="liga-modal-backdrop absolute inset-0 bg-black/70" onClick={() => { setShowAddModal(false); setError(null) }} />
-          <div className="liga-modal-panel relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
-            <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-            <h2 className="text-lg font-bold text-white mb-5">Add Player</h2>
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              <div>
-                <label className={labelCls}>Full Name *</label>
-                <input name="full_name" type="text" required className={inputCls} placeholder="John Smith" />
+        <Modal onClose={() => { setShowAddModal(false); setError(null) }}>
+          <h2 className="text-lg font-bold text-white mb-5">Add Player</h2>
+          <form onSubmit={handleAddSubmit} className="space-y-4">
+            <div>
+              <label className={labelCls}>Full Name *</label>
+              <input name="full_name" type="text" required className={inputCls} placeholder="John Smith" />
+            </div>
+            <div>
+              <label className={labelCls}>Preferred Name</label>
+              <input name="preferred_name" type="text" className={inputCls} placeholder="Auto (first name)" />
+            </div>
+            <div>
+              <label className={labelCls}>Email *</label>
+              <input name="email" type="email" required className={inputCls} placeholder="player@example.com" />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className={labelCls}>Jersey #</label>
+                <input name="jersey_number" type="number" min="0" max="99" className={inputCls} placeholder="—" />
               </div>
-              <div>
-                <label className={labelCls}>Preferred Name</label>
-                <input name="preferred_name" type="text" className={inputCls} placeholder="Auto (first name)" />
-              </div>
-              <div>
-                <label className={labelCls}>Email *</label>
-                <input name="email" type="email" required className={inputCls} placeholder="player@example.com" />
-              </div>
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className={labelCls}>Jersey #</label>
-                  <input name="jersey_number" type="number" min="0" max="99" className={inputCls} placeholder="—" />
-                </div>
-                <div className="flex-1">
-                  <label className={labelCls}>Position</label>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {POSITIONS.map((pos) => (
-                      <button
-                        key={pos}
-                        type="button"
-                        onClick={() => togglePosition(pos)}
-                        className={`liga-button rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
-                          selectedPositions.includes(pos)
-                            ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
-                            : 'border-surface-border text-slate-400 hover:text-white hover:border-slate-500'
-                        }`}
-                      >
-                        {pos}
-                      </button>
-                    ))}
-                  </div>
+              <div className="flex-1">
+                <label className={labelCls}>Position</label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {POSITIONS.map((pos) => (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => togglePosition(pos)}
+                      className={`liga-button rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
+                        selectedPositions.includes(pos)
+                          ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
+                          : 'border-surface-border text-slate-400 hover:text-white hover:border-slate-500'
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div>
-                <label className={labelCls}>Role</label>
-                <select name="role" className={inputCls} defaultValue="player">
-                  <option value="player">Player</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              {error && (
-                <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
-              )}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => { setShowAddModal(false); setError(null) }}
-                  className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-                >
-                  {isPending ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </div>
+            <div>
+              <label className={labelCls}>Role</label>
+              <select name="role" className={inputCls} defaultValue="player">
+                <option value="player">Player</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            {error && (
+              <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
+            )}
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowAddModal(false); setError(null) }}
+                className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+              >
+                {isPending ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   )

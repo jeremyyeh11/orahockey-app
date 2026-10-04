@@ -300,7 +300,7 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
   // Keep mutations behind their original handlers; this presentation test never imports real actions.
   const adminSource = fs.readFileSync(path.join(root, 'app/admin/team/SquadClient.tsx'), 'utf8')
   for (const contract of [
-    'onClick={openAdd}', 'setShowAddModal(true)', 'useModalScrollLock(showAddModal)',
+    'onClick={openAdd}', 'setShowAddModal(true)', '<Modal onClose={() => { setShowAddModal(false); setError(null) }}>',
     'onSubmit={handleAddSubmit}', 'await addPlayer(data)', 'disabled={isPending}',
     'await togglePlayerActive(player.id, !player.is_active)',
     'onChange={(e) => setShowInactive(e.target.checked)}',

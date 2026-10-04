@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { preferredName, splitName, sortPositions } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
+import Modal from './Modal'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
 
 export type AccountStatus = 'none' | 'invited' | 'active'
@@ -363,50 +364,46 @@ export function PlayerProfilePage({
 
       {/* Invite link modal */}
       {link && (
-        <div className="liga-modal fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="liga-modal-backdrop absolute inset-0 bg-black/70" onClick={() => setLink(null)} />
-          <div className="liga-modal-panel relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
-            <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-            <h2 className="text-lg font-bold text-white mb-1">
-              {link.kind === 'invite' ? 'Invite link ready' : 'Reset link ready'}
-            </h2>
-            <p className="text-sm text-slate-400 mb-4">
-              Send this private link to {preferredName(player)} — they&apos;ll set their own
-              password. It expires in {link.expiresIn}; generate a new one any time.
-            </p>
+        <Modal onClose={() => setLink(null)} layer="top">
+          <h2 className="text-lg font-bold text-white mb-1">
+            {link.kind === 'invite' ? 'Invite link ready' : 'Reset link ready'}
+          </h2>
+          <p className="text-sm text-slate-400 mb-4">
+            Send this private link to {preferredName(player)} — they&apos;ll set their own
+            password. It expires in {link.expiresIn}; generate a new one any time.
+          </p>
 
-            <input
-              readOnly
-              value={link.url}
-              onFocus={(e) => e.currentTarget.select()}
-              className="liga-field mb-3 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-xs text-slate-300 focus:border-brand focus:outline-none"
-            />
+          <input
+            readOnly
+            value={link.url}
+            onFocus={(e) => e.currentTarget.select()}
+            className="liga-field mb-3 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-xs text-slate-300 focus:border-brand focus:outline-none"
+          />
 
-            <div className="flex gap-3">
-              <button
-                onClick={handleCopy}
-                className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
-              >
-                {copied ? 'Copied ✓' : 'Copy link'}
-              </button>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-center text-sm font-medium text-slate-200 transition hover:bg-slate-700"
-              >
-                WhatsApp
-              </a>
-            </div>
-
+          <div className="flex gap-3">
             <button
-              onClick={() => setLink(null)}
-              className="liga-button liga-button-secondary mt-3 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+              onClick={handleCopy}
+              className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
             >
-              Close
+              {copied ? 'Copied ✓' : 'Copy link'}
             </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-center text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+            >
+              WhatsApp
+            </a>
           </div>
-        </div>
+
+          <button
+            onClick={() => setLink(null)}
+            className="liga-button liga-button-secondary mt-3 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+          >
+            Close
+          </button>
+        </Modal>
       )}
     </div>
     </>
