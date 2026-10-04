@@ -191,12 +191,14 @@ export default function DashboardView({
         <StatTile label="Games" value={playedGames} sub="logged" Icon={BarChartIcon} href="/admin/team" />
       </div>
 
-      {/* Quick links */}
-      <h2 className="liga-section-title mt-7">Quick links</h2>
-      <div className="liga-list mt-3 space-y-2">
-        <QuickLink href="/admin/team" label="Squad & stats" Icon={UsersIcon} />
-        <QuickLink href="/admin/schedule" label="Schedule" Icon={CalendarIcon} />
-        <QuickLink href="/admin/polls" label="Polls" Icon={PollIcon} />
+      {/* Quick links — touch layouts only; on lg+ the header nav already lists these */}
+      <div className="lg:hidden">
+        <h2 className="liga-section-title mt-7">Quick links</h2>
+        <div className="liga-list mt-3 space-y-2">
+          <QuickLink href="/admin/team" label="Squad & stats" Icon={UsersIcon} />
+          <QuickLink href="/admin/schedule" label="Schedule" Icon={CalendarIcon} />
+          <QuickLink href="/admin/polls" label="Polls" Icon={PollIcon} />
+        </div>
       </div>
     </div>
   )

@@ -82,6 +82,19 @@ test('app UI caps at a single 1200px width shared by header and page content', (
   assert.equal(declarations('.liga-ui .liga-page')['max-width'], undefined, 'pages defer to the app container width')
 })
 
+test('desktop (lg+) swaps the floating bottom nav for labelled header links', () => {
+  const shell = read('components/AppShell.tsx')
+  assert.match(shell, /<TopNav items=\{nav\} \/>/, 'header renders the same nav items')
+  assert.match(shell, /pb-28 lg:pb-12/, 'no bottom-nav clearance on desktop')
+  const top = read('components/TopNav.tsx')
+  assert.match(top, /aria-label="Primary"/)
+  assert.match(top, /hidden items-center gap-1 lg:flex/, 'header nav is desktop-only')
+  assert.match(top, /\{item\.label\}/, 'every desktop link shows its label')
+  assert.match(top, /aria-current=\{active \? 'page' : undefined\}/)
+  assert.match(read('components/BottomNav.tsx'), /lg:hidden"/, 'bottom nav is touch-only')
+  assert.match(read('components/admin/DashboardView.tsx'), /<div className="lg:hidden">\s*<h2 className="liga-section-title mt-7">Quick links/, 'quick links are touch-only')
+})
+
 test('Liga surfaces are opt-in and preserve the existing palette', () => {
   const panel = declarations('.liga-ui .card')
   assert.equal(panel['border-radius'], '8px')
