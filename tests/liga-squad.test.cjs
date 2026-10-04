@@ -286,9 +286,8 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
       const toggle = openingWithClass(html, 'liga-inactive-toggle')
       assert.ok(classesOf(toggle).split(/\s+/).includes('min-h-[44px]'))
       assert.match(html, /Show inactive/)
-      const summaries = classesOf(openingWithClass(html, 'liga-squad-summaries'))
-      assert.ok(summaries.includes('grid-cols-1') && summaries.includes('sm:grid-cols-2'))
-      assert.ok(html.indexOf('POTS Race') < html.indexOf('Top Scorers'))
+      assert.match(html, /Top Scorers/)
+      assert.doesNotMatch(html, /POTS Race/, 'POTS race is hidden on the admin Squad page')
     } else {
       assert.match(html, /<p class="[^"]*liga-meta[^"]*">1 players<\/p>/)
       assert.doesNotMatch(html, /Add Player|Show inactive|POTS Race/)

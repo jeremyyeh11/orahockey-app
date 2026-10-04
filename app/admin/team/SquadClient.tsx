@@ -9,7 +9,6 @@ import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import {
   useSeasonStats,
   SeasonSelect,
-  PotsCard,
   TopScorersCard,
   type PlayerLite,
   type GameLite,
@@ -76,7 +75,7 @@ export default function SquadClient({
   useModalScrollLock(showAddModal)
 
   // Season stats state
-  const { seasons, season, setSeason, pots, topScorerGroups, statsMap } = useSeasonStats({
+  const { seasons, season, setSeason, topScorerGroups, statsMap } = useSeasonStats({
     players,
     games: games as unknown as GameLite[],
     stats,
@@ -164,9 +163,7 @@ export default function SquadClient({
         </div>
       </div>
 
-      {/* POTS race + Top scorers — stack when space is tight */}
-      <div className="liga-squad-summaries mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <PotsCard pots={pots} />
+      <div className="liga-squad-summaries mb-4">
         <TopScorersCard groups={topScorerGroups} />
       </div>
 
