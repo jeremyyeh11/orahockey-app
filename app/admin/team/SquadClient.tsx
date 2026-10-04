@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { addPlayer, togglePlayerActive } from './actions'
 import RosterList from '@/components/RosterList'
+import RosterTable from '@/components/RosterTable'
 import { defaultPreferredName } from '@/components/RosterList'
 import Modal from '@/components/Modal'
 import {
@@ -95,6 +96,13 @@ export default function SquadClient({
   )
 
   const visible = showInactive ? players : players.filter((p) => p.is_active)
+  const rosterProps = {
+    players: visible,
+    myPlayerId,
+    onSelect: (p: Player) => router.push(`/admin/team/${p.id}`, { scroll: false }),
+    statsMap,
+    accountMap,
+  }
 
   function openAdd() {
     setSelectedPositions([])
@@ -162,33 +170,40 @@ export default function SquadClient({
         </div>
       </div>
 
-      <div className="liga-squad-summaries mb-4">
-        <TopScorersCard groups={topScorerGroups} />
+      {/* xl+: Top Scorers moves to a sticky side column next to the roster table */}
+      <div className="liga-squad-layout xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:items-start xl:gap-6">
+        <aside className="liga-squad-summaries mb-4 xl:sticky xl:top-20 xl:order-last xl:mb-0">
+          <TopScorersCard groups={topScorerGroups} />
+        </aside>
+
+        <div className="min-w-0">
+          {players.some((p) => !p.is_active) && (
+            <label className="liga-inactive-toggle liga-meta flex min-h-[44px] items-center gap-2 text-xs text-slate-400 mb-4 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+                className="rounded accent-brand"
+              />
+              Show inactive
+            </label>
+          )}
+
+          {visible.length === 0 ? (
+            <p className="text-slate-500 text-sm py-4 text-center">No players yet. Add one above.</p>
+          ) : (
+            <>
+              {/* Cards on touch layouts, a sortable table on desktop */}
+              <div className="lg:hidden">
+                <RosterList {...rosterProps} />
+              </div>
+              <div className="hidden lg:block">
+                <RosterTable {...rosterProps} />
+              </div>
+            </>
+          )}
+        </div>
       </div>
-
-      {players.some((p) => !p.is_active) && (
-        <label className="liga-inactive-toggle liga-meta flex min-h-[44px] items-center gap-2 text-xs text-slate-400 mb-4 cursor-pointer w-fit">
-          <input
-            type="checkbox"
-            checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)}
-            className="rounded accent-brand"
-          />
-          Show inactive
-        </label>
-      )}
-
-      {visible.length === 0 ? (
-        <p className="text-slate-500 text-sm py-4 text-center">No players yet. Add one above.</p>
-      ) : (
-        <RosterList
-          players={visible}
-          myPlayerId={myPlayerId}
-          onSelect={(p) => router.push(`/admin/team/${p.id}`, { scroll: false })}
-          statsMap={statsMap}
-          accountMap={accountMap}
-        />
-      )}
 
       {/* Add Player modal (separate from profile) */}
       {showAddModal && (

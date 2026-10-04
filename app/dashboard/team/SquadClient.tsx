@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import RosterList from '@/components/RosterList'
+import RosterTable from '@/components/RosterTable'
 import {
   useSeasonStats,
   SeasonSelect,
@@ -67,6 +68,12 @@ export default function SquadClient({
       : players.filter(
           (p) => seasonPlayerIds.has(p.id) || p.is_active
         )
+  const rosterProps = {
+    players: visible,
+    myPlayerId,
+    onSelect: (p: Player) => router.push(`/dashboard/team/${p.id}`, { scroll: false }),
+    statsMap,
+  }
 
   return (
     <div className="liga-page p-4">
@@ -78,16 +85,22 @@ export default function SquadClient({
         <SeasonSelect seasons={seasons} value={season} onChange={setSeason} />
       </div>
 
-      <div className="mb-4">
-        <TopScorersCard groups={topScorerGroups} />
-      </div>
+      {/* xl+: Top Scorers moves to a sticky side column next to the roster table */}
+      <div className="liga-squad-layout xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:items-start xl:gap-6">
+        <aside className="mb-4 xl:sticky xl:top-20 xl:order-last xl:mb-0">
+          <TopScorersCard groups={topScorerGroups} />
+        </aside>
 
-      <RosterList
-        players={visible}
-        myPlayerId={myPlayerId}
-        onSelect={(p) => router.push(`/dashboard/team/${p.id}`, { scroll: false })}
-        statsMap={statsMap}
-      />
+        {/* Cards on touch layouts, a sortable table on desktop */}
+        <div className="min-w-0">
+          <div className="lg:hidden">
+            <RosterList {...rosterProps} />
+          </div>
+          <div className="hidden lg:block">
+            <RosterTable {...rosterProps} />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

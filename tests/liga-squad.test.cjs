@@ -306,3 +306,38 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
     'onChange={(e) => setShowInactive(e.target.checked)}',
   ]) assert.ok(adminSource.includes(contract), `preserve admin interaction: ${contract}`)
 })
+
+test('desktop roster table: sortable stat columns, keeper rules, and the same row actions', () => {
+  const { computeSeason } = load('lib/stats.ts')
+  const { default: RosterTable } = load('components/RosterTable.tsx')
+  const players = [
+    player('me', 'Zulu Mine', ['FWD'], { jersey_number: 9 }),
+    player('gk', 'Keeper Only', ['GK'], { jersey_number: 1 }),
+    player('top', 'Alpha Scorer', ['FWD'], { jersey_number: 7 }),
+  ]
+  const { leaderboard } = computeSeason({
+    players, season: '2026', attendance: [], cards: [], potm: [],
+    games: [{ id: 'g', game_date: '2026-05-01T12:00:00Z', result: 'win', goals_against: 0 }],
+    stats: [
+      { player_id: 'top', game_id: 'g', goals_fg: 3, goals_pc: 0, goals_ps: 0, assists: 0 },
+      { player_id: 'me', game_id: 'g', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 2 },
+    ],
+  })
+  const selected = []
+  const html = render(RosterTable, {
+    players, myPlayerId: 'me', onSelect: (p) => selected.push(p.id),
+    statsMap: new Map(leaderboard.map((row) => [row.player.id, row])),
+    accountMap: new Map([['me', 'active'], ['gk', 'invited'], ['top', 'none']]),
+  })
+  const headers = (html.match(/<th scope="col"[\s\S]*?<\/th>/g) ?? []).map(textOf)
+  assert.deepEqual(headers.map((h) => h.replace(/[↑↓]/g, '').trim()), ['#', 'Player', 'Pos', 'FG', 'PC', 'PS', 'A', 'CS', 'POTM', 'APP', 'Cards', 'Acct'])
+  assert.match(html, /aria-sort="ascending"[^>]*>\s*<button[^>]*title="Name"/, 'defaults to name, ascending')
+  const rows = html.match(/<tr class="liga-roster-row[\s\S]*?<\/tr>/g) ?? []
+  assert.deepEqual(rows.map((r) => textOf(r.match(/<th scope="row"[\s\S]*?<\/th>/)[0])), ['ZULU MINE (you)', 'ALPHA SCORER', 'KEEPER ONLY'], 'your row first, then A–Z')
+  const cells = (r) => (r.match(/<td\b[^>]*>[\s\S]*?<\/td>|<td\b[^>]*\/>/g) ?? []).map(textOf)
+  // # · Pos · FG PC PS A CS POTM APP (no attendance → no appearances or clean sheets) · Cards · Acct
+  assert.deepEqual(cells(rows[0]).slice(0, 9), ['9', 'FWD', '1', '–', '–', '2', '', '–', '–'], 'outfielder: CS blank (n/a)')
+  assert.deepEqual(cells(rows[2]).slice(0, 9), ['1', 'GK', '', '', '', '', '–', '–', '–'], 'keeper: goal columns blank, CS shown')
+  assert.match(rows[0], /bg-brand\/15/, 'your row is highlighted')
+  assert.match(rows[1], /<span class="sr-only">No account yet<\/span>/, 'account dot has a text alternative')
+})

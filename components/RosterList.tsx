@@ -14,7 +14,7 @@ export type RosterPlayer = {
 /** Login-account state shown as a dot on admin roster cards */
 export type AccountStatus = 'none' | 'invited' | 'active'
 
-const ACCOUNT_DOT: Record<AccountStatus, { cls: string; title: string }> = {
+export const ACCOUNT_DOT: Record<AccountStatus, { cls: string; title: string }> = {
   active: { cls: 'bg-green-400', title: 'Account active' },
   invited: { cls: 'bg-amber-400', title: 'Invited — not claimed yet' },
   none: { cls: 'bg-slate-500', title: 'No account yet' },
@@ -116,7 +116,7 @@ function CardShape({ color, count }: { color: 'green' | 'yellow' | 'red'; count:
 }
 
 
-function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+export function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
   const { green, yellow, red } = row.cards
   if (green === 0 && yellow === 0 && red === 0) {
     return <span className="text-slate-600 text-xs">–</span>
@@ -132,7 +132,7 @@ function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
 
 const STAT_COLS = ['FG', 'PC', 'PS', 'A', 'CS', 'POTM', 'App'] as const
 
-function statValue(row: LeaderboardRow, col: string): number {
+export function statValue(row: LeaderboardRow, col: string): number {
   switch (col) {
     case 'FG': return row.fg
     case 'PC': return row.pc
@@ -145,24 +145,26 @@ function statValue(row: LeaderboardRow, col: string): number {
   }
 }
 
-function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean; positions: string[] | null }) {
-  const valCls = (v: number) =>
-    v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'
-  const labelCls = isMe ? 'text-white/50' : 'text-slate-500'
-
+/** Stat columns that apply to a player's positions. */
+export function statColumns(positions: string[] | null): string[] {
   const isGK = positions?.includes('GK') ?? false
   const isOutfield = positions?.some((p) => p !== 'GK') ?? false
 
   // GK-only: show CS, hide FG/PC/PS/A
   // Outfield-only: show FG/PC/PS/A, hide CS
   // Both (GK + outfield): show everything
-  const showGoals = isOutfield
-  const showCS = isGK
-
   const cols: string[] = []
-  if (showGoals) cols.push('FG', 'PC', 'PS', 'A')
-  if (showCS) cols.push('CS')
+  if (isOutfield) cols.push('FG', 'PC', 'PS', 'A')
+  if (isGK) cols.push('CS')
   cols.push('POTM', 'APP')
+  return cols
+}
+
+function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean; positions: string[] | null }) {
+  const valCls = (v: number) =>
+    v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'
+  const labelCls = isMe ? 'text-white/50' : 'text-slate-500'
+  const cols = statColumns(positions)
 
   return (
     <div className="liga-roster-stats liga-meta min-w-0 flex flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 mt-1.5 text-xs tabular-nums">
