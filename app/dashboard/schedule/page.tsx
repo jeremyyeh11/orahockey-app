@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
 import { cookies } from 'next/headers'
@@ -38,9 +39,7 @@ export type TeamListSelection = {
 export default async function PlayerSchedulePage() {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
 
   const { data: me } = await supabase
     .from('players')

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getRequestUser } from '@/lib/supabase/request-user'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { LEAGUE } from '@/lib/constants'
@@ -13,9 +14,7 @@ function firstName(full: string) {
 export default async function PlayerDashboardPage() {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
 
   const { data: me } = await supabase
     .from('players')

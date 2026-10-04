@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getRequestUser } from '@/lib/supabase/request-user'
 import DashboardView, { type WeekDay, type HeroNext } from '@/components/admin/DashboardView'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
@@ -31,9 +32,7 @@ function weekDays(ref: Date) {
 export default async function AdminDashboardPage() {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
 
   const now = getNow()
   const week = weekDays(now)

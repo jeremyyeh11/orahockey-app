@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getRequestUser } from '@/lib/supabase/request-user'
 import SignOutButton from '@/components/SignOutButton'
 
 function initials(name: string) {
@@ -12,9 +13,7 @@ function initials(name: string) {
 export default async function AdminProfilePage() {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
 
   const { data: player } = await supabase
     .from('players')

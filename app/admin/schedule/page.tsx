@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
 import type { AttendanceRow, RosterPlayer, TeamListSelection } from '@/app/dashboard/schedule/page'
@@ -16,9 +17,7 @@ function groupByGame<T extends { game_id: string | null }>(rows: T[]): Record<st
 export default async function AdminSchedulePage() {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
 
   const [
     { data: games, error: gamesError },
