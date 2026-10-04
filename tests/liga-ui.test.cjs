@@ -95,6 +95,31 @@ test('desktop (lg+) swaps the floating bottom nav for labelled header links', ()
   assert.match(read('components/admin/DashboardView.tsx'), /<div className="lg:hidden">\s*<h2 className="liga-section-title mt-7">Quick links/, 'quick links are touch-only')
 })
 
+test('desktop (lg+) lifts small metadata to 12px and swaps greys that fail 4.5:1', () => {
+  assert.equal(declarations(':root')['--text-tertiary'], '#8a94a6')
+  const desktop = {}
+  const layers = {}
+  css().walkAtRules('media', (media) => {
+    if (media.params !== '(min-width: 1024px)') return
+    media.walkRules((rule) => {
+      const into = media.parent.type === 'atrule' && media.parent.name === 'layer' ? layers : desktop
+      rule.walkDecls((decl) => { for (const sel of rule.selectors) into[sel] = { ...into[sel], [decl.prop]: decl.value } })
+    })
+  })
+  for (const sel of ['.liga-ui .liga-meta', '.liga-ui .liga-section-title', '.liga-ui .liga-event-meta', '.liga-ui .liga-roster-position', '.liga-ui .liga-roster-card .liga-meta']) {
+    assert.equal(desktop[sel]?.['font-size'], '0.75rem', `${sel} is 12px on desktop`)
+  }
+  // Utility overrides live in the utilities layer so hover:/focus: variants still win
+  assert.equal(layers['.liga-ui .text-\\[10px\\]']?.['font-size'], '0.75rem')
+  assert.equal(layers['.liga-ui .text-\\[11px\\]']?.['font-size'], '0.75rem')
+  assert.equal(layers['.liga-ui .text-slate-500']?.color, 'var(--text-tertiary)')
+  assert.equal(layers['.liga-ui .text-slate-600']?.color, 'var(--text-tertiary)')
+  for (const cls of ['.text-slate-400', '.text-slate-500', '.text-white\\/50', '.text-white\\/70', '.liga-roster-position']) {
+    assert.equal(layers[`.liga-ui .bg-accent ${cls}`]?.color, 'rgba(255, 255, 255, 0.85)', `${cls} stays readable on green surfaces`)
+  }
+  assert.equal(declarations('.liga-ui .liga-meta')['font-family'], 'var(--font-liga-mono), ui-monospace, monospace', 'touch layouts keep the mono metadata')
+})
+
 test('Liga surfaces are opt-in and preserve the existing palette', () => {
   const panel = declarations('.liga-ui .card')
   assert.equal(panel['border-radius'], '8px')

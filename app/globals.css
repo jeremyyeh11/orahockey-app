@@ -6,6 +6,8 @@
   :root {
     /* Widest the app UI grows on desktop; content centres inside it. */
     --app-max-width: 1200px;
+    /* Dimmest text allowed on desktop — 5.5:1 on cards, 6:1 on the page (WCAG AA). */
+    --text-tertiary: #8a94a6;
   }
 
   html {
@@ -547,6 +549,51 @@
 
 .liga-ui .liga-rank:last-child {
   border-bottom: 0;
+}
+
+/* Desktop readability (lg+): a monitor is read from further away than a phone, so
+   lift the 10–11px metadata to 12px and swap greys that fail 4.5:1 contrast.
+   Touch layouts keep their compact sizes. */
+@media (min-width: 1024px) {
+  .liga-ui .liga-meta,
+  .liga-ui .liga-section-title,
+  .liga-ui .liga-event-meta,
+  .liga-ui .liga-roster-position,
+  .liga-ui .liga-roster-card .liga-meta {
+    font-size: 0.75rem;
+  }
+}
+
+/* In the utilities layer so hover:/focus: variants (emitted after it) still win. */
+@layer utilities {
+  @media (min-width: 1024px) {
+    .liga-ui .text-\[10px\],
+    .liga-ui .text-\[11px\] {
+      font-size: 0.75rem;
+    }
+
+    .liga-ui .text-slate-500,
+    .liga-ui .text-slate-600 {
+      color: var(--text-tertiary);
+    }
+
+    /* Green surfaces (hero cards, the signed-in player's roster row): greys and
+       faded white drop to 2–4:1 there, so secondary text becomes 85% white (5.1:1)
+       and the trend arrow pale green. */
+    .liga-ui .bg-accent .text-slate-400,
+    .liga-ui .bg-accent .text-slate-500,
+    .liga-ui .bg-accent .text-slate-600,
+    .liga-ui .bg-accent .text-white\/50,
+    .liga-ui .bg-accent .text-white\/60,
+    .liga-ui .bg-accent .text-white\/70,
+    .liga-ui .bg-accent .liga-roster-position {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .liga-ui .bg-accent .text-green-400 {
+      color: #bbf7d0;
+    }
+  }
 }
 
 /* Hide scrollbar but allow scrolling */
