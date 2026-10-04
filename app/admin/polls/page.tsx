@@ -1,13 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { getRequestUser } from '@/lib/supabase/request-user'
 import PollsClient from './PollsClient'
 import { getPotmPolls } from '@/lib/potm'
 
 export default async function AdminPollsPage() {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
 
   const [{ data: me }, { data: polls, error }, { polls: potmPolls }] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),

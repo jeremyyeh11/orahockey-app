@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { USER_EMAIL_HEADER, USER_ID_HEADER } from '@/lib/supabase/request-user'
 
 // Role lookups hit the DB, so cache the result in a short-lived cookie.
 // Value is `${userId}:${role}` so a different login never reuses it.
@@ -32,16 +33,29 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session — required for Server Components to see updated auth state
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Refresh session — required for Server Components to see updated auth state.
+  // getClaims() verifies the JWT locally against the project's ES256 signing key
+  // (JWKS cached across requests), skipping getUser()'s Auth server round-trip.
+  // Trade-off: a session revoked elsewhere stays valid until its JWT expires (≤1h).
+  // Server actions still call getUser(), so mutations re-check with the Auth server.
+  const { data } = await supabase.auth.getClaims()
+  const claims = data?.claims
 
-  if (!user) {
+  if (!claims?.sub) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
+
+  const user = { id: claims.sub, email: claims.email }
+
+  // Forward the verified user so pages skip a second getUser() round-trip.
+  // set() overwrites any value the client sent, so these can't be spoofed.
+  request.headers.set(USER_ID_HEADER, user.id)
+  request.headers.set(USER_EMAIL_HEADER, encodeURIComponent(user.email ?? ''))
+  const forwarded = NextResponse.next({ request })
+  supabaseResponse.cookies.getAll().forEach((cookie) => forwarded.cookies.set(cookie))
+  supabaseResponse = forwarded
 
   // Role: cookie cache first, DB only on a miss
   let role: string | undefined

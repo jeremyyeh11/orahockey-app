@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getRequestUser } from '@/lib/supabase/request-user'
 
 // Vote-POTM data for the Polls tab (backlog #5). One poll per played match with a
 // published team list. Candidates and eligible voters are that same team list; the
@@ -38,9 +39,7 @@ type PollRow = {
 export async function getPotmPolls(): Promise<{ polls: PotmPoll[]; myPlayerId: string | null }> {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getRequestUser()
 
   const { data: me } = await supabase
     .from('players')
