@@ -35,6 +35,7 @@ export default function Modal({
   size = 'sm',
   layer = 'base',
   scrollable = false,
+  bare = false,
   children,
 }: {
   onClose: () => void
@@ -42,6 +43,8 @@ export default function Modal({
   layer?: keyof typeof LAYER
   /** Cap at 90vh and scroll inside — for long content. */
   scrollable?: boolean
+  /** No padding or drag handle — for full-bleed content (e.g. the profile photo). */
+  bare?: boolean
   children: ReactNode
 }) {
   useModalScrollLock()
@@ -111,11 +114,11 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className={`liga-modal-panel relative w-full rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl outline-none sm:rounded-2xl ${WIDTH[size]} ${
-          scrollable ? 'max-h-[90vh] overflow-y-auto scrollbar-hide' : ''
-        }`}
+        className={`liga-modal-panel relative w-full rounded-t-2xl border border-surface-border bg-surface-card shadow-xl outline-none sm:rounded-2xl ${WIDTH[size]} ${
+          bare ? 'overflow-hidden' : 'px-6 pb-8 pt-6'
+        } ${scrollable ? 'max-h-[90vh] overflow-y-auto scrollbar-hide' : ''}`}
       >
-        <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
+        {!bare && <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />}
         {children}
       </div>
     </div>

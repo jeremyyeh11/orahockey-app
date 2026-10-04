@@ -85,7 +85,7 @@ export default function SquadClient({
       <RosterList
         players={visible}
         myPlayerId={myPlayerId}
-        onSelect={(p) => router.push(`/dashboard/team/${p.id}`)}
+        onSelect={(p) => router.push(`/dashboard/team/${p.id}`, { scroll: false })}
         statsMap={statsMap}
       />
     </div>

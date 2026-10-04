@@ -148,6 +148,22 @@ test('every modal uses the shared dialog shell (Esc, focus, labelling, desktop w
   assert.equal(declarations('html')['scrollbar-gutter'], 'stable', 'no sideways jump when scrolling locks')
 })
 
+test('Squad profiles open over the list via an intercepted route (dialog on desktop)', () => {
+  for (const area of ['admin', 'dashboard']) {
+    assert.match(read(`app/${area}/team/layout.tsx`), /\{children\}\s*\{modal\}/, `${area} Squad renders the @modal slot`)
+    assert.match(read(`app/${area}/team/@modal/default.tsx`), /return null/)
+    assert.match(read(`app/${area}/team/@modal/(.)[playerId]/page.tsx`), /<PlayerProfileView [^>]*\boverlay\b/)
+    assert.ok(fs.existsSync(path.join(root, `app/${area}/team/[playerId]/page.tsx`)), 'direct visits keep the full page')
+    assert.match(read(`app/${area}/team/SquadClient.tsx`), /router\.push\(`\/\w+\/team\/\$\{p\.id\}`, \{ scroll: false \}\)/, 'opening keeps the list scroll')
+  }
+  const profile = read('components/PlayerProfilePage.tsx')
+  assert.match(profile, /useMediaQuery\(DESKTOP_QUERY\)/)
+  assert.match(profile, /pathname\.endsWith\(`\/team\/\$\{props\.player\.id\}`\)/, 'stale slot renders nothing off the profile URL')
+  assert.match(profile, /<Modal onClose=\{\(\) => router\.back\(\)\} size="md" bare>/)
+  assert.doesNotMatch(profile, /text-white\/8"/, 'jersey watermark uses a real opacity value')
+  assert.match(read('lib/useMediaQuery.ts'), /DESKTOP_QUERY = '\(min-width: 1024px\)'/)
+})
+
 test('Liga surfaces are opt-in and preserve the existing palette', () => {
   const panel = declarations('.liga-ui .card')
   assert.equal(panel['border-radius'], '8px')

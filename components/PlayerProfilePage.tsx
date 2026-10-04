@@ -1,10 +1,11 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { preferredName, splitName, sortPositions } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
+import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
 import Modal from './Modal'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
 
@@ -107,19 +108,25 @@ const ACCOUNT_LABEL: Record<AccountStatus, { text: string; dot: string }> = {
   active: { text: 'Active', dot: 'bg-green-400' },
 }
 
-export function PlayerProfilePage({
-  player,
-  seasonRow,
-  careerRow,
-  seasonLabel,
-  accountStatus,
-}: {
+type PlayerProfileProps = {
   player: ProfilePlayer
   seasonRow: LeaderboardRow | undefined
   careerRow: LeaderboardRow | undefined
   seasonLabel: string
   /** Admin view only — enables the account/invite panel */
   accountStatus?: AccountStatus
+}
+
+export function PlayerProfilePage({
+  player,
+  seasonRow,
+  careerRow,
+  seasonLabel,
+  accountStatus,
+  asDialog = false,
+}: PlayerProfileProps & {
+  /** Render as a centred dialog instead of the full-screen view */
+  asDialog?: boolean
 }) {
   const router = useRouter()
 
@@ -197,18 +204,14 @@ export function PlayerProfilePage({
 
   useModalScrollLock()
 
-  return (
+  // Photo, name and stat panels — shared by the full-screen and dialog layouts
+  const body = (
     <>
-    {/* Background layer — extends behind header to avoid seam */}
-    <div className="liga-profile-backdrop fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
-
-    <div className="liga-profile-screen fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide">
-
       {/* Large faded jersey number — aligned with back button */}
       {player.jersey_number != null && (
         <span
           aria-hidden
-          className="pointer-events-none absolute right-4 top-1 select-none font-display text-[7rem] font-extrabold leading-none text-white/8"
+          className="pointer-events-none absolute right-4 top-1 select-none font-display text-[7rem] font-extrabold leading-none text-white/[0.08]"
         >
           {player.jersey_number}
         </span>
@@ -241,17 +244,6 @@ export function PlayerProfilePage({
 
       {/* Fade image out at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-surface-card via-surface-card/80 to-transparent" />
-
-      {/* Back button — top left */}
-      <button
-        onClick={() => router.back()}
-        className="liga-icon-button fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
-        aria-label="Back"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-      </button>
 
       {/* Layer 2: Translucent stats overlay at bottom */}
       <div className="absolute bottom-0 left-0 right-0 pb-6">
@@ -361,9 +353,11 @@ export function PlayerProfilePage({
           </div>
         )}
       </div>
+    </>
+  )
 
-      {/* Invite link modal */}
-      {link && (
+  // Invite / reset link — opens over either layout
+  const linkModal = link && (
         <Modal onClose={() => setLink(null)} layer="top">
           <h2 className="text-lg font-bold text-white mb-1">
             {link.kind === 'invite' ? 'Invite link ready' : 'Reset link ready'}
@@ -404,8 +398,65 @@ export function PlayerProfilePage({
             Close
           </button>
         </Modal>
-      )}
+  )
+
+  // Desktop, opened from the Squad list: a dialog over the list. Closing goes
+  // back in history, which drops the intercepted /team/[id] URL.
+  if (asDialog) {
+    return (
+      <Modal onClose={() => router.back()} size="md" bare>
+        <div className="liga-profile-screen relative h-[min(85vh,680px)] overflow-hidden bg-gradient-to-b from-brand/25 via-surface-card to-surface-card">
+          <h2 className="sr-only">{player.full_name}</h2>
+          {body}
+          <button
+            onClick={() => router.back()}
+            className="liga-icon-button absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
+            aria-label="Close"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {linkModal}
+      </Modal>
+    )
+  }
+
+  return (
+    <>
+    {/* Background layer — extends behind header to avoid seam */}
+    <div className="liga-profile-backdrop fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
+
+    <div className="liga-profile-screen fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide">
+      {body}
+
+      {/* Back button — top left */}
+      <button
+        onClick={() => router.back()}
+        className="liga-icon-button fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
+        aria-label="Back"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+
+      {linkModal}
     </div>
     </>
   )
+}
+
+/**
+ * Profile opened from a Squad list (intercepted `/team/[id]` route): a dialog
+ * over the list on desktop, the usual full-screen view on touch layouts.
+ */
+export function PlayerProfileOverlay(props: PlayerProfileProps) {
+  const pathname = usePathname()
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  // A parallel-route slot keeps its last page across soft navigations within
+  // /team (e.g. clicking "Squad" in the nav), so only render on the profile URL.
+  if (!pathname.endsWith(`/team/${props.player.id}`)) return null
+  return <PlayerProfilePage {...props} asDialog={isDesktop} />
 }

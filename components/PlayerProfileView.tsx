@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
+import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
 import { computeSeason, seasonsOf, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
 import { getNow } from '@/lib/preview'
@@ -20,10 +20,13 @@ export async function PlayerProfileView({
   playerId,
   includeContact = false,
   includeAccount = false,
+  overlay = false,
 }: {
   playerId: string
   includeContact?: boolean
   includeAccount?: boolean
+  /** Opened over the Squad list via the intercepted route (dialog on desktop) */
+  overlay?: boolean
 }) {
   const supabase = createClient()
 
@@ -97,8 +100,9 @@ export async function PlayerProfileView({
     // computeSeason may crash if data is incomplete — that's fine, just show no stats
   }
 
+  const Profile = overlay ? PlayerProfileOverlay : PlayerProfilePage
   return (
-    <PlayerProfilePage
+    <Profile
       player={profile}
       seasonRow={seasonRow}
       careerRow={careerRow}
