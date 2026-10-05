@@ -109,21 +109,28 @@ export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
 
 export function TopScorersCard({ groups }: { groups: LeaderboardRow[][] }) {
   if (groups.length === 0) return null
+  // One row per player; tied players share their group's rank (1, 1, 3, …)
+  let ahead = 0
+  const rows = groups.flatMap((grp) => {
+    const rank = ahead + 1
+    ahead += grp.length
+    return grp.map((r) => ({ r, rank }))
+  })
   return (
     <div className="liga-panel card overflow-hidden">
       <h2 className="liga-panel-heading border-b border-white/10 px-3 py-2 text-xs font-medium text-slate-400">
         Top Scorers
       </h2>
-      {groups.map((grp, i) => (
+      {rows.map(({ r, rank }) => (
         <div
-          key={i}
+          key={r.player.id}
           className="liga-panel-row flex items-baseline gap-2 border-b border-white/5 px-3 py-2 last:border-0"
         >
-          <span className="liga-rank liga-meta w-5 shrink-0 text-center text-xs tabular-nums">{i + 1}</span>
+          <span className="liga-rank liga-meta w-5 shrink-0 text-center text-xs tabular-nums">{rank}</span>
           <span className="liga-panel-name min-w-0 flex-1 break-words text-xs font-medium text-white">
-            {grp.map((r) => preferredName(r.player)).join(' / ')}
+            {preferredName(r.player)}
           </span>
-          <span className="liga-panel-value shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-brand-light">{grp[0].goals}</span>
+          <span className="liga-panel-value shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-brand-light">{r.goals}</span>
         </div>
       ))}
     </div>

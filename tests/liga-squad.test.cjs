@@ -233,7 +233,7 @@ test('season summaries render quiet ranked divider rows with complete tied names
     assert.doesNotMatch(html, /truncate|🥇|🥈|🥉/)
   }
   assert.equal(textOf(potsHtml), 'POTS Race1PEH YU3 pts2KEAEN2 pts3EXTRAORDINARYLONGPREFERREDNAME1 pts')
-  assert.equal(textOf(scorersHtml), 'Top Scorers1PEH YU / KEAEN22EXTRAORDINARYLONGPREFERREDNAME1')
+  assert.equal(textOf(scorersHtml), 'Top Scorers1PEH YU21KEAEN23EXTRAORDINARYLONGPREFERREDNAME1', 'one row per scorer; ties share a rank and the next rank skips')
   assert.equal(render(PotsCard, { pots: [] }), '')
   assert.equal(render(TopScorersCard, { groups: [] }), '')
 
@@ -340,4 +340,25 @@ test('desktop roster table: sortable stat columns, keeper rules, and the same ro
   assert.deepEqual(cells(rows[2]).slice(0, 9), ['1', 'GK', '', '', '', '', '–', '–', '–'], 'keeper: goal columns blank, CS shown')
   assert.match(rows[0], /bg-brand\/15/, 'your row is highlighted')
   assert.match(rows[1], /<span class="sr-only">No account yet<\/span>/, 'account dot has a text alternative')
+})
+
+test('top scorers list each player on their own row down to rank 5, ties included', () => {
+  const { computeSeason, TopScorersCard } = load('components/SeasonStats.tsx')
+  const scorers = (goals) => {
+    const players = goals.map((_, i) => player(`p${i}`, `Player ${String.fromCharCode(65 + i)}`, ['FWD']))
+    const { topScorerGroups } = computeSeason({
+      players, season: '2026', cards: [], attendance: [], potm: [],
+      games: [{ id: 'g', game_date: '2026-05-01T12:00:00Z', result: 'win', goals_against: 0 }],
+      stats: goals.map((g, i) => ({ player_id: `p${i}`, game_id: 'g', goals_fg: g, goals_pc: 0, goals_ps: 0, assists: 0 })),
+    })
+    const html = render(TopScorersCard, { groups: topScorerGroups })
+    return (html.match(/<div class="liga-panel-row[\s\S]*?<\/div>/g) ?? []).map((row) =>
+      (row.match(/<span[^>]*>([^<]*)<\/span>/g) ?? []).map(textOf).join(' '))
+  }
+  // 1, 1, 3, 4, 4, 4 — the next tally would rank 7th, so it's cut
+  assert.deepEqual(scorers([5, 5, 4, 3, 3, 3, 2]), ['1 PLAYER 5', '1 PLAYER 5', '3 PLAYER 4', '4 PLAYER 3', '4 PLAYER 3', '4 PLAYER 3'])
+  // A tie at rank 5 keeps every tied player
+  assert.deepEqual(scorers([9, 8, 7, 6, 5, 5, 4]).map((r) => r.split(' ')[0]), ['1', '2', '3', '4', '5', '5'])
+  // Fewer than five scorers: list them all
+  assert.deepEqual(scorers([2, 0, 1]).map((r) => r.split(' ')[0]), ['1', '2'])
 })
