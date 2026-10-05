@@ -1,8 +1,11 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import DashboardView, { type WeekDay, type HeroNext } from '@/components/admin/DashboardView'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
+
+export const metadata: Metadata = { title: 'Dashboard' }
 
 function initials(name: string) {
   return name

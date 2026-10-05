@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
@@ -5,6 +6,8 @@ import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { LEAGUE } from '@/lib/constants'
 import { seasonsOf } from '@/lib/stats'
+
+export const metadata: Metadata = { title: 'Home' }
 
 function firstName(full: string) {
   const f = full.split(/\s+/)[0] ?? ''

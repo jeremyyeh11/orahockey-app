@@ -249,17 +249,19 @@ export function PlayerProfilePage({
       <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
         <div className="liga-profile-identity bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
-          {/* Name — preferred fixed at 48px, rest auto-shrinks to stay one line */}
+          {/* Name — preferred fixed at 48px, rest auto-shrinks to stay one line.
+              Separators are non-breaking: a plain space at the edge of a flex item
+              is stripped, which ran "AKASH" into "PREBHASH". */}
           <div
             ref={nameRef}
             className="flex items-baseline overflow-hidden whitespace-nowrap font-display text-xl font-extrabold uppercase leading-[0.95] text-white"
           >
             {before && (
-              <span ref={beforeRef} className="font-semibold tracking-wide text-slate-300">{before}{beforeSep}</span>
+              <span ref={beforeRef} className="font-semibold tracking-wide text-slate-300">{before}{beforeSep && '\u00a0'}</span>
             )}
             <span ref={preferredRef} className="text-5xl">{preferred}</span>
             {after && (
-              <span ref={afterRef} className="font-semibold tracking-wide text-slate-300">{afterSep}{after}</span>
+              <span ref={afterRef} className="font-semibold tracking-wide text-slate-300">{afterSep && '\u00a0'}{after}</span>
             )}
           </div>
 

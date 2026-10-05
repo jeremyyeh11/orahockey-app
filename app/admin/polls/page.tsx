@@ -1,7 +1,10 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import PollsClient from './PollsClient'
 import { getPotmPolls } from '@/lib/potm'
+
+export const metadata: Metadata = { title: 'Polls' }
 
 export default async function AdminPollsPage() {
   const supabase = createClient()

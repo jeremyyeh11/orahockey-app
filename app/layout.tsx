@@ -25,7 +25,8 @@ const ligaMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'ORA Hockey',
+  // Pages set a short title ("Squad"); the template makes it "Squad · ORA Hockey"
+  title: { default: 'ORA Hockey', template: '%s · ORA Hockey' },
   description: 'ORA Hockey — MHL1 Team Management',
   manifest: '/manifest.json',
 }

@@ -164,6 +164,24 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
   assert.match(read('lib/useMediaQuery.ts'), /DESKTOP_QUERY = '\(min-width: 1024px\)'/)
 })
 
+test('every page has its own tab title and profile names keep their spaces', () => {
+  assert.match(read('app/layout.tsx'), /title: \{ default: 'ORA Hockey', template: '%s · ORA Hockey' \}/)
+  for (const [file, title] of [
+    ['app/admin/dashboard/page.tsx', 'Dashboard'], ['app/admin/team/page.tsx', 'Squad'],
+    ['app/admin/schedule/page.tsx', 'Schedule'], ['app/admin/polls/page.tsx', 'Polls'],
+    ['app/admin/profile/page.tsx', 'Profile'], ['app/dashboard/page.tsx', 'Home'],
+    ['app/dashboard/team/page.tsx', 'Squad'], ['app/dashboard/schedule/page.tsx', 'Schedule'],
+    ['app/dashboard/polls/page.tsx', 'Polls'], ['app/login/layout.tsx', 'Sign in'],
+    ['app/auth/confirm/layout.tsx', 'Account setup'], ['app/auth/set-password/layout.tsx', 'Set password'],
+  ]) assert.match(read(file), new RegExp(`export const metadata: Metadata = \\{ title: '${title}' \\}`), `${file} → ${title}`)
+  for (const area of ['admin', 'dashboard']) {
+    assert.match(read(`app/${area}/team/[playerId]/page.tsx`), /generateMetadata[\s\S]*playerProfileMetadata\(params\.playerId\)/, 'profile title is the player name')
+  }
+  const profile = read('components/PlayerProfilePage.tsx')
+  assert.match(profile, /\{before\}\{beforeSep && '\\u00a0'\}/, 'space after leading names survives the flex edge')
+  assert.match(profile, /\{afterSep && '\\u00a0'\}\{after\}/, 'space before trailing names survives the flex edge')
+})
+
 test('Liga surfaces are opt-in and preserve the existing palette', () => {
   const panel = declarations('.liga-ui .card')
   assert.equal(panel['border-radius'], '8px')

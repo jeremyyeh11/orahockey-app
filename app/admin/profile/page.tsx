@@ -1,6 +1,9 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import SignOutButton from '@/components/SignOutButton'
+
+export const metadata: Metadata = { title: 'Profile' }
 
 function initials(name: string) {
   return name

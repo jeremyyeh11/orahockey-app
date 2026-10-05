@@ -1,7 +1,10 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import SquadClient from './SquadClient'
 import type { MatchCardRow } from '@/lib/stats'
+
+export const metadata: Metadata = { title: 'Squad' }
 
 export default async function PlayerSquadPage() {
   const supabase = createClient()

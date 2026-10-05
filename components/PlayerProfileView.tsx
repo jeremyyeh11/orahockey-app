@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
 import { computeSeason, seasonsOf, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
@@ -8,6 +9,14 @@ import { LEAGUE } from '@/lib/constants'
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
 // Admin view additionally exposes contact/role fields (+ auth link for account status).
 const ADMIN_FIELDS = `${BASE_FIELDS}, email, role, auth_user_id`
+
+/** Tab title for a profile route — the player's name, e.g. "Akash Prebhash Chandra · ORA Hockey". */
+export async function playerProfileMetadata(playerId: string): Promise<Metadata> {
+  const { data } = await createClient().from('players').select('full_name').eq('id', playerId).maybeSingle()
+  // Names are stored in capitals; title case reads better in a browser tab
+  const name = data?.full_name?.toLowerCase().replace(/(^|[\s-])[a-z]/g, (c: string) => c.toUpperCase())
+  return { title: name ?? 'Player' }
+}
 
 /**
  * Shared loader + render for the player profile route. Used by both the admin
