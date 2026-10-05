@@ -1,0 +1,40 @@
+# ORA Hockey — User Manual
+
+For players using the ORA Hockey team app on a phone or in a browser. Coaches and managers can use these same attendance and voting features; see the [admin manual](admin-manual.md) for management tasks.
+
+[Developer README](../README.md) · [Admin manual](admin-manual.md)
+
+## Getting into the app
+
+- **New players** don't sign up themselves. A coach/manager sends you a **private setup link** (usually by WhatsApp). Open it, choose your own password, and you're in — the app matches you to your roster spot automatically. The link is single-use and expires after 24 hours; if it stops working, just ask for a new one.
+- **Forgot your password?** Ask a coach/manager — they can send you a reset link the same way (that one expires after 1 hour).
+
+
+After setup, sign in with your roster email and chosen password. Players see **Home**, **Squad**, **Schedule**, and **Polls** in the bottom navigation.
+
+## Using the app
+
+### Home
+Your landing screen. Shows the season record (W - D - L), your own stats tiles (Goals, Assists, Attendance %), the next scheduled game or training, the last result, and a prompt if there are active polls awaiting your vote.
+
+### Squad
+The full roster with season stats shown inline on each player's card (goals, assists, attendance, POTM points). Use the **season selector** at the top to switch between seasons. The two cards at the top show the live **POTS race** (player of the season points) and **top scorers**.
+
+### Schedule
+A list of games and training sessions, split into **Upcoming** and **Past**.
+
+- Use the **All / Games / Trainings** filter chips to narrow the list.
+- For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance.
+- **Tap any event** to open its detail view. There you can:
+  - see the full details (opponent, date/time, venue, home/away, type, result and score for played games),
+  - set or change your attendance,
+  - see the **attendance breakdown** - Attending, Maybe, Not attending, Hasn't responded, in that order,
+  - read the **Additional Information** note (added by coaches).
+
+### Polls
+Open polls show voting options - pick one and tap **Vote**. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Closed polls are kept below for reference.
+
+
+## Getting help
+
+If your setup or reset link has expired or already been used, ask a coach or manager for a fresh link. If your roster details or access are incorrect, ask them to check your player record.

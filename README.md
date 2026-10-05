@@ -2,99 +2,117 @@
 
 <img src="public/crest.png" alt="ORA Hockey Crest" width="20%" />
 
-A mobile-first app for managing the ORA Hockey club (MHL1 league).
+A mobile-first team management app for ORA Hockey (MHL1 league), covering rosters, games, training, attendance, match results, season stats, and polls.
 
-It gives the club one place to run both teams instead of juggling group chats and spreadsheets:
+## Documentation
 
-- Coaches and managers can manage the team roster, schedule games and training sessions, record player stats, and run polls for team decisions.
-- Players can check the schedule, mark their attendance for games and training, view stats, and vote in polls.
+- [User manual](docs/user-manual.md): account setup and everyday player tasks.
+- [Admin manual](docs/admin-manual.md): roster management, invitations, scheduling, and polls.
+- [Project context and contributor conventions](AGENTS.md): architecture, data rules, and repository workflow.
 
-Everyone signs in with their own account, and what they see depends on whether they're a coach/manager or a player.
+## Stack
 
----
+| Area | Technology |
+| --- | --- |
+| Application | Next.js 14.2.18, App Router |
+| UI | React 18, TypeScript 5, Tailwind CSS 3 |
+| Backend | Supabase Postgres, Auth, and row-level security (RLS) |
+| Supabase clients | `@supabase/supabase-js`, `@supabase/ssr` |
+| Hosting | Vercel |
 
-## Roles & access
+## Quick start
 
-| | Player | Admin (coach / manager) |
-|---|---|---|
-| View schedule, squad, polls | Yes | Yes |
-| Mark own attendance | Yes | Yes (admins are players too) |
-| Vote in polls | Yes | Yes |
-| Add / edit / delete events & players | - | Yes |
-| Create / close / delete polls | - | Yes |
+### Prerequisites
 
-Admins also get a **Profile** tab and a **Dashboard** tab. Players see **Home**, **Squad**, **Schedule**, and **Polls** at the bottom of the screen.
+- Node.js 18.17 or later (Next.js 14 minimum); use a maintained Node.js release.
+- npm and Git.
+- Access to a configured development Supabase project and a roster-linked test account.
 
-> Tip for admins: double-tap the **ADMIN** badge in the top bar to flip into a player's view (handy for checking what the squad sees), and to set a preview date for the season.
+### Clone and install
 
----
+```bash
+git clone https://github.com/jeremyyeh11/orahockey-app.git
+cd orahockey-app
+npm ci
+```
 
-## Getting into the app
+### Configure the environment
 
-- **New players** don't sign up themselves. A coach/manager sends you a **private setup link** (usually by WhatsApp). Open it, choose your own password, and you're in — the app matches you to your roster spot automatically. The link is single-use and expires after 24 hours; if it stops working, just ask for a new one.
-- **Forgot your password?** Ask a coach/manager — they can send you a reset link the same way (that one expires after 1 hour).
+Create `.env.local` in the repository root:
 
----
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<supabase-publishable-or-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<server-only-service-role-key>
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
 
-## How to use - Players
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL used by browser and server clients. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public client key; keep this variable name because the app reads it directly. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only key needed for admin invite and password reset link generation. |
+| `NEXT_PUBLIC_SITE_URL` | Origin used when building setup/reset links; use your deployment's origin outside local development. |
 
-### Home
-Your landing screen. Shows the season record (W - D - L), your own stats tiles (Goals, Assists, Attendance %), the next scheduled game or training, the last result, and a prompt if there are active polls awaiting your vote.
+`.env.local` is gitignored. Keep service-role keys server-only; variables prefixed with `NEXT_PUBLIC_` are exposed to the browser.
 
-### Squad
-The full roster with season stats shown inline on each player's card (goals, assists, attendance, POTM points). Use the **season selector** at the top to switch between seasons. The two cards at the top show the live **POTS race** (player of the season points) and **top scorers**.
+### Run locally
 
-### Schedule
-A list of games and training sessions, split into **Upcoming** and **Past**.
+```bash
+npm run dev
+```
 
-- Use the **All / Games / Trainings** filter chips to narrow the list.
-- For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance.
-- **Tap any event** to open its detail view. There you can:
-  - see the full details (opponent, date/time, venue, home/away, type, result and score for played games),
-  - set or change your attendance,
-  - see the **attendance breakdown** - Attending, Maybe, Not attending, Hasn't responded, in that order,
-  - read the **Additional Information** note (added by coaches).
+Open [http://localhost:3000](http://localhost:3000). Sign in with a test account linked to a `players` row. Its `role` determines whether you enter the player or admin area. New player accounts are created through the admin invitation workflow described in the [admin manual](docs/admin-manual.md).
 
-### Polls
-Open polls show voting options - pick one and tap **Vote**. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Closed polls are kept below for reference.
+## Database setup
 
----
+SQL migrations are in [supabase/migrations](supabase/migrations); season data is in [supabase/seed](supabase/seed). The app relies on the later migrations as well as the initial schema, including match results, POTM voting, security hardening, and onboarding.
 
-## How to use - Admins
+For an existing development project, confirm its schema matches the app before running it. For a fresh project, review and apply the SQL migration files in filename order using the Supabase SQL Editor, checking each file's prerequisites. Two migration prefixes are duplicated (`005` and `009`), so do not assume this directory is ready for an unattended Supabase CLI migration workflow.
 
-### Dashboard
-The club overview: this week's schedule at a glance, the season record, and quick counts (active players, admins, open polls).
+[AGENTS.md](AGENTS.md) records known differences between the live database and the initial schema. The initial schema alone is not a complete current database snapshot. The 2026 seed contains real club roster and season data; inspect it before choosing to load it into a development database.
 
-### Squad
-Manage the roster.
+## Commands
 
-- **+** (top right) adds a player - full name, preferred name, email, jersey number, position(s) (FWD / MID / DEF / GK), and role (player or admin).
-- Tap a player to **edit** their details.
-- Toggle a player **active / inactive**; use "show inactive" to see everyone.
-- Season stats, the POTS race, and top scorers are shown here just like the player view, driven by the selected season.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the development server. |
+| `npm run lint` | Run Next.js ESLint checks. |
+| `npm run build` | Create a production build. |
+| `npm start` | Serve the production build after building. |
 
-**Inviting players (accounts):** each Squad card shows a small dot - green = account active, amber = invited but not set up yet, grey = no account. Tap a player and scroll to the **Account** panel:
+## Project structure
 
-- **Invite link** creates their account and gives you a private one-time setup link - copy it or share straight to WhatsApp. The player opens it and picks their own password. Links expire after 24 hours; generating a new one is always one tap.
-- **Password reset link** does the same for players who already have an account and got locked out (expires after 1 hour).
-- Generate links as you send them (don't stockpile them the night before).
+```text
+app/
+  login/                Email/password sign-in
+  auth/                 Callback, invite/reset confirmation, password setup
+  admin/                Coach/manager pages and server actions
+  dashboard/            Player pages and server actions
+components/             Shared UI, event details, match results, roster, stats
+lib/
+  supabase/             Browser, server, and privileged admin clients
+  format.ts             Date/time formatting
+  stats.ts              Derived season statistics
+middleware.ts           Route protection and role-based routing
+supabase/
+  migrations/           Schema, functions, triggers, and RLS policies
+  seed/                 Season seed data
+public/                 Crest, player images, and app icons
+docs/                   User and admin manuals
+```
 
-**Removing a player:** toggle them **inactive** - they keep their stats and history but drop out of the default roster. Deleting a player outright also deletes their stats, attendance, and votes, so inactive is almost always what you want.
+## Development conventions
 
-### Schedule
-- **+ Game** / **+ Training** adds an event (opponent, date/time, venue, home/away, type, score, notes). Leave the score blank until the game is played - the W/L/D result is worked out from the score automatically.
-- **Tap any event** to open the detail view. As an admin you get an **Edit** button that turns the fields into editable inputs; **Save** writes the change and **Discard changes** cancels. You can also **delete** the event (this also removes its attendance and stats).
+- Server `page.tsx` files fetch data and pass it to client components; mutations use server actions and revalidate affected routes.
+- Roles are stored in `players.role` (`admin` or `player`); database RLS policies enforce data access.
+- Store dates as `timestamptz` and display them in Singapore time through `lib/format.ts`.
+- Match goal rows drive goal and assist totals through database triggers. Caps and goalkeeper clean sheets are derived from played games and attendance. See [AGENTS.md](AGENTS.md) before changing stat calculations.
 
-### Polls
-- **+ New Poll** creates a poll: a question, 2-6 options, and an optional close date.
-- Open polls can be **Closed** (or reopened), and any poll can be **Deleted** (votes included).
-- Admins vote in polls just like players do.
+Create a working branch for changes, run the checks relevant to your changes, and commit and push that branch for review.
 
-### Profile
-Your identity card - name, email, role, jersey number, and positions - plus a **Sign out** button.
+## Deployment
 
----
+The project is hosted on Vercel, with automatic deployment on pushes to `main`. Configure the environment variables above in the relevant Vercel environments, with `NEXT_PUBLIC_SITE_URL` set to the correct app origin. Configure the deployed domain in Supabase Authentication's Site URL and Redirect URLs for the authentication callback flow.
 
-## Notes for contributors
-
-See `AGENTS.md` for the stack, database schema, and development setup. The app is a Next.js (App Router) + Supabase project; Vercel auto-deploys on push to `main`.
+The admin manual covers account operations in the app; application hosting and database configuration belong to the developer setup above.
