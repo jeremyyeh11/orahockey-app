@@ -11,6 +11,7 @@ import {
   useSeasonStats,
   SeasonSelect,
   TopScorersCard,
+  TopAssistsCard,
   type PlayerLite,
   type GameLite,
   type SeasonStat,
@@ -75,7 +76,7 @@ export default function SquadClient({
   const [error, setError] = useState<string | null>(null)
 
   // Season stats state
-  const { seasons, season, setSeason, topScorerGroups, statsMap } = useSeasonStats({
+  const { seasons, season, setSeason, topScorerGroups, topAssistGroups, statsMap } = useSeasonStats({
     players,
     games: games as unknown as GameLite[],
     stats,
@@ -170,10 +171,11 @@ export default function SquadClient({
         </div>
       </div>
 
-      {/* xl+: Top Scorers moves to a sticky side column next to the roster table */}
+      {/* Top Scorers + Top Assists: side by side from sm, a sticky side column next to the roster table at xl+ */}
       <div className="liga-squad-layout xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:items-start xl:gap-6">
-        <aside className="liga-squad-summaries mb-4 xl:sticky xl:top-20 xl:order-last xl:mb-0">
+        <aside className="liga-squad-summaries mb-4 grid items-start gap-3 sm:grid-cols-2 xl:sticky xl:top-20 xl:order-last xl:mb-0 xl:grid-cols-1">
           <TopScorersCard groups={topScorerGroups} />
+          <TopAssistsCard groups={topAssistGroups} />
         </aside>
 
         <div className="min-w-0">

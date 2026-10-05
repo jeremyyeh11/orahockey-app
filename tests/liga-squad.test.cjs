@@ -342,23 +342,35 @@ test('desktop roster table: sortable stat columns, keeper rules, and the same ro
   assert.match(rows[1], /<span class="sr-only">No account yet<\/span>/, 'account dot has a text alternative')
 })
 
-test('top scorers list each player on their own row down to rank 5, ties included', () => {
-  const { computeSeason, TopScorersCard } = load('components/SeasonStats.tsx')
-  const scorers = (goals) => {
-    const players = goals.map((_, i) => player(`p${i}`, `Player ${String.fromCharCode(65 + i)}`, ['FWD']))
-    const { topScorerGroups } = computeSeason({
+test('top scorers and assists: one row per player, ranked 1, 1, 3 …, shown until rank 5 is reached', () => {
+  const { computeSeason, TopScorersCard, TopAssistsCard } = load('components/SeasonStats.tsx')
+  const ranked = (Card, key, tallies) => {
+    const players = tallies.map((_, i) => player(`p${i}`, `Player ${String.fromCharCode(65 + i)}`, ['FWD']))
+    const season = computeSeason({
       players, season: '2026', cards: [], attendance: [], potm: [],
       games: [{ id: 'g', game_date: '2026-05-01T12:00:00Z', result: 'win', goals_against: 0 }],
-      stats: goals.map((g, i) => ({ player_id: `p${i}`, game_id: 'g', goals_fg: g, goals_pc: 0, goals_ps: 0, assists: 0 })),
+      stats: tallies.map((n, i) => ({
+        player_id: `p${i}`, game_id: 'g', goals_pc: 0, goals_ps: 0,
+        goals_fg: key === 'goals' ? n : 0, assists: key === 'assists' ? n : 0,
+      })),
     })
-    const html = render(TopScorersCard, { groups: topScorerGroups })
+    const html = render(Card, { groups: key === 'goals' ? season.topScorerGroups : season.topAssistGroups })
     return (html.match(/<div class="liga-panel-row[\s\S]*?<\/div>/g) ?? []).map((row) =>
       (row.match(/<span[^>]*>([^<]*)<\/span>/g) ?? []).map(textOf).join(' '))
   }
-  // 1, 1, 3, 4, 4, 4 — the next tally would rank 7th, so it's cut
-  assert.deepEqual(scorers([5, 5, 4, 3, 3, 3, 2]), ['1 PLAYER 5', '1 PLAYER 5', '3 PLAYER 4', '4 PLAYER 3', '4 PLAYER 3', '4 PLAYER 3'])
-  // A tie at rank 5 keeps every tied player
-  assert.deepEqual(scorers([9, 8, 7, 6, 5, 5, 4]).map((r) => r.split(' ')[0]), ['1', '2', '3', '4', '5', '5'])
-  // Fewer than five scorers: list them all
-  assert.deepEqual(scorers([2, 0, 1]).map((r) => r.split(' ')[0]), ['1', '2'])
+  const ranks = (rows) => rows.map((r) => r.split(' ')[0])
+  // This season's goals: a tie across 4th/5th means nobody is 5th, so the next group (6th) shows too
+  assert.deepEqual(ranks(ranked(TopScorersCard, 'goals', [12, 12, 5, 4, 4, 3, 3, 2])), ['1', '1', '3', '4', '4', '6', '6'])
+  assert.deepEqual(ranked(TopScorersCard, 'goals', [5, 5, 4])[0], '1 PLAYER 5', 'rank, name, tally')
+  // Reaching exactly 5th stops there, keeping every player tied at 5th
+  assert.deepEqual(ranks(ranked(TopScorersCard, 'goals', [9, 8, 7, 6, 5, 5, 4])), ['1', '2', '3', '4', '5', '5'])
+  // A big tie up front still carries on until a rank of 5 or more is shown
+  assert.deepEqual(ranks(ranked(TopScorersCard, 'goals', [3, 3, 3, 3, 3, 3, 2, 1])), ['1', '1', '1', '1', '1', '1', '7'])
+  // Fewer scorers than that: list them all; zero tallies never appear
+  assert.deepEqual(ranks(ranked(TopScorersCard, 'goals', [2, 0, 1])), ['1', '2'])
+  // Assists use the same rule (this season: 5, 4, 4, 4, 3, 3, 2 → 1, 2, 2, 2, 5, 5)
+  const assists = ranked(TopAssistsCard, 'assists', [5, 4, 4, 4, 3, 3, 2])
+  assert.deepEqual(ranks(assists), ['1', '2', '2', '2', '5', '5'])
+  assert.equal(render(TopAssistsCard, { groups: [] }), '', 'no assists yet: no card')
+  assert.equal(assists[0], '1 PLAYER 5')
 })

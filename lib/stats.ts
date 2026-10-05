@@ -172,25 +172,41 @@ export function computeSeason({
     .sort((a, b) => b.potsPts - a.potsPts || b.potmWins - a.potmWins || b.goals - a.goals)
     .slice(0, 3)
 
-  const topScorers = Object.values(rows)
-    .filter((r) => r.goals > 0)
-    .sort((a, b) => b.goals - a.goals || b.assists - a.assists)
+  const topScorerGroups = rankedGroups(Object.values(rows), (r) => r.goals, (r) => r.assists)
+  const topAssistGroups = rankedGroups(Object.values(rows), (r) => r.assists, (r) => r.goals)
 
-  // Scorers grouped by goal tally. Standard competition ranking (1, 1, 3, …):
-  // a group ranks 1 + the number of players ahead of it. Keep every group
-  // ranked 5th or better, with all of its tied players.
-  const topScorerGroups: LeaderboardRow[][] = []
+  return { seasonGames, leaderboard, pots, topScorerGroups, topAssistGroups }
+}
+
+/**
+ * Leaderboard groups for one stat (players tied on it share a group), for the
+ * Top Scorers / Top Assists cards. Standard competition ranking (1, 1, 3, …): a
+ * group ranks 1 + the number of players ahead of it. Groups are added until one
+ * ranked 5th or lower is shown — so a tie across 4th/5th (1, 1, 3, 4, 4) still
+ * carries on to the next group (6) rather than stopping short of number 5.
+ */
+export function rankedGroups(
+  rows: LeaderboardRow[],
+  value: (r: LeaderboardRow) => number,
+  tiebreak: (r: LeaderboardRow) => number,
+): LeaderboardRow[][] {
+  const sorted = rows
+    .filter((r) => value(r) > 0)
+    .sort((a, b) => value(b) - value(a) || tiebreak(b) - tiebreak(a))
+
+  const groups: LeaderboardRow[][] = []
   let listed = 0
-  for (const r of topScorers) {
-    const last = topScorerGroups[topScorerGroups.length - 1]
-    if (last && last[0].goals === r.goals) {
+  let lastRank = 0
+  for (const r of sorted) {
+    const last = groups[groups.length - 1]
+    if (last && value(last[0]) === value(r)) {
       last.push(r)
     } else {
-      if (listed >= 5) break // this group would rank 6th or lower
-      topScorerGroups.push([r])
+      if (lastRank >= 5) break
+      lastRank = listed + 1
+      groups.push([r])
     }
     listed++
   }
-
-  return { seasonGames, leaderboard, pots, topScorerGroups }
+  return groups
 }
