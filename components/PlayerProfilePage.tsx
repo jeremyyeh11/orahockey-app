@@ -123,10 +123,14 @@ export function PlayerProfilePage({
   careerRow,
   seasonLabel,
   accountStatus,
-  asDialog = false,
+  presentation = 'page',
 }: PlayerProfileProps & {
-  /** Render as a centred dialog instead of the full-screen view */
-  asDialog?: boolean
+  /**
+   * `page` — the /team/[id] route: full screen below the app header.
+   * `dialog` / `fullScreen` — opened over the Squad list: a centred dialog on
+   * desktop, a full-page modal (covering header and nav) on touch layouts.
+   */
+  presentation?: 'page' | 'dialog' | 'fullScreen'
 }) {
   const router = useRouter()
 
@@ -402,22 +406,36 @@ export function PlayerProfilePage({
         </Modal>
   )
 
-  // Desktop, opened from the Squad list: a dialog over the list. Closing goes
-  // back in history, which drops the intercepted /team/[id] URL.
-  if (asDialog) {
+  // Opened from the Squad list, which stays mounted underneath. Closing goes back
+  // in history, which drops the intercepted /team/[id] URL.
+  if (presentation !== 'page') {
+    const fullScreen = presentation === 'fullScreen'
     return (
-      <Modal onClose={() => router.back()} size="md" bare>
-        <div className="liga-profile-screen relative h-[min(85vh,680px)] overflow-hidden bg-gradient-to-b from-brand/25 via-surface-card to-surface-card">
+      <Modal onClose={() => router.back()} size="md" bare fullScreen={fullScreen}>
+        <div
+          className={`liga-profile-screen relative overflow-hidden bg-gradient-to-b from-brand/25 via-surface-card to-surface-card ${
+            fullScreen ? 'h-full' : 'h-[min(85vh,680px)]'
+          }`}
+        >
           <h2 className="sr-only">{player.full_name}</h2>
           {body}
+          {/* Phones keep the familiar back arrow; the desktop dialog gets a close X */}
           <button
             onClick={() => router.back()}
-            className="liga-icon-button absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
-            aria-label="Close"
+            className={`liga-icon-button absolute z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50 ${
+              fullScreen ? 'left-4 top-4' : 'right-3 top-3'
+            }`}
+            aria-label={fullScreen ? 'Back' : 'Close'}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
+            {fullScreen ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            )}
           </button>
         </div>
         {linkModal}
@@ -452,7 +470,8 @@ export function PlayerProfilePage({
 
 /**
  * Profile opened from a Squad list (intercepted `/team/[id]` route): a dialog
- * over the list on desktop, the usual full-screen view on touch layouts.
+ * over the list on desktop, a full-page modal on touch layouts. Both are real
+ * modals so nothing of the list underneath can show through.
  */
 export function PlayerProfileOverlay(props: PlayerProfileProps) {
   const pathname = usePathname()
@@ -460,5 +479,5 @@ export function PlayerProfileOverlay(props: PlayerProfileProps) {
   // A parallel-route slot keeps its last page across soft navigations within
   // /team (e.g. clicking "Squad" in the nav), so only render on the profile URL.
   if (!pathname.endsWith(`/team/${props.player.id}`)) return null
-  return <PlayerProfilePage {...props} asDialog={isDesktop} />
+  return <PlayerProfilePage {...props} presentation={isDesktop ? 'dialog' : 'fullScreen'} />
 }

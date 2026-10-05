@@ -171,9 +171,9 @@ export default function SquadClient({
         </div>
       </div>
 
-      {/* Top Scorers + Top Assists: side by side from sm, a sticky side column next to the roster table at xl+ */}
+      {/* Top Scorers + Top Assists: side by side, stacked in a sticky side column next to the roster table at xl+ */}
       <div className="liga-squad-layout xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:items-start xl:gap-6">
-        <aside className="liga-squad-summaries mb-4 grid items-start gap-3 sm:grid-cols-2 xl:sticky xl:top-20 xl:order-last xl:mb-0 xl:grid-cols-1">
+        <aside className="liga-squad-summaries mb-4 grid grid-cols-2 items-start gap-3 xl:sticky xl:top-20 xl:order-last xl:mb-0 xl:grid-cols-1">
           <TopScorersCard groups={topScorerGroups} />
           <TopAssistsCard groups={topAssistGroups} />
         </aside>

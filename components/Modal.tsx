@@ -36,6 +36,7 @@ export default function Modal({
   layer = 'base',
   scrollable = false,
   bare = false,
+  fullScreen = false,
   children,
 }: {
   onClose: () => void
@@ -45,6 +46,8 @@ export default function Modal({
   scrollable?: boolean
   /** No padding or drag handle — for full-bleed content (e.g. the profile photo). */
   bare?: boolean
+  /** Cover the whole viewport, header and nav included (full-page modal on phones). */
+  fullScreen?: boolean
   children: ReactNode
 }) {
   useModalScrollLock()
@@ -107,16 +110,20 @@ export default function Modal({
   }, [])
 
   return (
-    <div className={`liga-modal fixed inset-0 ${LAYER[layer]} flex items-end justify-center p-0 sm:items-center sm:p-4`}>
+    <div
+      className={`liga-modal fixed inset-0 ${LAYER[layer]} flex items-end justify-center p-0 ${
+        fullScreen ? '' : 'sm:items-center sm:p-4'
+      }`}
+    >
       <div className="liga-modal-backdrop absolute inset-0 bg-black/70" aria-hidden="true" onClick={onClose} />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className={`liga-modal-panel relative w-full rounded-t-2xl border border-surface-border bg-surface-card shadow-xl outline-none sm:rounded-2xl ${WIDTH[size]} ${
-          bare ? 'overflow-hidden' : 'px-6 pb-8 pt-6'
-        } ${scrollable ? 'max-h-[90vh] overflow-y-auto scrollbar-hide' : ''}`}
+        className={`liga-modal-panel relative w-full bg-surface-card shadow-xl outline-none ${
+          fullScreen ? 'h-full' : `rounded-t-2xl border border-surface-border sm:rounded-2xl ${WIDTH[size]}`
+        } ${bare ? 'overflow-hidden' : 'px-6 pb-8 pt-6'} ${scrollable ? 'max-h-[90vh] overflow-y-auto scrollbar-hide' : ''}`}
       >
         {!bare && <div className="liga-modal-handle mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />}
         {children}

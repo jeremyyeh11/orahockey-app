@@ -159,7 +159,16 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
   const profile = read('components/PlayerProfilePage.tsx')
   assert.match(profile, /useMediaQuery\(DESKTOP_QUERY\)/)
   assert.match(profile, /pathname\.endsWith\(`\/team\/\$\{props\.player\.id\}`\)/, 'stale slot renders nothing off the profile URL')
-  assert.match(profile, /<Modal onClose=\{\(\) => router\.back\(\)\} size="md" bare>/)
+  assert.match(profile, /<Modal onClose=\{\(\) => router\.back\(\)\} size="md" bare fullScreen=\{fullScreen\}>/)
+  // Phones get a full-page modal (covers header + nav, so the list can't show through)
+  assert.match(profile, /presentation=\{isDesktop \? 'dialog' : 'fullScreen'\}/)
+  const modal = read('components/Modal.tsx')
+  assert.match(modal, /fullScreen \? 'h-full' : `rounded-t-2xl/, 'full-screen panel fills the viewport with no sheet styling')
+  assert.match(modal, /fullScreen \? '' : 'sm:items-center sm:p-4'/, 'full-screen modal never insets')
+  // Top Scorers / Top Assists sit side by side on phones too
+  for (const area of ['admin', 'dashboard']) {
+    assert.match(read(`app/${area}/team/SquadClient.tsx`), /<aside className="[^"]*\bgrid grid-cols-2\b[^"]*xl:grid-cols-1/)
+  }
   assert.doesNotMatch(profile, /text-white\/8"/, 'jersey watermark uses a real opacity value')
   assert.match(read('lib/useMediaQuery.ts'), /DESKTOP_QUERY = '\(min-width: 1024px\)'/)
 })
