@@ -12,7 +12,7 @@ import {
 } from '@/components/icons'
 
 const NAV: NavItem[] = [
-  { href: '/admin/dashboard', label: 'Dashboard', Icon: HomeIcon, exact: true },
+  { href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true },
   { href: '/admin/team', label: 'Squad', Icon: UsersIcon },
   { href: '/admin/schedule', label: 'Schedule', Icon: CalendarIcon },
   { href: '/admin/polls', label: 'Polls', Icon: PollIcon },

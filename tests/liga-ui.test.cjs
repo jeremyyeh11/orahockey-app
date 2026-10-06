@@ -18,11 +18,10 @@ function declarations(selector) {
 test('authenticated app typography, controls and shell are scoped to app routes', () => {
   assert.match(read('components/AppShell.tsx'), /isLigaAppPath\(pathname\)/)
   for (const file of [
-    'app/dashboard/page.tsx',
     'app/dashboard/polls/PollsClient.tsx',
     'app/admin/polls/PollsClient.tsx',
     'app/admin/profile/page.tsx',
-    'components/admin/DashboardView.tsx',
+    'components/HomeView.tsx',
   ]) assert.match(read(file), /liga-page/, `${file} exposes the shared page frame`)
   assert.match(read('app/dashboard/schedule/ScheduleClient.tsx'), /liga-event-list/)
   assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /liga-event-list/)
@@ -92,7 +91,6 @@ test('desktop (lg+) swaps the floating bottom nav for labelled header links', ()
   assert.match(top, /\{item\.label\}/, 'every desktop link shows its label')
   assert.match(top, /aria-current=\{active \? 'page' : undefined\}/)
   assert.match(read('components/BottomNav.tsx'), /lg:hidden"/, 'bottom nav is touch-only')
-  assert.match(read('components/admin/DashboardView.tsx'), /<div className="lg:hidden">\s*<h2 className="liga-section-title mt-7">Quick links/, 'quick links are touch-only')
 })
 
 test('desktop (lg+) lifts small metadata to 12px and swaps greys that fail 4.5:1', () => {
@@ -176,7 +174,7 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
 test('every page has its own tab title and profile names keep their spaces', () => {
   assert.match(read('app/layout.tsx'), /title: \{ default: 'ORA Hockey', template: '%s · ORA Hockey' \}/)
   for (const [file, title] of [
-    ['app/admin/dashboard/page.tsx', 'Dashboard'], ['app/admin/team/page.tsx', 'Squad'],
+    ['app/admin/dashboard/page.tsx', 'Home'], ['app/admin/team/page.tsx', 'Squad'],
     ['app/admin/schedule/page.tsx', 'Schedule'], ['app/admin/polls/page.tsx', 'Polls'],
     ['app/admin/profile/page.tsx', 'Profile'], ['app/dashboard/page.tsx', 'Home'],
     ['app/dashboard/team/page.tsx', 'Squad'], ['app/dashboard/schedule/page.tsx', 'Schedule'],
@@ -189,6 +187,17 @@ test('every page has its own tab title and profile names keep their spaces', () 
   const profile = read('components/PlayerProfilePage.tsx')
   assert.match(profile, /\{before\}\{beforeSep && '\\u00a0'\}/, 'space after leading names survives the flex edge')
   assert.match(profile, /\{afterSep && '\\u00a0'\}\{after\}/, 'space before trailing names survives the flex edge')
+})
+
+test('admins and players share one Home dashboard', () => {
+  assert.ok(read('app/dashboard/page.tsx').includes('<HomeView basePath="/dashboard" />'))
+  assert.ok(read('app/admin/dashboard/page.tsx').includes('<HomeView basePath="/admin" />'))
+  assert.ok(!fs.existsSync(path.join(root, 'components/admin/DashboardView.tsx')), 'no separate admin dashboard')
+  const home = read('components/HomeView.tsx')
+  assert.ok(!/href="\/(dashboard|admin)\//.test(home), 'links follow the caller section')
+  assert.ok(home.includes('href={`${basePath}/schedule`}'))
+  assert.ok(home.includes('href={`${basePath}/polls`}'))
+  assert.ok(read('app/admin/layout.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
 })
 
 test('Liga surfaces are opt-in and preserve the existing palette', () => {
