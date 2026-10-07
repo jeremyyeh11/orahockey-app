@@ -159,7 +159,7 @@ export type CloseSeasonSummary = {
   fixtures: number
   firstFixture: string | null
   lastFixture: string | null
-  /** Games + trainings after now — they'd be archived with the season */
+  /** Games + trainings + team events after now — they'd be archived with the season */
   upcomingEvents: number
   /** Active squad members — they carry over to the next season */
   carryOver: number
@@ -169,16 +169,24 @@ export type CloseSeasonSummary = {
 export async function getCloseSeasonSummary(season: Season): Promise<CloseSeasonSummary> {
   const supabase = createClient()
   const now = getNow().toISOString()
-  const [{ data: games }, { count: upcomingTrainings }, squad] = await Promise.all([
-    supabase.from('games').select('game_date').eq('season_id', season.id).order('game_date'),
+  const [{ data: games }, { count: upcomingTrainings }, { count: upcomingTeamEvents }, squad] = await Promise.all([
+    supabase.from('games').select('game_date, game_type').eq('season_id', season.id).order('game_date'),
     supabase
       .from('training_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('season_id', season.id)
       .gt('session_date', now),
+    supabase
+      .from('team_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('season_id', season.id)
+      .gt('event_date', now),
     getSeasonSquad(season.id),
   ])
-  const dates = (games ?? []).map((g) => g.game_date as string)
+  const all = (games ?? []) as { game_date: string; game_type: string | null }[]
+  // Phase and fixtures count league games only; any upcoming game is archived along with the season
+  const dates = all.filter((g) => g.game_type !== 'exhibition').map((g) => g.game_date)
+  const upcomingGames = all.filter((g) => new Date(g.game_date).getTime() > new Date(now).getTime()).length
   return {
     label: season.label,
     nextLabel: nextSeasonLabel(season.label),
@@ -186,7 +194,7 @@ export async function getCloseSeasonSummary(season: Season): Promise<CloseSeason
     fixtures: dates.length,
     firstFixture: dates[0] ?? null,
     lastFixture: dates[dates.length - 1] ?? null,
-    upcomingEvents: dates.filter((d) => new Date(d).getTime() > new Date(now).getTime()).length + (upcomingTrainings ?? 0),
+    upcomingEvents: upcomingGames + (upcomingTrainings ?? 0) + (upcomingTeamEvents ?? 0),
     carryOver: squad.filter((p) => p.is_active).length,
   }
 }

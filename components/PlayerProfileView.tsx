@@ -69,7 +69,7 @@ export async function PlayerProfileView({
           .eq('season_id', season.id)
           .eq('player_id', playerId)
           .maybeSingle(),
-    supabase.from('games').select('id, game_date, result, goals_against, season_id').order('game_date', { ascending: false }),
+    supabase.from('games').select('id, game_date, result, goals_against, season_id, game_type').order('game_date', { ascending: false }),
     supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending'),

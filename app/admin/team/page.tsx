@@ -30,7 +30,7 @@ export default async function AdminSquadPage() {
     supabase
       .from('player_stats')
       .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
-    inSeason(supabase.from('games').select('id, opponent, game_date, goals_for, goals_against, result, season_id'), season).order('game_date', { ascending: false }),
+    inSeason(supabase.from('games').select('id, opponent, game_date, goals_for, goals_against, result, season_id, game_type'), season).order('game_date', { ascending: false }),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase
       .from('attendance')

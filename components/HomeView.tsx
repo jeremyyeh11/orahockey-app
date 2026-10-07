@@ -5,6 +5,7 @@ import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { GAME_TYPE_LABEL, LEAGUE } from '@/lib/constants'
 import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season-server'
+import { countsForRecord } from '@/lib/stats'
 import { PHASE_LABEL, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
 
@@ -103,16 +104,22 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   ])
 
   // Completed games on or before "now" — keeps date preview consistent
-  const playedAll = ((games ?? []) as HomeGame[]).filter(
+  const finished = ((games ?? []) as HomeGame[]).filter(
     (g) => g.result !== null && new Date(g.game_date).getTime() <= nowDate.getTime()
   )
-  const played = season.allTime ? playedAll : playedAll.filter((g) => g.season_id === season.id)
+  const inView = (g: HomeGame) => season.allTime || g.season_id === season.id
+  // Records and your stats: league games only (friendlies never count)
+  const playedAll = finished.filter(countsForRecord)
+  const played = playedAll.filter(inView)
 
   // Pre-season / season / post-season, from this season's fixtures (open seasons only)
   const phase =
     season.locked || season.allTime
       ? null
-      : seasonPhase(((games ?? []) as HomeGame[]).filter((g) => g.season_id === season.id).map((g) => g.game_date), nowDate)
+      : seasonPhase(
+          ((games ?? []) as HomeGame[]).filter((g) => g.season_id === season.id && countsForRecord(g)).map((g) => g.game_date),
+          nowDate
+        )
 
   // Admin Danger zone: closing the current season (admin Home, viewing that season)
   const closeSummary =
@@ -138,7 +145,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const allTimeRecord = recordOf(playedAll)
   const jersey = mySeason?.jersey_number ?? me?.jersey_number ?? null
 
-  const lastGame = played[0]
+  // The most recent result shown on Home can be a friendly (it's just not counted)
+  const lastGame = finished.filter(inView)[0]
 
   // Soonest of the next game, training and team event
   const next =

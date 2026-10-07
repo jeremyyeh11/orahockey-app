@@ -26,7 +26,7 @@ export default async function PlayerSquadPage() {
     supabase
       .from('player_stats')
       .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
-    inSeason(supabase.from('games').select('id, game_date, result, goals_against, season_id'), season).order('game_date', { ascending: false }),
+    inSeason(supabase.from('games').select('id, game_date, result, goals_against, season_id, game_type'), season).order('game_date', { ascending: false }),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase
       .from('attendance')

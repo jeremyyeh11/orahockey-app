@@ -779,3 +779,41 @@ test('games: League / Friendly switch replaces the type dropdown', () => {
     assert.match(read(f), /<GameTypeSwitch/)
   }
 })
+
+test('friendlies never count towards records or stats', () => {
+  const { computeSeason, countsForRecord } = load('lib/stats.ts')
+  assert.equal(countsForRecord({ game_type: 'exhibition' }), false)
+  assert.equal(countsForRecord({ game_type: 'regular' }), true)
+  assert.equal(countsForRecord({}), true, 'games without a type count')
+  const players = [player('p', 'Some Player', ['GK'])]
+  const base = {
+    players,
+    games: [
+      { id: 'league', game_date: '2027-04-12T02:00:00Z', result: 'win', goals_against: 0, season_id: 's', game_type: 'regular' },
+      { id: 'friendly', game_date: '2027-04-19T02:00:00Z', result: 'win', goals_against: 0, season_id: 's', game_type: 'exhibition' },
+    ],
+    stats: [
+      { player_id: 'p', game_id: 'league', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 1 },
+      { player_id: 'p', game_id: 'friendly', goals_fg: 5, goals_pc: 0, goals_ps: 0, assists: 5 },
+    ],
+    potm: [{ player_id: 'p', game_id: 'friendly', place: 1 }],
+    attendance: [{ player_id: 'p', session_id: 'league' }, { player_id: 'p', session_id: 'friendly' }],
+    cards: [{ player_id: 'p', game_id: 'friendly', card_type: 'yellow', created_at: '2027-04-19T03:00:00Z' }],
+  }
+  for (const args of [{ season: '2027', seasonId: 's' }, { season: 'all' }]) {
+    const { leaderboard, seasonGames, pots } = computeSeason({ ...base, ...args })
+    const r = leaderboard[0]
+    assert.deepEqual(seasonGames.map((g) => g.id), ['league'])
+    assert.deepEqual([r.goals, r.assists, r.caps, r.cleanSheets, r.potmWins, r.cards.yellow], [1, 1, 1, 1, 0, 0])
+    assert.deepEqual(pots, [], 'friendly POTM points do not count')
+  }
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const home = read('components/HomeView.tsx')
+  assert.match(home, /const playedAll = finished\.filter\(countsForRecord\)/, 'Home record + your stats: league only')
+  assert.match(home, /const lastGame = finished\.filter\(inView\)\[0\]/, 'the last result shown can still be a friendly')
+  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /games\.filter\(\(g\) => g\.result && countsForRecord\(g\)\)/)
+  for (const f of ['app/dashboard/team/page.tsx', 'app/admin/team/page.tsx', 'components/PlayerProfileView.tsx']) {
+    assert.match(read(f), /from\('games'\)[^\n]*game_type/, `${f} loads game_type so friendlies can be left out`)
+  }
+})

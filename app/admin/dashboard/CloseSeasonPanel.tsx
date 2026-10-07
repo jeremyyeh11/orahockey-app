@@ -100,7 +100,7 @@ export default function CloseSeasonPanel({ summary }: { summary: CloseSeasonSumm
                 <p className="liga-alert mb-4 rounded-lg bg-amber-900/30 px-3 py-2 text-sm text-amber-200">
                   {name} is still in {PHASE_LABEL[summary.phase].toLowerCase()}.
                   {summary.upcomingEvents > 0 &&
-                    ` ${summary.upcomingEvents} upcoming game${summary.upcomingEvents === 1 ? '' : 's'}/training${summary.upcomingEvents === 1 ? '' : 's'} would be archived with it.`}
+                    ` ${summary.upcomingEvents} upcoming schedule entr${summary.upcomingEvents === 1 ? 'y' : 'ies'} (games, trainings, events) would be archived with it.`}
                 </p>
               )}
               <div className="flex gap-3">
