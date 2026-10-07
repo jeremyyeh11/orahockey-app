@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
-import { fmtDateTime, fmtDateTimeRange, fmtReport } from '@/lib/format'
+import { fmtDateTime, fmtDateTimeRange, fmtReport, sgDayBounds } from '@/lib/format'
 import { getNow } from '@/lib/preview'
-import { GAME_TYPE_LABEL, LEAGUE } from '@/lib/constants'
+import { LEAGUE, competitionLabel, gameTitle } from '@/lib/constants'
+import { POST_SEASON_QUOTES, PRE_SEASON_QUOTES, pickQuote } from '@/lib/quotes'
 import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season-server'
 import { countsForRecord } from '@/lib/stats'
 import { PHASE_LABEL, seasonPhase, seasonTitle } from '@/lib/season'
@@ -69,7 +70,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id')
       .order('game_date', { ascending: false }),
     // Next event: within the season — or across every season for "All time"
-    inSeason(supabase.from('games').select('opponent, game_date, location, ends_at, report_minutes'), season)
+    inSeason(supabase.from('games').select('opponent, game_date, location, ends_at, report_minutes, game_type'), season)
       .gte('game_date', now)
       .order('game_date')
       .limit(1)
@@ -121,6 +122,29 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
           nowDate
         )
 
+  // Game day / training day / event day banner on the season card (not for archived seasons)
+  const today = sgDayBounds(nowDate)
+  const dayLabel =
+    season.locked && !season.allTime
+      ? null
+      : await (async () => {
+          const countToday = (table: 'games' | 'training_sessions' | 'team_events', column: string) =>
+            inSeason(supabase.from(table).select('*', { count: 'exact', head: true }), season)
+              .gte(column, today.start)
+              .lt(column, today.end)
+          const [{ count: g }, { count: t }, { count: e }] = await Promise.all([
+            countToday('games', 'game_date'),
+            countToday('training_sessions', 'session_date'),
+            countToday('team_events', 'event_date'),
+          ])
+          return g ? 'Game day' : t ? 'Training day' : e ? 'Event day' : null
+        })()
+
+  // Pre-season: the card shows PRE-SEASON and a line about preparing instead of 0W·0D·0L.
+  // Post-season: the final record stays, with a line about wrapping up added below it.
+  const preSeason = phase === 'pre-season'
+  const quote = phase === 'pre-season' ? pickQuote(PRE_SEASON_QUOTES) : phase === 'post-season' ? pickQuote(POST_SEASON_QUOTES) : null
+
   // Admin Danger zone: closing the current season (admin Home, viewing that season)
   const closeSummary =
     basePath === '/admin' && season.is_current && !season.locked ? await getCloseSeasonSummary(season) : null
@@ -151,12 +175,12 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   // Soonest of the next game, training and team event
   const next =
     [
-      nextGame && { title: `vs ${nextGame.opponent}`, when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
-      nextTraining && { title: 'Team training', when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
-      nextEvent && { title: nextEvent.title, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
+      nextGame && { title: gameTitle(nextGame.opponent), tag: competitionLabel(nextGame.game_type), when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
+      nextTraining && { title: 'Team training', tag: null, when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
+      nextEvent && { title: nextEvent.title, tag: null, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
     ]
       .filter(
-        (x): x is { title: string; when: string; ends: string | null; report: number | null; place: string | null } => !!x
+        (x): x is { title: string; tag: string | null; when: string; ends: string | null; report: number | null; place: string | null } => !!x
       )
       .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime())[0] ?? null
 
@@ -172,7 +196,10 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       </div>
     ) : next ? (
       <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
-        <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
+        <div className="flex items-center gap-2">
+          <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
+          {next.tag && <CompetitionTag label={next.tag} />}
+        </div>
         <div className="liga-meta mt-0.5 text-slate-400">
           {fmtDateTimeRange(next.when, next.ends)}
           {next.place ? ` · ${next.place}` : ''}
@@ -215,19 +242,29 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
         <div className="min-w-0">
           {/* Season record hero */}
           <div className="liga-hero bg-accent relative overflow-hidden rounded-[1.5rem] p-5">
-            <div className="liga-meta text-white/70">
-              {season.allTime ? `All time · ${LEAGUE}` : `Season ${season.label} · ${LEAGUE}`}
-              {season.locked && !season.allTime ? ' · Final' : ''}
-              {phase ? ` · ${PHASE_LABEL[phase]}` : ''}
+            <div className="flex items-start justify-between gap-3">
+              <div className="liga-meta text-white/70">
+                {season.allTime ? `All time · ${LEAGUE}` : `Season ${season.label} · ${LEAGUE}`}
+                {season.locked && !season.allTime ? ' · Final' : ''}
+                {phase && !preSeason ? ` · ${PHASE_LABEL[phase]}` : ''}
+              </div>
+              {dayLabel && (
+                <span className="liga-day-label shrink-0 rounded bg-white/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">
+                  {dayLabel}
+                </span>
+              )}
             </div>
             <div className="mt-2 flex items-end gap-3">
               <span className="font-display text-4xl font-extrabold leading-none text-white">
-                {record.w}W · {record.d}D · {record.l}L
+                {preSeason ? PHASE_LABEL['pre-season'].toUpperCase() : `${record.w}W · ${record.d}D · ${record.l}L`}
               </span>
             </div>
-            <div className="mt-2 text-xs text-white/70">
-              {played.length} games · {goalsFor} scored · {goalsAgainst} conceded
+            <div className="liga-hero-sub mt-2 text-xs text-white/70">
+              {preSeason ? quote : `${played.length} games · ${goalsFor} scored · ${goalsAgainst} conceded`}
             </div>
+            {phase === 'post-season' && (
+              <div className="liga-hero-quote mt-3 border-t border-white/15 pt-3 text-sm text-white/90">{quote}</div>
+            )}
           </div>
 
           {/* Next up — phones: straight under the season record */}
@@ -278,11 +315,12 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
                   {lastGame.goals_for}–{lastGame.goals_against}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="liga-link-title break-words text-sm font-semibold text-white">vs {lastGame.opponent}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="liga-link-title break-words text-sm font-semibold text-white">{gameTitle(lastGame.opponent)}</div>
+                    <CompetitionTag label={competitionLabel(lastGame.game_type)} />
+                  </div>
                   <div className="liga-meta mt-0.5 text-slate-400">
-                    {RESULT_LABEL[lastGame.result ?? ''] ?? ''}
-                    {lastGame.game_type !== 'regular' ? ` · ${GAME_TYPE_LABEL[lastGame.game_type] ?? lastGame.game_type}` : ''} ·{' '}
-                    {fmtDateTime(lastGame.game_date)}
+                    {RESULT_LABEL[lastGame.result ?? ''] ?? ''} · {fmtDateTime(lastGame.game_date)}
                   </div>
                 </div>
               </Link>
@@ -310,6 +348,20 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       {/* Admins only: close the current season (multi-step confirmation) */}
       {closeSummary && <CloseSeasonPanel summary={closeSummary} />}
     </div>
+  )
+}
+
+/** "MHL1" or "Friendly" beside a game's title */
+function CompetitionTag({ label }: { label: string }) {
+  const friendly = label === 'Friendly'
+  return (
+    <span
+      className={`liga-competition-tag shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+        friendly ? 'bg-amber-900/50 text-amber-300' : 'bg-white/10 text-slate-300'
+      }`}
+    >
+      {label}
+    </span>
   )
 }
 

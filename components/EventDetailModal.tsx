@@ -8,7 +8,7 @@ import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/
 import { eventEnd, eventId, eventLocation, eventNotes, eventReportMinutes, eventTitle, type EventItem } from './EventRow'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
-import { GAME_TYPE_LABEL } from '@/lib/constants'
+import { competitionLabel } from '@/lib/constants'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { TeamListModal } from './TeamListModal'
 import {
@@ -384,7 +384,7 @@ export function EventDetailModal({
               <>
                 <DetailRow label="Opponent" value={currentItem.game.opponent} />
                 <DetailRow label="Home / Away" value={currentItem.game.home_away ? (currentItem.game.home_away === 'home' ? 'Home' : 'Away') : '—'} />
-                <DetailRow label="Type" value={GAME_TYPE_LABEL[currentItem.game.game_type] ?? currentItem.game.game_type} />
+                <DetailRow label="Type" value={competitionLabel(currentItem.game.game_type)} />
               </>
             )}
             <DetailRow label="Venue" value={location || 'TBD'} />

@@ -857,3 +857,34 @@ test('schedule times: optional end (same-day ranges stay short), report-early su
     assert.ok(migration.includes(`alter table public.${t}`) && migration.includes(`${t}_ends_after_start`), `${t}: ends_at after start`)
   }
 })
+
+test('Home card: ORA vs titles, MHL1/Friendly, day banner, phase + quote outside the season', () => {
+  const { gameTitle, competitionLabel } = load('lib/constants.ts')
+  assert.equal(gameTitle('Tornados'), 'ORA vs Tornados')
+  assert.equal(competitionLabel('regular'), 'MHL1')
+  assert.equal(competitionLabel('exhibition'), 'Friendly')
+  assert.equal(competitionLabel('playoff'), 'MHL1 Playoff')
+
+  const { sgDayBounds } = load('lib/format.ts')
+  assert.deepEqual(sgDayBounds(new Date('2026-10-09T17:30:00Z')), { start: '2026-10-09T16:00:00.000Z', end: '2026-10-10T16:00:00.000Z' }, 'SGT day of 01:30 Sat 10 Oct')
+
+  const { PRE_SEASON_QUOTES, POST_SEASON_QUOTES, pickQuote } = load('lib/quotes.ts')
+  assert.ok(PRE_SEASON_QUOTES.length >= 5 && POST_SEASON_QUOTES.length >= 5)
+  for (const q of [...PRE_SEASON_QUOTES, ...POST_SEASON_QUOTES]) assert.ok(q.length <= 80, `short and plain: ${q}`)
+  assert.ok(PRE_SEASON_QUOTES.includes(pickQuote(PRE_SEASON_QUOTES)))
+
+  const { EventRow } = load('components/EventRow.tsx')
+  const game = { kind: 'game', date: '2027-04-12T02:00:00Z', game: {
+    id: 'g', opponent: 'Tornados', game_date: '2027-04-12T02:00:00Z', location: null, home_away: null, game_type: 'regular',
+    goals_for: null, goals_against: null, result: null, notes: null, team_list_status: null,
+  } }
+  assert.match(textOf(render(EventRow, { item: game })), /ORA vs Tornados/)
+
+  const home = fs.readFileSync(path.join(root, 'components/HomeView.tsx'), 'utf8')
+  assert.match(home, /return g \? 'Game day' : t \? 'Training day' : e \? 'Event day' : null/, 'game beats training beats event')
+  assert.match(home, /\{preSeason \? PHASE_LABEL\['pre-season'\]\.toUpperCase\(\) : `\$\{record\.w\}W/, 'PRE-SEASON replaces 0W·0D·0L')
+  assert.match(home, /\{preSeason \? quote : `\$\{played\.length\} games/, 'pre-season: a quote replaces the games/scored/conceded line')
+  assert.match(home, /\{phase === 'post-season' && \(\s*<div className="liga-hero-quote[^>]*>\{quote\}<\/div>/, 'post-season: final record stays, quote added below')
+  assert.match(home, /phase === 'pre-season' \? pickQuote\(PRE_SEASON_QUOTES\) : phase === 'post-season' \? pickQuote\(POST_SEASON_QUOTES\)/)
+  assert.match(home, /<CompetitionTag label=\{competitionLabel\(lastGame\.game_type\)\} \/>/)
+})

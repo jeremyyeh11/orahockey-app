@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { gameTitle } from '@/lib/constants'
 import { preferredName } from './RosterList'
 import Modal from './Modal'
 import type { PlayerLite } from './EventDetailModal'
@@ -125,7 +126,7 @@ export function TeamListModal({
       {/* Header */}
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Team List</h2>
-        <span className="liga-meta text-slate-400">vs {game.opponent}</span>
+        <span className="liga-meta text-slate-400">{gameTitle(game.opponent)}</span>
       </div>
       <p className="mb-4 text-[11px] text-slate-500">
         {attendingPlayers.length} players indicated attending

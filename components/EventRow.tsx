@@ -1,5 +1,5 @@
 import { fmtReport, fmtTimeRange, dateBlock } from '@/lib/format'
-import { GAME_TYPE_LABEL } from '@/lib/constants'
+import { GAME_TYPE_LABEL, gameTitle } from '@/lib/constants'
 import type { Game, Training, TeamEvent } from '@/components/EventDetailModal'
 
 export type EventItem =
@@ -12,9 +12,9 @@ export function eventId(item: EventItem) {
   return item.kind === 'game' ? item.game.id : item.kind === 'training' ? item.training.id : item.event.id
 }
 
-/** "vs Opponent", "Training", or the event's own title */
+/** "ORA vs Opponent", "Training", or the event's own title */
 export function eventTitle(item: EventItem) {
-  return item.kind === 'game' ? `vs ${item.game.opponent}` : item.kind === 'training' ? 'Training' : item.event.title
+  return item.kind === 'game' ? gameTitle(item.game.opponent) : item.kind === 'training' ? 'Training' : item.event.title
 }
 
 export function eventLocation(item: EventItem) {
