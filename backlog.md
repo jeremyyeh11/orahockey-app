@@ -90,12 +90,11 @@ it to every player:
   reusing the season stats the Squad-tab player profile already computes.
 - Keep **Sign out** on the page.
 
-**Security prerequisite (found Oct 2026, live now):** the `players` RLS policy "Players can
-update their own record" lets a player update *any* column of their own row — including
-`role` (self-promote to admin), `email`, `auth_user_id`, `team_id`, `jersey_number`. No trigger
-or column grant blocks it. Before shipping self-edit, restrict players to the editable columns
-(e.g. a `BEFORE UPDATE` trigger rejecting changes to protected columns unless `is_admin()`, or
-a definer function for self-edits). Prove it with a rollback `DO` block.
+**Security (fixed Oct 2026, migration `017_players_self_update_guard.sql`):** the `players`
+RLS policy "Players can update their own record" let a player update *any* column of their own
+row, including `role`. A `BEFORE UPDATE` trigger now limits non-admin API callers to a
+whitelist (`preferred_name`, `date_of_birth`). When adding self-editable fields (e.g. a photo
+column), extend `self_editable` in `guard_player_self_update()` — anything not listed is rejected.
 
 Open questions to resolve at build time:
 - Which fields are self-editable beyond photo / DOB / preferred name (jersey? position? phone?)
