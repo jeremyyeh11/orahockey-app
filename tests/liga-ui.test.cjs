@@ -203,6 +203,9 @@ test('admins and players share one Home dashboard', () => {
   assert.ok(home.includes('href={`${basePath}/schedule`}'))
   assert.ok(home.includes('href={`${basePath}/polls`}'))
   assert.ok(read('app/admin/layout.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
+  // Desktop: season + your stats beside next up / last game / polls; phones stay one column
+  assert.ok(home.includes('liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6'))
+  assert.ok(home.includes('<h2 className="liga-section-title mt-6 lg:mt-0">Next up</h2>'), 'right column starts flush with the hero')
 })
 
 test('Liga surfaces are opt-in and preserve the existing palette', () => {

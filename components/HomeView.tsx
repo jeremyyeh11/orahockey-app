@@ -99,88 +99,95 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
         {me?.jersey_number != null && <span className="liga-meta shrink-0 pb-1 text-slate-500">#{me.jersey_number}</span>}
       </div>
 
-      {/* Season record hero */}
-      <div className="liga-hero bg-accent relative overflow-hidden rounded-[1.5rem] p-5">
-        <div className="liga-meta text-white/70">
-          Season {season} · {LEAGUE}
-        </div>
-        <div className="mt-2 flex items-end gap-3">
-          <span className="font-display text-4xl font-extrabold leading-none text-white">
-            {record.w}W · {record.d}D · {record.l}L
-          </span>
-        </div>
-        <div className="mt-2 text-xs text-white/70">
-          {played.length} games · {goalsFor} scored · {goalsAgainst} conceded
-        </div>
-      </div>
-
-      {/* My stats tiles */}
-      <div className="liga-stat-grid mt-4 grid grid-cols-3 gap-3">
-        <Tile value={myGoals} label="Goals" />
-        <Tile value={myAssists} label="Assists" />
-        <Tile value={`${attendancePct}%`} label="Attendance" />
-      </div>
-
-      {/* Next up / season complete */}
-      <h2 className="liga-section-title mt-6">Next up</h2>
-      {next ? (
-        <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
-          <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
-          <div className="liga-meta mt-0.5 text-slate-400">
-            {next.kind} · {fmtDateTime(next.when)}
-            {next.place ? ` · ${next.place}` : ''}
-          </div>
-        </Link>
-      ) : (
-        <div className="liga-link-row card mt-2 p-4">
-          <div className="liga-link-title text-sm font-semibold text-white">Season complete</div>
-          <div className="liga-meta mt-0.5 text-slate-400">Nothing scheduled — enjoy the off-season.</div>
-        </div>
-      )}
-
-      {/* Last result */}
-      {lastGame && (
-        <>
-          <h2 className="liga-section-title mt-6">Last game</h2>
-          <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 flex items-center gap-4 p-4 transition hover:border-white/15">
-            <div
-              className={`liga-result-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
-                lastGame.result === 'win' || lastGame.result === 'ot_win'
-                  ? 'bg-green-900/50 text-green-300'
-                  : lastGame.result === 'tie'
-                  ? 'bg-slate-700 text-slate-300'
-                  : 'bg-red-900/50 text-red-300'
-              }`}
-            >
-              {lastGame.goals_for}–{lastGame.goals_against}
+      {/* Desktop (lg+): season + your stats on the left, what's next / last / polls on the right */}
+      <div className="liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
+        <div className="min-w-0">
+          {/* Season record hero */}
+          <div className="liga-hero bg-accent relative overflow-hidden rounded-[1.5rem] p-5">
+            <div className="liga-meta text-white/70">
+              Season {season} · {LEAGUE}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="liga-link-title break-words text-sm font-semibold text-white">vs {lastGame.opponent}</div>
+            <div className="mt-2 flex items-end gap-3">
+              <span className="font-display text-4xl font-extrabold leading-none text-white">
+                {record.w}W · {record.d}D · {record.l}L
+              </span>
+            </div>
+            <div className="mt-2 text-xs text-white/70">
+              {played.length} games · {goalsFor} scored · {goalsAgainst} conceded
+            </div>
+          </div>
+
+          {/* My stats tiles */}
+          <div className="liga-stat-grid mt-4 grid grid-cols-3 gap-3">
+            <Tile value={myGoals} label="Goals" />
+            <Tile value={myAssists} label="Assists" />
+            <Tile value={`${attendancePct}%`} label="Attendance" />
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          {/* Next up / season complete */}
+          <h2 className="liga-section-title mt-6 lg:mt-0">Next up</h2>
+          {next ? (
+            <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
+              <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
               <div className="liga-meta mt-0.5 text-slate-400">
-                {RESULT_LABEL[lastGame.result ?? ''] ?? ''}
-                {lastGame.game_type !== 'regular' ? ` · ${lastGame.game_type}` : ''} ·{' '}
-                {fmtDateTime(lastGame.game_date)}
+                {next.kind} · {fmtDateTime(next.when)}
+                {next.place ? ` · ${next.place}` : ''}
               </div>
+            </Link>
+          ) : (
+            <div className="liga-link-row card mt-2 p-4">
+              <div className="liga-link-title text-sm font-semibold text-white">Season complete</div>
+              <div className="liga-meta mt-0.5 text-slate-400">Nothing scheduled — enjoy the off-season.</div>
             </div>
-          </Link>
-        </>
-      )}
+          )}
 
-      {/* Active polls prompt */}
-      {(activePolls ?? 0) > 0 && (
-        <Link
-          href={`${basePath}/polls`}
-          className="liga-link-row card mt-6 flex items-center justify-between p-4 transition hover:border-white/15"
-        >
-          <div>
-            <div className="liga-link-title text-sm font-semibold text-white">
-              {activePolls} active poll{activePolls === 1 ? '' : 's'}
-            </div>
-            <div className="mt-0.5 text-xs text-slate-400">Your vote is needed</div>
-          </div>
-          <span className="text-brand-light">→</span>
-        </Link>
-      )}
+          {/* Last result */}
+          {lastGame && (
+            <>
+              <h2 className="liga-section-title mt-6">Last game</h2>
+              <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 flex items-center gap-4 p-4 transition hover:border-white/15">
+                <div
+                  className={`liga-result-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
+                    lastGame.result === 'win' || lastGame.result === 'ot_win'
+                      ? 'bg-green-900/50 text-green-300'
+                      : lastGame.result === 'tie'
+                      ? 'bg-slate-700 text-slate-300'
+                      : 'bg-red-900/50 text-red-300'
+                  }`}
+                >
+                  {lastGame.goals_for}–{lastGame.goals_against}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="liga-link-title break-words text-sm font-semibold text-white">vs {lastGame.opponent}</div>
+                  <div className="liga-meta mt-0.5 text-slate-400">
+                    {RESULT_LABEL[lastGame.result ?? ''] ?? ''}
+                    {lastGame.game_type !== 'regular' ? ` · ${lastGame.game_type}` : ''} ·{' '}
+                    {fmtDateTime(lastGame.game_date)}
+                  </div>
+                </div>
+              </Link>
+            </>
+          )}
+
+          {/* Active polls prompt */}
+          {(activePolls ?? 0) > 0 && (
+            <Link
+              href={`${basePath}/polls`}
+              className="liga-link-row card mt-6 flex items-center justify-between p-4 transition hover:border-white/15"
+            >
+              <div>
+                <div className="liga-link-title text-sm font-semibold text-white">
+                  {activePolls} active poll{activePolls === 1 ? '' : 's'}
+                </div>
+                <div className="mt-0.5 text-xs text-slate-400">Your vote is needed</div>
+              </div>
+              <span className="text-brand-light">→</span>
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
