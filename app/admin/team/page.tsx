@@ -23,6 +23,7 @@ export default async function AdminSquadPage() {
     { data: att },
     { data: cards },
     { data: whitelist },
+    { data: everyone },
   ] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     getSeasonSquad<AdminSquadMember>(season.id, 'email, role, auth_user_id').catch((e: Error) => e),
@@ -42,6 +43,11 @@ export default async function AdminSquadPage() {
       .eq('status', 'attending'),
     supabase.from('match_cards').select('player_id, game_id, card_type, created_at'),
     supabase.from('player_whitelist').select('email, invited_at, claimed_at'),
+    // For "+ Existing Player": everyone on the books, minus this season's squad below
+    supabase
+      .from('players')
+      .select('id, full_name, preferred_name, jersey_number, is_active')
+      .order('full_name', { ascending: true }),
   ])
 
   if (players instanceof Error) {
@@ -63,6 +69,7 @@ export default async function AdminSquadPage() {
       cards={(cards ?? []) as MatchCardRow[]}
       myPlayerId={me?.id ?? null}
       whitelist={whitelist ?? []}
+      notInSquad={(everyone ?? []).filter((p) => !players.some((m) => m.id === p.id))}
     />
   )
 }

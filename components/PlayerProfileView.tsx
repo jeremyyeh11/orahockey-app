@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
+import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus, type SquadStatus } from '@/components/PlayerProfilePage'
 import { computeSeason, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
-import { getSelectedSeason } from '@/lib/season-server'
+import { getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
 import { LEAGUE } from '@/lib/constants'
 
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
@@ -22,8 +22,9 @@ export async function playerProfileMetadata(playerId: string): Promise<Metadata>
  * Shared loader + render for the player profile route. Used by both the admin
  * and player `[playerId]` routes — they differ only in whether the contact
  * (email/role) fields are selected, controlled by `includeContact`, and
- * whether the account/invite panel shows, controlled by `includeAccount`
- * (admin route only — it reads the admin-only player_whitelist table).
+ * whether the account/invite and squad panels show, controlled by
+ * `includeAccount` (admin route only — it reads the admin-only
+ * player_whitelist table, and squad changes are admin-only).
  */
 export async function PlayerProfileView({
   playerId,
@@ -86,6 +87,17 @@ export async function PlayerProfileView({
       .maybeSingle()
     accountStatus = p.auth_user_id ? 'active' : wl?.invited_at ? 'invited' : 'none'
   }
+
+  // Squad membership controls for the selected season — admin view, open seasons only
+  let squadStatus: SquadStatus | undefined
+  if (includeAccount && !season.locked) {
+    squadStatus = {
+      seasonLabel: season.label,
+      inSquad: !!seasonEntry,
+      hasRecord: seasonEntry ? await hasSeasonRecord(season.id, playerId) : false,
+      isActive: profile.is_active,
+    }
+  }
   const players: (PlayerLite & RosterPlayer)[] = [profile as unknown as PlayerLite & RosterPlayer]
   const cards = (cardRows ?? []) as MatchCardRow[]
 
@@ -126,6 +138,7 @@ export async function PlayerProfileView({
       careerRow={careerRow}
       seasonLabel={`${LEAGUE} ${season.label}`}
       accountStatus={accountStatus}
+      squadStatus={squadStatus}
     />
   )
 }

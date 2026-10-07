@@ -8,6 +8,7 @@ import RosterTable from '@/components/RosterTable'
 import { startNavigationProgress } from '@/components/NavigationProgress'
 import { defaultPreferredName } from '@/components/RosterList'
 import Modal from '@/components/Modal'
+import ExistingPlayerPicker, { type OutsidePlayer } from './ExistingPlayerPicker'
 import {
   useSeasonStats,
   TopScorersCard,
@@ -62,6 +63,7 @@ export default function SquadClient({
   cards,
   myPlayerId,
   whitelist,
+  notInSquad,
 }: {
   season: Season
   /** The season's squad (season_players), with that season's jersey/position */
@@ -73,9 +75,12 @@ export default function SquadClient({
   cards: MatchCardRow[]
   myPlayerId: string | null
   whitelist: WhitelistRow[]
+  /** Players on the books who aren't in this season's squad (for "+ Existing Player") */
+  notInSquad: OutsidePlayer[]
 }) {
   const router = useRouter()
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showExisting, setShowExisting] = useState(false)
   const [selectedPositions, setSelectedPositions] = useState<string[]>([])
   const [showInactive, setShowInactive] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -183,6 +188,14 @@ export default function SquadClient({
             >
               + Add Player
             </button>
+            {notInSquad.length > 0 && (
+              <button
+                onClick={() => setShowExisting(true)}
+                className="liga-button liga-button-secondary min-h-[44px] rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 focus:outline-none focus:ring-1 focus:ring-brand"
+              >
+                + Existing Player
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -222,6 +235,11 @@ export default function SquadClient({
           )}
         </div>
       </div>
+
+      {/* Add existing players to this season (returning players) */}
+      {showExisting && (
+        <ExistingPlayerPicker seasonLabel={season.label} players={notInSquad} onClose={() => setShowExisting(false)} />
+      )}
 
       {/* Add Player modal (separate from profile) */}
       {showAddModal && (

@@ -47,6 +47,41 @@ export async function requireOpenSeason(): Promise<Season> {
   return season
 }
 
+/**
+ * Whether a player has anything on record in a season — stats, POTM, cards, a
+ * team-list selection or an appearance in a played game. Season leaderboards
+ * only count squad members, so removing such a player from the squad would drop
+ * their numbers; they should be marked inactive instead.
+ */
+export async function hasSeasonRecord(seasonId: string, playerId: string): Promise<boolean> {
+  const supabase = createClient()
+  const { data: games, error } = await supabase.from('games').select('id, result').eq('season_id', seasonId)
+  if (error) throw new Error(error.message)
+  const gameIds = (games ?? []).map((g) => g.id)
+  const playedIds = (games ?? []).filter((g) => g.result).map((g) => g.id)
+  if (gameIds.length === 0) return false
+
+  const count = (table: string) =>
+    supabase.from(table).select('*', { count: 'exact', head: true }).in('game_id', gameIds)
+  const results = await Promise.all([
+    count('player_stats').eq('player_id', playerId),
+    count('potm').eq('player_id', playerId),
+    count('match_cards').eq('player_id', playerId),
+    count('match_team_lists').eq('player_id', playerId).eq('selected', true),
+    playedIds.length
+      ? supabase
+          .from('attendance')
+          .select('*', { count: 'exact', head: true })
+          .eq('player_id', playerId)
+          .eq('session_type', 'game')
+          .eq('status', 'attending')
+          .in('session_id', playedIds)
+      : Promise.resolve({ count: 0, error: null }),
+  ])
+  for (const r of results) if (r.error) throw new Error(r.error.message)
+  return results.some((r) => (r.count ?? 0) > 0)
+}
+
 export type SquadMember = {
   id: string
   full_name: string

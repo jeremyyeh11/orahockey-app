@@ -9,8 +9,18 @@ import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
 import Modal from './Modal'
 import { startNavigationProgress } from './NavigationProgress'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
+import { addPlayersToSeason, removePlayerFromSeason, togglePlayerActive } from '@/app/admin/team/actions'
 
 export type AccountStatus = 'none' | 'invited' | 'active'
+
+/** Admin view, open season only: the player's place in the selected season's squad */
+export type SquadStatus = {
+  seasonLabel: string
+  inSquad: boolean
+  /** Has stats / appearances that season — can't be removed, only marked inactive */
+  hasRecord: boolean
+  isActive: boolean
+}
 
 // useLayoutEffect on the server warns; fall back to useEffect there.
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
@@ -116,6 +126,8 @@ type PlayerProfileProps = {
   seasonLabel: string
   /** Admin view only — enables the account/invite panel */
   accountStatus?: AccountStatus
+  /** Admin view, open season only — enables the squad (add / remove / inactive) panel */
+  squadStatus?: SquadStatus
 }
 
 export function PlayerProfilePage({
@@ -124,6 +136,7 @@ export function PlayerProfilePage({
   careerRow,
   seasonLabel,
   accountStatus,
+  squadStatus,
   presentation = 'page',
 }: PlayerProfileProps & {
   /**
@@ -163,6 +176,29 @@ export function PlayerProfilePage({
     } catch {
       // Clipboard API unavailable — the link is selectable in the input
     }
+  }
+
+  // Squad membership (admin view only)
+  const [squadPending, setSquadPending] = useState(false)
+  const [squadError, setSquadError] = useState<string | null>(null)
+
+  async function runSquadAction(action: () => Promise<void>) {
+    setSquadPending(true)
+    setSquadError(null)
+    try {
+      await action()
+      router.refresh()
+    } catch (err) {
+      setSquadError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setSquadPending(false)
+    }
+  }
+
+  function handleRemoveFromSeason() {
+    if (!squadStatus) return
+    if (!confirm(`Remove ${preferredName(player)} from the ${seasonLabel} squad?`)) return
+    runSquadAction(() => removePlayerFromSeason(player.id))
   }
 
   const whatsappText = link
@@ -336,6 +372,62 @@ export function PlayerProfilePage({
         {!seasonRow && !careerRow && (
           <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-4">
             <p className="text-center text-sm text-slate-500">No stats recorded yet.</p>
+          </div>
+        )}
+
+        {/* Squad panel — admin view, open season only */}
+        {squadStatus && (
+          <div className="liga-profile-panel liga-squad-panel bg-black/70 backdrop-blur-sm px-6 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  {seasonLabel} squad
+                </span>
+                <div className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-200">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      !squadStatus.inSquad ? 'bg-slate-500' : squadStatus.isActive ? 'bg-green-400' : 'bg-amber-400'
+                    }`}
+                  />
+                  <span className="truncate">
+                    {!squadStatus.inSquad ? 'Not in squad' : squadStatus.isActive ? 'In squad' : 'In squad · inactive'}
+                  </span>
+                </div>
+              </div>
+              {!squadStatus.inSquad ? (
+                <button
+                  onClick={() => runSquadAction(() => addPlayersToSeason([player.id]))}
+                  disabled={squadPending}
+                  className="liga-button liga-button-primary bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+                >
+                  {squadPending ? 'Adding…' : `Add to ${squadStatus.seasonLabel}`}
+                </button>
+              ) : squadStatus.hasRecord ? (
+                <button
+                  onClick={() => runSquadAction(() => togglePlayerActive(player.id, !squadStatus.isActive))}
+                  disabled={squadPending}
+                  className="liga-button liga-button-secondary shrink-0 rounded-lg border border-surface-border px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {squadPending ? 'Saving…' : squadStatus.isActive ? 'Mark inactive' : 'Mark active'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleRemoveFromSeason}
+                  disabled={squadPending}
+                  className="liga-button liga-button-secondary shrink-0 rounded-lg border border-red-900/60 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-900/30 disabled:opacity-50"
+                >
+                  {squadPending ? 'Removing…' : `Remove from ${squadStatus.seasonLabel}`}
+                </button>
+              )}
+            </div>
+            {squadStatus.inSquad && squadStatus.hasRecord && (
+              <p className="mt-1 text-[11px] text-slate-500">
+                Has {squadStatus.seasonLabel} appearances or stats, so they stay in the squad.
+              </p>
+            )}
+            {squadError && (
+              <p className="liga-alert liga-alert-error mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-300">{squadError}</p>
+            )}
           </div>
         )}
 

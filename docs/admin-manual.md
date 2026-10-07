@@ -33,6 +33,9 @@ Admins see the same Home as players (see the [user manual](user-manual.md#home))
 Manage the roster.
 
 - **+ Add Player** (top right) adds a player to the selected season's squad - full name, preferred name, email, jersey number, position(s) (FWD / MID / DEF / GK), and role (player or admin). Jersey number and position are kept per season.
+- **+ Existing Player** adds players who are already on the books but not in this season's squad (e.g. back after a season out). Tick one or more and tap **Add**. They're marked active, with their last jersey number and position. The button only shows when someone is missing from the squad.
+- **Removing a player from a season:** open their profile → **Squad** panel → **Remove from 2027**. This is only offered while they have no appearances or stats that season; their RSVPs for the season's upcoming events are cleared too. Once they've played, the panel offers **Mark inactive** instead, which hides them from the squad list but keeps their numbers in the leaderboards. A player who isn't in the squad gets **Add to 2027** in the same panel.
+- These squad controls are admin-only and only appear for the current (open) season; archived seasons can't be changed.
 - Use **Show inactive** to include inactive players in the list. A past season always lists its whole squad.
 - Season stats, **Top Scorers** and **Top Assists** are shown here just like the player view, driven by the selected season. On a computer the roster is a sortable table.
 

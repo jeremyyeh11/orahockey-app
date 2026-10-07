@@ -319,7 +319,7 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
   ]
   // `players` is the season's squad (season_players) as the page loads it
   const propsForSeason = (season) => ({
-    season, players, myPlayerId: 'me', whitelist: [], cards: [],
+    season, players, myPlayerId: 'me', whitelist: [], cards: [], notInSquad: [],
     games: [{ id: 'game', opponent: 'Opponent', game_date: `${season.label}-05-01T12:00:00Z`, result: 'win', goals_for: 1, goals_against: 0, season_id: season.id }],
     stats: [{ player_id: 'me', game_id: 'game', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 0 }],
     potm: [{ player_id: 'me', game_id: 'game', place: 1 }],
@@ -461,4 +461,65 @@ test('schedule master–detail: inline details panel on desktop, modal on touch 
     assert.match(src, /if \(!isDesktop\) setSelectedItem\(null\)/, 'saving keeps the desktop panel on the edited event')
     assert.match(src, /data-selected=\{isSelected\(item\) \|\| undefined\}/)
   }
+})
+
+test('season squad membership: admins add existing players and remove players without a season record', () => {
+  const calls = []
+  const adminActions = {
+    addPlayersToSeason: async (ids) => calls.push(['add', ids]),
+    removePlayerFromSeason: async (id) => calls.push(['remove', id]),
+    togglePlayerActive: async (id, active) => calls.push(['active', id, active]),
+  }
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
+    './actions': adminActions,
+    '@/app/admin/team/actions': adminActions,
+    '@/app/admin/team/inviteActions': { generateSetupLink: async () => assert.fail('not called') },
+  })
+
+  // + Existing Player picker lists who isn't in the squad, inactive ones marked
+  const { default: ExistingPlayerPicker } = boundaryLoad('app/admin/team/ExistingPlayerPicker.tsx')
+  const picker = render(ExistingPlayerPicker, {
+    seasonLabel: '2027',
+    onClose() {},
+    players: [
+      { id: 'r', full_name: 'Returning Player', preferred_name: 'RET', jersey_number: 7, is_active: false },
+    ],
+  })
+  assert.match(textOf(picker), /RETReturning Player · #7 · inactive/)
+  assert.match(picker, /type="checkbox"/)
+  assert.match(textOf(picker), /Add to 2027/)
+  assert.match(textOf(render(ExistingPlayerPicker, { seasonLabel: '2027', onClose() {}, players: [] })), /Everyone is already in this season/)
+
+  // Profile squad panel: the right single action per state
+  const { PlayerProfilePage } = boundaryLoad('components/PlayerProfilePage.tsx')
+  const profile = (squadStatus) =>
+    textOf(render(PlayerProfilePage, {
+      player: { id: 'p', full_name: 'Some Player', preferred_name: null, jersey_number: 4, position: ['MID'], is_active: true },
+      seasonRow: undefined, careerRow: undefined, seasonLabel: 'MHL1 2027', squadStatus,
+    }))
+  assert.match(profile({ seasonLabel: '2027', inSquad: false, hasRecord: false, isActive: true }), /MHL1 2027 squadNot in squadAdd to 2027/)
+  assert.match(profile({ seasonLabel: '2027', inSquad: true, hasRecord: false, isActive: true }), /In squadRemove from 2027/)
+  const withRecord = profile({ seasonLabel: '2027', inSquad: true, hasRecord: true, isActive: true })
+  assert.match(withRecord, /Mark inactive/)
+  assert.doesNotMatch(withRecord, /Remove from/, 'a player with a season record is never offered removal')
+  assert.doesNotMatch(profile(undefined), /squad(Not|In) /i, 'no panel without squadStatus (player view / archived season)')
+  assert.deepEqual(calls, [], 'rendering never calls a server action')
+})
+
+test('squad membership is admin-only and open-season-only', () => {
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const actions = read('app/admin/team/actions.ts')
+  for (const fn of ['addPlayer', 'updatePlayer', 'importPlayers', 'togglePlayerActive', 'addPlayersToSeason', 'removePlayerFromSeason']) {
+    assert.match(actions, new RegExp(String.raw`export async function ${fn}\([^)]*\) \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)`), `${fn} checks is_admin() first`)
+  }
+  assert.match(actions, /export async function removePlayerFromSeason[\s\S]*?if \(await hasSeasonRecord\(season\.id, playerId\)\)[\s\S]*?throw/, 'removal refused when the player has a season record')
+  const view = read('components/PlayerProfileView.tsx')
+  assert.match(view, /if \(includeAccount && !season\.locked\) \{\s*squadStatus = /, 'squad panel only on the admin route, open seasons only')
+  for (const route of ['app/dashboard/team/[playerId]/page.tsx', 'app/dashboard/team/@modal/(.)[playerId]/page.tsx']) {
+    assert.doesNotMatch(read(route), /includeAccount/, `${route} (player view) never gets admin panels`)
+  }
+  assert.doesNotMatch(read('app/dashboard/team/SquadClient.tsx'), /Existing Player|ExistingPlayerPicker/)
+  assert.match(read('app/admin/team/SquadClient.tsx'), /\{!season\.locked && \([\s\S]*?\+ Existing Player/, 'picker button only for open seasons')
+  assert.match(read('supabase/migrations/011_seasons.sql'), /"Admins manage season_players" on public\.season_players\s+for all using \(is_admin\(\)\) with check \(is_admin\(\)\)/, 'RLS: only admins write season_players')
 })
