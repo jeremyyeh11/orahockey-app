@@ -260,7 +260,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
               </span>
             </div>
             <div className="liga-hero-sub mt-2 text-xs text-white/70">
-              {preSeason ? quote : `${played.length} games · ${goalsFor} scored · ${goalsAgainst} conceded`}
+              {preSeason ? quote : `${gamesLabel(played.length)} · ${goalsFor} scored · ${goalsAgainst} conceded`}
             </div>
             {phase === 'post-season' && (
               <div className="liga-hero-quote mt-3 border-t border-white/15 pt-3 text-sm text-white/90">{quote}</div>
@@ -351,6 +351,11 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   )
 }
 
+/** "1 game" / "14 games" */
+function gamesLabel(n: number) {
+  return `${n} game${n === 1 ? '' : 's'}`
+}
+
 /** "MHL1" or "Friendly" beside a game's title */
 function CompetitionTag({ label }: { label: string }) {
   const friendly = label === 'Friendly'
@@ -383,7 +388,7 @@ function AllTime({
         <MiniStat value={totals.assists} label="Assists" />
       </div>
       <div className="liga-meta mt-3 border-t border-white/10 pt-3 text-center text-slate-400">
-        Team · {games} games · {record.w}W · {record.d}D · {record.l}L
+        Team · {gamesLabel(games)} · {record.w}W · {record.d}D · {record.l}L
       </div>
     </div>
   )
