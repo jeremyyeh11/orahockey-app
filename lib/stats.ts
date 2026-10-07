@@ -14,6 +14,14 @@ export type GameLite = {
   game_date: string
   result: string | null
   goals_against: number | null
+  season_id?: string
+  /** 'exhibition' = Friendly: shown on the schedule but never counted in records or stats */
+  game_type?: string | null
+}
+
+/** League games count towards records and stats; friendlies don't. */
+export function countsForRecord(g: { game_type?: string | null }) {
+  return g.game_type !== 'exhibition'
 }
 
 export type SeasonStat = {
@@ -59,12 +67,11 @@ export type LeaderboardRow = {
 
 const POTM_POINTS: Record<number, number> = { 1: 3, 2: 2, 3: 1 }
 
-/** Distinct season labels (years) from game dates, newest first. */
-export function seasonsOf(games: GameLite[]): string[] {
-  const years = new Set(games.map((g) => String(new Date(g.game_date).getFullYear())))
-  return Array.from(years).sort((a, b) => b.localeCompare(a))
-}
-
+/**
+ * Season stats from raw rows. `season` is a season label (e.g. '2026') or 'all'
+ * for career totals. Pass `seasonId` to pick games by their season_id; without
+ * it, games are matched on the year of their date.
+ */
 export function computeSeason({
   players,
   games,
@@ -73,6 +80,7 @@ export function computeSeason({
   attendance,
   cards = [],
   season,
+  seasonId,
 }: {
   players: PlayerLite[]
   games: GameLite[]
@@ -81,10 +89,15 @@ export function computeSeason({
   attendance: AttendanceRow[]
   cards?: MatchCardRow[]
   season: string
+  seasonId?: string
 }) {
+  // Friendlies never count: their stats, caps, POTM and cards are left out below
+  const counted = games.filter(countsForRecord)
   const seasonGames = season === 'all'
-    ? games
-    : games.filter((g) => String(new Date(g.game_date).getFullYear()) === season)
+    ? counted
+    : seasonId
+    ? counted.filter((g) => g.season_id === seasonId)
+    : counted.filter((g) => String(new Date(g.game_date).getFullYear()) === season)
   const gameIds = new Set(seasonGames.map((g) => g.id))
   const playedIds = new Set(seasonGames.filter((g) => g.result).map((g) => g.id))
 

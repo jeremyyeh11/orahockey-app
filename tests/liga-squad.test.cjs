@@ -186,18 +186,90 @@ test('season-derived roster stats wrap as 12px tabular value-label pairs while k
   assert.doesNotMatch(html, /FG  PC  PS/, 'inline labels do not need a duplicate table-style header')
 })
 
-test('season selection has an accessible name and a 44px hit target without changing its values or callback', () => {
-  const { SeasonSelect } = load('components/SeasonStats.tsx')
-  const changes = []
-  const props = { seasons: ['2026', '2025'], value: '2025', onChange: (value) => changes.push(value) }
-  const html = render(SeasonSelect, props)
-  assert.match(html, /<select[^>]*aria-label="Season"/)
-  assert.match(classesOf(html), /\bliga-season-select\b/)
-  assert.ok(classesOf(html).split(/\s+/).includes('min-h-[44px]'))
-  assert.match(html, /<option value="2026">MHL1 2026<\/option>/)
-  assert.match(html, /<option value="2025" selected="">MHL1 2025<\/option>/)
-  SeasonSelect(props).props.onChange({ target: { value: '2026' } })
-  assert.deepEqual(changes, ['2026'])
+const SEASONS = [
+  { id: 's2027', label: '2027', starts_on: '2027-01-01', ends_on: '2027-12-31', is_current: true, locked: false },
+  { id: 's2026', label: '2026', starts_on: '2026-01-01', ends_on: '2026-12-31', is_current: false, locked: true },
+]
+
+test('season switcher: accessible dropdown (desktop) and 44px tabs (touch), locked seasons marked', () => {
+  const switcherLoad = createTsLoader({ 'next/navigation': { useRouter: () => ({ refresh() {} }) } })
+  const { SeasonMenu, SeasonTabs, LockedSeasonStrip } = switcherLoad('components/SeasonSwitcher.tsx')
+
+  // Custom listbox (styled like the app) instead of a native <select>
+  const menu = render(SeasonMenu, { seasons: SEASONS, selectedId: 's2026' })
+  const trigger = buttonsOf(menu)[0]
+  assert.match(trigger, /aria-haspopup="listbox"/)
+  assert.match(trigger, /aria-expanded="false"/)
+  assert.match(trigger, /aria-label="Season: MHL1 2026"/)
+  assert.ok(classesOf(trigger).split(/\s+/).includes('min-h-[44px]'))
+  assert.match(trigger, /<svg[^>]*aria-hidden/, 'lock icon beside an archived selection')
+  assert.doesNotMatch(menu, /<select/)
+  assert.match(menu, /<ul[^>]*role="listbox"[^>]*aria-label="Season"[^>]*hidden=""/, 'menu closed until opened')
+  const optionTags = menu.match(/<li[^>]*role="option"[^>]*>[\s\S]*?<\/li>/g) ?? []
+  assert.deepEqual(optionTags.map(textOf), ['MHL1 2027Current', 'MHL1 2026Archived'])
+  assert.match(optionTags[1], /aria-selected="true"/)
+  assert.match(optionTags[1], /M8 11V7a4 4 0 0 1 8 0v4/, 'archived season: lock icon')
+  assert.equal(optionTags[1].replace(/<span class="sr-only">Archived<\/span>/, '').includes('Archived'), false, 'no visible "Archived" text, only for screen readers')
+  assert.match(optionTags[1], /shadow-\[inset_3px_0_0_#5aa971\]/, 'selected season gets the green bar used across the app')
+  assert.match(optionTags[0], /aria-selected="false"/)
+  assert.match(menu, /bg-surface-card/, 'dark card menu, not the OS list')
+
+  const tabs = render(SeasonTabs, { seasons: SEASONS, selectedId: 's2026' })
+  assert.match(tabs, /role="group" aria-label="Season"/)
+  const buttons = buttonsOf(tabs)
+  assert.deepEqual(buttons.map(textOf), ['MHL1 2027', 'MHL1 2026'])
+  assert.match(buttons[1], /aria-pressed="true"/)
+  assert.match(buttons[0], /aria-pressed="false"/)
+  for (const b of buttons) assert.ok(classesOf(b).split(/\s+/).includes('min-h-[44px]'))
+  assert.match(textOf(tabs), /Read-only$/, 'locked season shows a Read-only tag')
+  assert.doesNotMatch(textOf(render(SeasonTabs, { seasons: SEASONS, selectedId: 's2027' })), /Read-only/)
+
+  assert.match(textOf(render(LockedSeasonStrip, { seasons: SEASONS, selectedId: 's2026' })), /MHL1 2026 is a past season — read-only\./)
+  assert.equal(render(LockedSeasonStrip, { seasons: SEASONS, selectedId: 's2027' }), '')
+})
+
+test('season stats follow season_id; legacy cards follow their year; career spans every season', () => {
+  const { computeSeason } = load('lib/stats.ts')
+  const players = [player('p', 'Some Player')]
+  const base = {
+    players,
+    games: [
+      // Dated in 2026 but belongs to the 2027 season (e.g. a December pre-season game)
+      { id: 'g27', game_date: '2026-12-20T12:00:00Z', result: 'win', goals_against: 1, season_id: 's2027' },
+      { id: 'g26', game_date: '2026-05-01T12:00:00Z', result: 'loss', goals_against: 2, season_id: 's2026' },
+    ],
+    stats: [
+      { player_id: 'p', game_id: 'g27', goals_fg: 2, goals_pc: 0, goals_ps: 0, assists: 0 },
+      { player_id: 'p', game_id: 'g26', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 1 },
+    ],
+    potm: [],
+    attendance: [{ player_id: 'p', session_id: 'g27' }, { player_id: 'p', session_id: 'g26' }],
+    cards: [{ player_id: 'p', game_id: null, card_type: 'green', created_at: '2026-07-01T00:00:00Z' }],
+  }
+  const s27 = computeSeason({ ...base, season: '2027', seasonId: 's2027' }).leaderboard[0]
+  assert.equal(s27.goals, 2)
+  assert.equal(s27.caps, 1)
+  assert.equal(s27.cards.green, 0)
+  const s26 = computeSeason({ ...base, season: '2026', seasonId: 's2026' }).leaderboard[0]
+  assert.deepEqual([s26.goals, s26.assists, s26.caps, s26.cards.green], [1, 1, 1, 1])
+  const career = computeSeason({ ...base, season: 'all' }).leaderboard[0]
+  assert.deepEqual([career.goals, career.caps, career.cards.green], [3, 2, 1])
+})
+
+test('schedule roster is the season squad: everyone for a past season, active players for an open one', () => {
+  const { seasonRoster } = createTsLoader({
+    // react's `cache` ships in Next's bundled React only
+    react: { ...React, cache: (fn) => fn },
+    'next/headers': { cookies: () => ({ get: () => undefined }) },
+    '@/lib/supabase/server': { createClient() { assert.fail('pure helper must not query') } },
+  })('lib/season-server.ts')
+  const squad = [
+    player('b', 'Bravo', ['MID'], { jersey_number: 9 }),
+    player('a', 'Alpha', ['GK'], { jersey_number: 1, is_active: false }),
+  ]
+  assert.deepEqual(seasonRoster(squad, true).map((p) => p.id), ['a', 'b'], 'locked: whole squad, by name')
+  assert.deepEqual(seasonRoster(squad, false).map((p) => p.id), ['b'], 'open: active players only')
+  assert.deepEqual(Object.keys(seasonRoster(squad, true)[0]).sort(), ['full_name', 'id', 'jersey_number', 'position', 'preferred_name'])
 })
 
 test('season summaries render quiet ranked divider rows with complete tied names and unchanged totals', () => {
@@ -257,17 +329,18 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
     player('veteran', 'Former Player', ['GK'], { email: 'former@example.test', role: 'player', auth_user_id: null, is_active: false }),
     player('absent', 'No History', ['MID'], { email: 'absent@example.test', role: 'player', auth_user_id: null, is_active: false }),
   ]
-  const propsForYear = (year) => ({
-    players, myPlayerId: 'me', whitelist: [], cards: [],
-    games: [{ id: 'game', opponent: 'Opponent', game_date: `${year}-05-01T12:00:00Z`, result: 'win', goals_for: 1, goals_against: 0 }],
+  // `players` is the season's squad (season_players) as the page loads it
+  const propsForSeason = (season) => ({
+    season, players, myPlayerId: 'me', whitelist: [], cards: [], notInSquad: [],
+    games: [{ id: 'game', opponent: 'Opponent', game_date: `${season.label}-05-01T12:00:00Z`, result: 'win', goals_for: 1, goals_against: 0, season_id: season.id }],
     stats: [{ player_id: 'me', game_id: 'game', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 0 }],
     potm: [{ player_id: 'me', game_id: 'game', place: 1 }],
     attendance: [{ player_id: 'me', session_id: 'game' }, { player_id: 'veteran', session_id: 'game' }],
   })
-  const year = new Date().getFullYear()
+  const [open, locked] = SEASONS
   for (const section of ['dashboard', 'admin']) {
     const Component = boundaryLoad(`app/${section}/team/SquadClient.tsx`).default
-    const { html, tree } = captureRender(Component, propsForYear(year))
+    const { html, tree } = captureRender(Component, propsForSeason(open))
     assert.match(classesOf(html), /\bliga-page\b/)
     assert.match(classesOf(openingWithClass(html, 'liga-page-header')), /\bflex-wrap\b/)
     assert.match(openingWithClass(html, 'liga-page-title'), /^<h1\b/)
@@ -289,19 +362,23 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
       assert.match(html, /Top Scorers/)
       assert.doesNotMatch(html, /POTS Race/, 'POTS race is hidden on the admin Squad page')
     } else {
-      assert.match(html, /<p class="[^"]*liga-meta[^"]*">1 players<\/p>/)
+      assert.match(html, /<p class="[^"]*liga-meta[^"]*">MHL1 2027 · 1 players<\/p>/)
       assert.doesNotMatch(html, /Add Player|Show inactive|POTS Race/)
-      const historical = captureRender(Component, propsForYear(year - 1))
-      const pastRoster = findElement(historical.tree, (node) => node.type === boundaryLoad('components/RosterList.tsx').default)
-      assert.deepEqual(pastRoster.props.players.map((p) => p.id), ['me', 'veteran'])
     }
+
+    // A locked (past) season lists its whole squad and offers no edits, admins included
+    const historical = captureRender(Component, propsForSeason(locked))
+    const pastRoster = findElement(historical.tree, (node) => node.type === boundaryLoad('components/RosterList.tsx').default)
+    assert.deepEqual(pastRoster.props.players.map((p) => p.id), ['me', 'veteran', 'absent'])
+    assert.match(historical.html, /MHL1 2026 · 3 players/)
+    assert.doesNotMatch(historical.html, /Add Player|Show inactive/)
   }
 
   // Keep mutations behind their original handlers; this presentation test never imports real actions.
   const adminSource = fs.readFileSync(path.join(root, 'app/admin/team/SquadClient.tsx'), 'utf8')
   for (const contract of [
     'onClick={openAdd}', 'setShowAddModal(true)', '<Modal onClose={() => { setShowAddModal(false); setError(null) }}>',
-    'onSubmit={handleAddSubmit}', 'await addPlayer(data)', 'disabled={isPending}',
+    'onSubmit={handleAddSubmit}', 'await addPlayer(data, joinSeason)', 'disabled={isPending}',
     'await togglePlayerActive(player.id, !player.is_active)',
     'onChange={(e) => setShowInactive(e.target.checked)}',
   ]) assert.ok(adminSource.includes(contract), `preserve admin interaction: ${contract}`)
@@ -396,4 +473,419 @@ test('schedule master–detail: inline details panel on desktop, modal on touch 
     assert.match(src, /if \(!isDesktop\) setSelectedItem\(null\)/, 'saving keeps the desktop panel on the edited event')
     assert.match(src, /data-selected=\{isSelected\(item\) \|\| undefined\}/)
   }
+})
+
+test('season squad membership: admins add existing players and remove players without a season record', () => {
+  const calls = []
+  const adminActions = {
+    addPlayersToSeason: async (ids) => calls.push(['add', ids]),
+    removePlayerFromSeason: async (id) => calls.push(['remove', id]),
+    togglePlayerActive: async (id, active) => calls.push(['active', id, active]),
+  }
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
+    './actions': adminActions,
+    '@/app/admin/team/actions': adminActions,
+    '@/app/admin/team/inviteActions': { generateSetupLink: async () => assert.fail('not called') },
+  })
+
+  // + Existing Player picker lists who isn't in the squad, inactive ones marked
+  const { default: ExistingPlayerPicker } = boundaryLoad('app/admin/team/ExistingPlayerPicker.tsx')
+  const picker = render(ExistingPlayerPicker, {
+    seasonLabel: '2027',
+    onClose() {},
+    players: [
+      { id: 'r', full_name: 'Returning Player', preferred_name: 'RET', jersey_number: 7, is_active: false },
+    ],
+  })
+  assert.match(textOf(picker), /RETReturning Player · #7 · inactive/)
+  assert.match(picker, /type="checkbox"/)
+  assert.match(textOf(picker), /Add to 2027/)
+  assert.match(textOf(render(ExistingPlayerPicker, { seasonLabel: '2027', onClose() {}, players: [] })), /Everyone is already in this season/)
+
+  // Profile squad panel: the right single action per state
+  const { PlayerProfilePage } = boundaryLoad('components/PlayerProfilePage.tsx')
+  const profile = (squadStatus) =>
+    textOf(render(PlayerProfilePage, {
+      player: { id: 'p', full_name: 'Some Player', preferred_name: null, jersey_number: 4, position: ['MID'], is_active: true },
+      seasonRow: undefined, careerRow: undefined, seasonLabel: 'MHL1 2027', squadStatus,
+    }))
+  assert.match(profile({ seasonLabel: '2027', inSquad: false, hasRecord: false, isActive: true }), /MHL1 2027 squadNot in squadAdd to 2027/)
+  assert.match(profile({ seasonLabel: '2027', inSquad: true, hasRecord: false, isActive: true }), /In squadRemove from 2027/)
+  const withRecord = profile({ seasonLabel: '2027', inSquad: true, hasRecord: true, isActive: true })
+  assert.match(withRecord, /Mark inactive/)
+  assert.doesNotMatch(withRecord, /Remove from/, 'a player with a season record is never offered removal')
+  assert.doesNotMatch(profile(undefined), /squad(Not|In) /i, 'no panel without squadStatus (player view / archived season)')
+  assert.deepEqual(calls, [], 'rendering never calls a server action')
+})
+
+test('squad membership is admin-only and open-season-only', () => {
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const actions = read('app/admin/team/actions.ts')
+  for (const fn of ['addPlayer', 'updatePlayer', 'importPlayers', 'togglePlayerActive', 'addPlayersToSeason', 'removePlayerFromSeason']) {
+    assert.match(actions, new RegExp(String.raw`export async function ${fn}\([^)]*\) \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)`), `${fn} checks is_admin() first`)
+  }
+  assert.match(actions, /export async function removePlayerFromSeason[\s\S]*?if \(await hasSeasonRecord\(season\.id, playerId\)\)[\s\S]*?throw/, 'removal refused when the player has a season record')
+  const view = read('components/PlayerProfileView.tsx')
+  assert.match(view, /if \(includeAccount && !season\.locked\) \{\s*squadStatus = /, 'squad panel only on the admin route, open seasons only')
+  for (const route of ['app/dashboard/team/[playerId]/page.tsx', 'app/dashboard/team/@modal/(.)[playerId]/page.tsx']) {
+    assert.doesNotMatch(read(route), /includeAccount/, `${route} (player view) never gets admin panels`)
+  }
+  assert.doesNotMatch(read('app/dashboard/team/SquadClient.tsx'), /Existing Player|ExistingPlayerPicker/)
+  assert.match(read('app/admin/team/SquadClient.tsx'), /\{!season\.locked && \([\s\S]*?\+ Existing Player/, 'picker button only for open seasons')
+  assert.match(read('supabase/migrations/011_seasons.sql'), /"Admins manage season_players" on public\.season_players\s+for all using \(is_admin\(\)\) with check \(is_admin\(\)\)/, 'RLS: only admins write season_players')
+})
+
+test('pending players: added without an email, shown as pending, invited only once an email is saved', () => {
+  const { accountStatusOf, ACCOUNT_DOT } = load('components/RosterList.tsx')
+  assert.equal(accountStatusOf({ email: null, auth_user_id: null }, null), 'pending')
+  assert.equal(accountStatusOf({ email: 'a@b.co', auth_user_id: null }, null), 'none')
+  assert.equal(accountStatusOf({ email: 'a@b.co', auth_user_id: null }, '2026-10-01'), 'invited')
+  assert.equal(accountStatusOf({ email: 'a@b.co', auth_user_id: 'u' }, null), 'active')
+  assert.match(ACCOUNT_DOT.pending.title, /Pending/)
+
+  const stubs = {
+    addPlayersToSeason: async () => {}, removePlayerFromSeason: async () => {}, togglePlayerActive: async () => {},
+    setPlayerEmail: async () => assert.fail('render must not save'),
+  }
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
+    '@/app/admin/team/actions': stubs,
+    './actions': { ...stubs, updatePlayer: async () => assert.fail('render must not save') },
+    '@/app/admin/team/inviteActions': { generateSetupLink: async () => assert.fail('not called') },
+  })
+  const { PlayerProfilePage } = boundaryLoad('components/PlayerProfilePage.tsx')
+  const profile = (accountStatus) => render(PlayerProfilePage, {
+    player: { id: 'p', full_name: 'Some Player', preferred_name: null, jersey_number: null, position: null, is_active: true },
+    seasonRow: undefined, careerRow: undefined, seasonLabel: 'MHL1 2027', accountStatus,
+  })
+  const pending = profile('pending')
+  assert.match(textOf(pending), /Pending — no email yet/)
+  assert.match(pending, /<input[^>]*type="email"[^>]*aria-label="Player email"|<input[^>]*aria-label="Player email"[^>]*type="email"/)
+  assert.match(textOf(pending), /Save email/)
+  assert.doesNotMatch(textOf(pending), /Invite link/, 'no invite until there is an email')
+  assert.match(textOf(profile('none')), /Invite link/)
+  assert.doesNotMatch(profile('none'), /aria-label="Player email"/)
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const squad = read('app/admin/team/SquadClient.tsx')
+  assert.doesNotMatch(squad, /name="email" type="email" required/, 'email is optional on Add Player')
+  assert.match(squad, /checked=\{joinSeason\}/, 'Add Player can skip the season (past players)')
+  const actions = read('app/admin/team/actions.ts')
+  assert.match(actions, /is_active: joinSeason/, 'players added outside the season are inactive (no auto-join)')
+  assert.match(actions, /export async function setPlayerEmail[\s\S]*?requireAdmin\(supabase\)[\s\S]*?if \(player\.auth_user_id\) throw/, 'only admins; never rewrites an existing login')
+  assert.match(read('app/admin/team/inviteActions.ts'), /if \(!player\.email\) throw/)
+  const migration = read('supabase/migrations/012_pending_players.sql')
+  assert.match(migration, /alter column email drop not null/)
+  assert.match(migration, /check \(email is null or btrim\(email\) <> ''\)/)
+  assert.match(migration, /if not new\.is_active then\s+return new;/)
+})
+
+test('admin player edit: prefilled form, season-aware jersey, locked email/role where they must not change', () => {
+  const saved = []
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
+    './actions': { updatePlayer: async (...args) => saved.push(args) },
+  })
+  const { default: PlayerEditModal } = boundaryLoad('app/admin/team/PlayerEditModal.tsx')
+  const player = {
+    id: 'p', full_name: 'SOME PLAYER', preferred_name: 'SOMEY', email: 'some@x.co', role: 'admin',
+    position: ['MID', 'GK'], date_of_birth: '1999-04-05', joined_year: 2016, is_active: true, jersey_number: 22,
+  }
+  const html = (context) => render(PlayerEditModal, { player, context, onClose() {} })
+  const open = html({ seasonLabel: '2027', jerseyMode: 'season', hasAccount: false, isSelf: false })
+  assert.match(open, /value="SOME PLAYER"/)
+  assert.match(open, /value="1999-04-05"/)
+  assert.match(textOf(open), /Jersey # \(MHL1 2027\)/)
+  assert.match(open, /aria-pressed="true"[^>]*>MID</)
+  assert.match(open, /aria-pressed="true"[^>]*>GK</)
+  assert.match(open, /aria-pressed="false"[^>]*>FWD</)
+  assert.doesNotMatch(open, /<input[^>]*name="email"[^>]*disabled=""/)
+
+  const self = html({ seasonLabel: '2026', jerseyMode: 'archived', hasAccount: true, isSelf: true })
+  assert.match(self, /<input[^>]*name="email"[^>]*disabled=""/, 'login email is fixed once they have an account')
+  assert.match(self, /<select[^>]*name="role"[^>]*disabled=""/, 'own role is fixed')
+  assert.match(self, /<input[^>]*name="jersey_number"[^>]*disabled=""/, 'archived season number is read-only')
+  assert.match(textOf(self), /Archived season — read-only/)
+  assert.match(textOf(html({ seasonLabel: '2027', jerseyMode: 'default', hasAccount: false, isSelf: false })), /Jersey # \(default for new seasons\)/)
+  assert.deepEqual(saved, [], 'rendering never saves')
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const actions = read('app/admin/team/actions.ts')
+  assert.match(actions, /export async function updatePlayer\(id: string, data: PlayerDetailsInput\) \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/)
+  assert.match(actions, /if \(current\.auth_user_id && email !== current\.email\)\s*\{\s*throw/, 'server refuses login-email changes')
+  assert.match(actions, /current\.auth_user_id === user\?\.id && data\.role !== current\.role\)\s*\{\s*throw/, 'server refuses self role change')
+  assert.match(actions, /if \(entry && !season\.locked\)/, 'season jersey only written for open seasons')
+  const view = read('components/PlayerProfileView.tsx')
+  assert.match(view, /let editContext: EditContext \| undefined\s+if \(includeAccount\) \{/, 'edit only on the admin route')
+  assert.doesNotMatch(read('supabase/migrations/013_universal_positions.sql'), /insert into season_players \(season_id, player_id, jersey_number, position\)/)
+})
+
+test('All time: first in the switcher, view-only, never labelled Archived; squad shows career totals', () => {
+  const { ALL_TIME, seasonTitle } = load('lib/season.ts')
+  assert.equal(seasonTitle(ALL_TIME), 'All time')
+  assert.equal(seasonTitle(SEASONS[0]), 'MHL1 2027')
+  assert.equal(ALL_TIME.locked, true, 'view-only: every write path refuses it')
+
+  const switcherLoad = createTsLoader({ 'next/navigation': { useRouter: () => ({ refresh() {} }) } })
+  const { SeasonMenu, SeasonTabs, LockedSeasonStrip } = switcherLoad('components/SeasonSwitcher.tsx')
+  const nav = { seasons: [ALL_TIME, ...SEASONS], selectedId: 'all' }
+
+  const menu = render(SeasonMenu, nav)
+  const options = (menu.match(/<li[^>]*role="option"[^>]*>[\s\S]*?<\/li>/g) ?? [])
+  assert.deepEqual(options.map(textOf), ['All time', 'MHL1 2027Current', 'MHL1 2026Archived'], 'All time on top; only real past seasons say Archived')
+  assert.match(options[0], /border-b border-surface-border/, 'divider under All time')
+  assert.doesNotMatch(buttonsOf(menu)[0], /M8 11V7a4 4 0 0 1 8 0v4/, 'no lock icon on the trigger for All time')
+
+  const tabs = render(SeasonTabs, nav)
+  const buttons = buttonsOf(tabs)
+  assert.deepEqual(buttons.map(textOf), ['All time', 'MHL1 2027', 'MHL1 2026'])
+  assert.doesNotMatch(buttons[0], /<svg/, 'All time tab has no lock')
+  assert.match(tabs, /All time<\/button><span aria-hidden="true" class="[^"]*w-px/, 'divider between All time and the seasons')
+  assert.match(textOf(tabs), /View only$/)
+  assert.match(textOf(render(LockedSeasonStrip, nav)), /All time — every season combined\. View only; pick a season to make changes\./)
+
+  const server = fs.readFileSync(path.join(root, 'lib/season-server.ts'), 'utf8')
+  assert.match(server, /seasons: \[ALL_TIME, \.\.\.seasons\]/, 'switcher lists All time first')
+  assert.match(server, /if \(wanted === ALL_TIME\.label && seasons\.length > 0\) return ALL_TIME/)
+
+  // Squad under All time: every game counts, read-only header
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ push() {} }) },
+  })
+  const SquadClient = boundaryLoad('app/dashboard/team/SquadClient.tsx').default
+  const players = [player('p', 'Some Player')]
+  const { html } = captureRender(SquadClient, {
+    season: ALL_TIME, players, myPlayerId: null, potm: [], attendance: [], cards: [],
+    games: [
+      { id: 'g26', game_date: '2026-05-01T12:00:00Z', result: 'win', goals_against: 0, season_id: 's2026' },
+      { id: 'g27', game_date: '2027-05-01T12:00:00Z', result: 'win', goals_against: 0, season_id: 's2027' },
+    ],
+    stats: [
+      { player_id: 'p', game_id: 'g26', goals_fg: 2, goals_pc: 0, goals_ps: 0, assists: 0 },
+      { player_id: 'p', game_id: 'g27', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 0 },
+    ],
+  })
+  assert.match(html, /All time · 1 players/)
+  assert.match(textOf(html), /Top Scorers1SOME3/, 'career goals across both seasons')
+})
+
+test('season phase is derived from fixtures and today (Singapore days)', () => {
+  const { seasonPhase, nextSeasonLabel, PHASE_LABEL } = load('lib/season.ts')
+  const at = (iso) => new Date(iso)
+  const fixtures = ['2027-04-12T02:00:00Z', '2027-05-10T02:00:00Z', '2027-06-27T07:00:00Z']
+  assert.equal(seasonPhase([], at('2027-05-01T00:00:00Z')), 'pre-season', 'no fixtures yet')
+  assert.equal(seasonPhase(fixtures, at('2027-04-11T10:00:00Z')), 'pre-season', 'before the first fixture day')
+  assert.equal(seasonPhase(fixtures, at('2027-04-12T00:30:00Z')), 'season', 'first fixture day counts as season')
+  assert.equal(seasonPhase(fixtures, at('2027-05-20T00:00:00Z')), 'season')
+  assert.equal(seasonPhase(fixtures, at('2027-06-27T12:00:00Z')), 'season', 'last fixture day (19:00 SGT) still season')
+  assert.equal(seasonPhase(fixtures, at('2027-06-27T16:30:00Z')), 'post-season', '00:30 SGT the day after the last fixture')
+  assert.equal(seasonPhase([...fixtures].reverse(), at('2027-04-11T10:00:00Z')), 'pre-season', 'order of fixtures does not matter')
+  assert.equal(PHASE_LABEL['post-season'], 'Post-season')
+  assert.equal(nextSeasonLabel('2027'), '2028')
+  assert.equal(nextSeasonLabel('Spring league'), null)
+})
+
+test('close season: admin-only Danger zone with three confirmations', () => {
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ refresh() {} }) },
+    './seasonActions': { closeSeason: async () => assert.fail('render must not close a season') },
+  })
+  const { default: CloseSeasonPanel } = boundaryLoad('app/admin/dashboard/CloseSeasonPanel.tsx')
+  const summary = {
+    label: '2027', nextLabel: '2028', phase: 'season', fixtures: 3,
+    firstFixture: '2027-04-12T02:00:00Z', lastFixture: '2027-06-27T07:00:00Z', upcomingEvents: 2, carryOver: 28,
+  }
+  const html = render(CloseSeasonPanel, { summary })
+  assert.match(textOf(html), /Danger zone/i)
+  assert.match(textOf(html), /Close MHL1 2027/)
+  assert.match(textOf(html), /Season · 3 fixtures/)
+  assert.doesNotMatch(html, /role="dialog"/, 'nothing opens until the button is pressed')
+  assert.match(render(CloseSeasonPanel, { summary: { ...summary, nextLabel: null } }), /<button[^>]*disabled=""[^>]*>Close season/)
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const panel = read('app/admin/dashboard/CloseSeasonPanel.tsx')
+  assert.match(panel, /onClick=\{\(\) => setStep\('confirm'\)\}/, '1. the Close season button opens the confirmation')
+  assert.match(panel, /onClick=\{\(\) => setStep\('type'\)\}/, '2. "Yes, close" moves to the typing step')
+  assert.match(panel, /const CONFIRM_WORD = 'CLOSE'/)
+  assert.match(panel, /disabled=\{typed !== CONFIRM_WORD \|\| isPending\}/, '3. final button only once CLOSE is typed exactly')
+  const action = read('app/admin/dashboard/seasonActions.ts')
+  assert.match(action, /if \(confirmation !== 'CLOSE'\) throw/, 'server re-checks the typed word')
+  assert.match(action, /rpc\('is_admin'\)[\s\S]*rpc\('close_current_season'\)/)
+  const home = read('components/HomeView.tsx')
+  assert.match(home, /basePath === '\/admin' && season\.is_current && !season\.locked \? await getCloseSeasonSummary\(season\)/, 'admin Home, current season only')
+  const migration = read('supabase/migrations/014_close_season.sql')
+  assert.match(migration, /if not public\.is_admin\(\) then\s+raise exception/)
+  assert.match(migration, /update seasons set is_current = false, locked = true where id = cur\.id/)
+  assert.match(migration, /revoke execute on function public\.close_current_season\(\) from public, anon;/)
+})
+
+test('schedule events: titled entries with their own tag, filter, form and season lock', () => {
+  const { EventRow, eventId, eventTitle } = load('components/EventRow.tsx')
+  const { eventKey } = createTsLoader({ 'next/navigation': {} })('lib/useEventSelection.ts')
+  const event = { id: 'e1', title: 'Team dinner', event_date: '2026-11-14T11:00:00Z', location: 'Hawker centre', notes: null }
+  const item = { kind: 'event', date: event.event_date, event }
+  assert.equal(eventId(item), 'e1')
+  assert.equal(eventTitle(item), 'Team dinner')
+  assert.equal(eventKey(item), 'event-e1')
+  const row = textOf(render(EventRow, { item }))
+  assert.match(row, /Team dinner/)
+  assert.match(row, /Event/)
+  assert.match(row, /Hawker centre/)
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const admin = read('app/admin/schedule/ScheduleClient.tsx')
+  assert.match(admin, /onClick=\{\(\) => setAddModal\('event'\)\}[\s\S]*?\+ Event/, '+ Event next to + Training / + Game')
+  assert.match(admin, /<FormModal title="Add Event"[\s\S]*?name="title" type="text" required/, 'events need a title')
+  for (const area of ['admin', 'dashboard']) {
+    assert.match(read(`app/${area}/schedule/ScheduleClient.tsx`), /\['events', 'Events'\]/, `${area}: Events filter`)
+    assert.match(read(`app/${area}/schedule/page.tsx`), /inSeason\(supabase\.from\('team_events'\)/, `${area}: events are season-scoped`)
+  }
+  const actions = read('app/admin/schedule/actions.ts')
+  assert.match(actions, /export async function addEvent[\s\S]*?requireOpenSeason\(\)[\s\S]*?season_id: season\.id/)
+  assert.match(actions, /if \(!title\) throw new Error\('Give the event a title\.'\)/)
+  assert.match(read('app/dashboard/schedule/actions.ts'), /sessionType: 'game' \| 'training' \| 'event'/, 'players RSVP to events')
+  const migration = read('supabase/migrations/015_team_events.sql')
+  assert.match(migration, /title\s+text not null check \(btrim\(title\) <> ''\)/)
+  assert.match(migration, /create trigger season_lock before insert or update or delete on public\.team_events/)
+  assert.match(migration, /elsif p_row->>'session_type' = 'event' then\s+select season_id into sid from team_events/)
+})
+
+test('games: League / Friendly switch replaces the type dropdown', () => {
+  const { GameTypeSwitch } = load('components/GameTypeSwitch.tsx')
+  const league = render(GameTypeSwitch, {})
+  assert.match(league, /role="group" aria-label="Game type"/)
+  assert.match(league, /aria-pressed="true"[^>]*>League</)
+  assert.match(league, /aria-pressed="false"[^>]*>Friendly</)
+  assert.match(league, /<input type="hidden" name="game_type" value="regular"\/>/)
+  const friendly = render(GameTypeSwitch, { defaultValue: 'exhibition' })
+  assert.match(friendly, /aria-pressed="true"[^>]*>Friendly</)
+  assert.match(friendly, /value="exhibition"/)
+  const playoff = render(GameTypeSwitch, { defaultValue: 'playoff' })
+  assert.match(playoff, /aria-pressed="true"[^>]*>League</, 'an old playoff game reads as League')
+  assert.match(playoff, /value="playoff"/, '…and keeps its type unless switched')
+
+  const { EventRow } = load('components/EventRow.tsx')
+  const game = (game_type) => ({ kind: 'game', date: '2027-04-12T02:00:00Z', game: {
+    id: 'g', opponent: 'Tornados', game_date: '2027-04-12T02:00:00Z', location: null, home_away: null, game_type,
+    goals_for: null, goals_against: null, result: null, notes: null, team_list_status: null,
+  } })
+  assert.match(textOf(render(EventRow, { item: game('exhibition') })), /Friendly/)
+  assert.doesNotMatch(textOf(render(EventRow, { item: game('regular') })), /League|Regular/, 'league games stay untagged')
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  for (const f of ['app/admin/schedule/ScheduleClient.tsx', 'components/EventDetailModal.tsx']) {
+    assert.doesNotMatch(read(f), /<option value="exhibition">/, `${f}: no old Regular/Playoff/Exhibition dropdown`)
+    assert.match(read(f), /<GameTypeSwitch/)
+  }
+})
+
+test('friendlies never count towards records or stats', () => {
+  const { computeSeason, countsForRecord } = load('lib/stats.ts')
+  assert.equal(countsForRecord({ game_type: 'exhibition' }), false)
+  assert.equal(countsForRecord({ game_type: 'regular' }), true)
+  assert.equal(countsForRecord({}), true, 'games without a type count')
+  const players = [player('p', 'Some Player', ['GK'])]
+  const base = {
+    players,
+    games: [
+      { id: 'league', game_date: '2027-04-12T02:00:00Z', result: 'win', goals_against: 0, season_id: 's', game_type: 'regular' },
+      { id: 'friendly', game_date: '2027-04-19T02:00:00Z', result: 'win', goals_against: 0, season_id: 's', game_type: 'exhibition' },
+    ],
+    stats: [
+      { player_id: 'p', game_id: 'league', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 1 },
+      { player_id: 'p', game_id: 'friendly', goals_fg: 5, goals_pc: 0, goals_ps: 0, assists: 5 },
+    ],
+    potm: [{ player_id: 'p', game_id: 'friendly', place: 1 }],
+    attendance: [{ player_id: 'p', session_id: 'league' }, { player_id: 'p', session_id: 'friendly' }],
+    cards: [{ player_id: 'p', game_id: 'friendly', card_type: 'yellow', created_at: '2027-04-19T03:00:00Z' }],
+  }
+  for (const args of [{ season: '2027', seasonId: 's' }, { season: 'all' }]) {
+    const { leaderboard, seasonGames, pots } = computeSeason({ ...base, ...args })
+    const r = leaderboard[0]
+    assert.deepEqual(seasonGames.map((g) => g.id), ['league'])
+    assert.deepEqual([r.goals, r.assists, r.caps, r.cleanSheets, r.potmWins, r.cards.yellow], [1, 1, 1, 1, 0, 0])
+    assert.deepEqual(pots, [], 'friendly POTM points do not count')
+  }
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const home = read('components/HomeView.tsx')
+  assert.match(home, /const playedAll = finished\.filter\(countsForRecord\)/, 'Home record + your stats: league only')
+  assert.match(home, /const lastGame = finished\.filter\(inView\)\[0\]/, 'the last result shown can still be a friendly')
+  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /games\.filter\(\(g\) => g\.result && countsForRecord\(g\)\)/)
+  for (const f of ['app/dashboard/team/page.tsx', 'app/admin/team/page.tsx', 'components/PlayerProfileView.tsx']) {
+    assert.match(read(f), /from\('games'\)[^\n]*game_type/, `${f} loads game_type so friendlies can be left out`)
+  }
+})
+
+test('schedule times: optional end (same-day ranges stay short), report-early subtext', () => {
+  const f = load('lib/format.ts')
+  const nine = '2026-10-10T01:00:00.000Z' // Sat 10 Oct 09:00 SGT
+  const ten30pm = '2026-10-10T14:30:00.000Z' // 22:30 SGT
+  assert.equal(f.fmtDateTimeRange(nine, null), 'Sat 10 Oct · 09:00')
+  assert.equal(f.fmtDateTimeRange(nine, f.endFromTime(nine, '11:00')), 'Sat 10 Oct · 09:00 – 11:00', 'same day: date once')
+  assert.equal(f.fmtDateTimeRange(ten30pm, f.endFromTime(ten30pm, '01:00')), 'Sat 10 Oct · 22:30 – Sun 11 Oct · 01:00', 'past midnight: both dates')
+  assert.equal(f.fmtTimeRange(nine, f.endFromTime(nine, '11:00')), '09:00 – 11:00')
+  assert.equal(f.endFromTime(nine, ''), null, 'no end time')
+  assert.equal(f.toTimeLocal(f.endFromTime(nine, '11:00')), '11:00', 'edit form round-trip')
+  assert.equal(f.fmtReport(nine, 15), 'Report 08:45 · 15 min early')
+  assert.equal(f.fmtReport(nine, null), null)
+  assert.equal(f.fmtReport(nine, 0), null)
+
+  const { EventRow } = load('components/EventRow.tsx')
+  const training = {
+    kind: 'training', date: nine,
+    training: { id: 't', session_date: nine, location: 'RI', notes: null, ends_at: f.endFromTime(nine, '11:00'), report_minutes: 15 },
+  }
+  const html = render(EventRow, { item: training })
+  assert.match(textOf(html), /09:00 – 11:00 · RI/)
+  assert.match(html, /class="liga-event-report[^"]*">Report 08:45 · 15 min early</, 'report time is subtext under the time')
+  assert.ok(textOf(html).indexOf('09:00 – 11:00') < textOf(html).indexOf('Report 08:45'))
+
+  const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+  const admin = read('app/admin/schedule/ScheduleClient.tsx')
+  assert.ok(admin.indexOf("setAddModal('event')") < admin.indexOf("setAddModal('training')"), '+ Event first')
+  assert.ok(admin.indexOf("setAddModal('training')") < admin.indexOf("setAddModal('game')"))
+  assert.equal((admin.match(/<ScheduleTimeFields \/>/g) ?? []).length, 3, 'add forms: game, training, event')
+  assert.equal((read('components/EventDetailModal.tsx').match(/<ScheduleTimeFields defaultEnd=/g) ?? []).length, 3, 'edit forms: game, training, event')
+  const actions = read('app/admin/schedule/actions.ts')
+  for (const fn of ['addGame', 'updateGame', 'addTraining', 'updateTraining']) {
+    assert.match(actions, new RegExp(`export async function ${fn}[\\s\\S]*?checkTimes\\(`), `${fn} validates end/report`)
+  }
+  const migration = read('supabase/migrations/016_schedule_times.sql')
+  for (const t of ['games', 'training_sessions', 'team_events']) {
+    assert.ok(migration.includes(`alter table public.${t}`) && migration.includes(`${t}_ends_after_start`), `${t}: ends_at after start`)
+  }
+})
+
+test('Home card: ORA vs titles, MHL1/Friendly, day banner, phase + quote outside the season', () => {
+  const { gameTitle, competitionLabel } = load('lib/constants.ts')
+  assert.equal(gameTitle('Tornados'), 'ORA vs Tornados')
+  assert.equal(competitionLabel('regular'), 'MHL1')
+  assert.equal(competitionLabel('exhibition'), 'Friendly')
+  assert.equal(competitionLabel('playoff'), 'MHL1 Playoff')
+
+  const { sgDayBounds } = load('lib/format.ts')
+  assert.deepEqual(sgDayBounds(new Date('2026-10-09T17:30:00Z')), { start: '2026-10-09T16:00:00.000Z', end: '2026-10-10T16:00:00.000Z' }, 'SGT day of 01:30 Sat 10 Oct')
+
+  const { PRE_SEASON_QUOTES, POST_SEASON_QUOTES, pickQuote } = load('lib/quotes.ts')
+  assert.ok(PRE_SEASON_QUOTES.length >= 5 && POST_SEASON_QUOTES.length >= 5)
+  for (const q of [...PRE_SEASON_QUOTES, ...POST_SEASON_QUOTES]) assert.ok(q.length <= 80, `short and plain: ${q}`)
+  assert.ok(PRE_SEASON_QUOTES.includes(pickQuote(PRE_SEASON_QUOTES)))
+
+  const { EventRow } = load('components/EventRow.tsx')
+  const game = { kind: 'game', date: '2027-04-12T02:00:00Z', game: {
+    id: 'g', opponent: 'Tornados', game_date: '2027-04-12T02:00:00Z', location: null, home_away: null, game_type: 'regular',
+    goals_for: null, goals_against: null, result: null, notes: null, team_list_status: null,
+  } }
+  assert.match(textOf(render(EventRow, { item: game })), /ORA vs Tornados/)
+
+  const home = fs.readFileSync(path.join(root, 'components/HomeView.tsx'), 'utf8')
+  assert.match(home, /return g \? 'Game day' : t \? 'Training day' : e \? 'Event day' : null/, 'game beats training beats event')
+  assert.match(home, /\{preSeason \? PHASE_LABEL\['pre-season'\]\.toUpperCase\(\) : `\$\{record\.w\}W/, 'PRE-SEASON replaces 0W·0D·0L')
+  assert.match(home, /\{preSeason \? quote : `\$\{gamesLabel\(played\.length\)\}/, 'pre-season: a quote replaces the games/scored/conceded line')
+  assert.match(home, /return `\$\{n\} game\$\{n === 1 \? '' : 's'\}`/, '"1 game", not "1 games"')
+  assert.match(home, /\{phase === 'post-season' && \(\s*<div className="liga-hero-quote[^>]*>\{quote\}<\/div>/, 'post-season: final record stays, quote added below')
+  assert.match(home, /phase === 'pre-season' \? pickQuote\(PRE_SEASON_QUOTES\) : phase === 'post-season' \? pickQuote\(POST_SEASON_QUOTES\)/)
+  assert.match(home, /<CompetitionTag label=\{competitionLabel\(lastGame\.game_type\)\} \/>/)
 })

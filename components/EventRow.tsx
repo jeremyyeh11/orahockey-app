@@ -1,9 +1,42 @@
-import { fmtTime, dateBlock } from '@/lib/format'
-import type { Game, Training } from '@/components/EventDetailModal'
+import { fmtReport, fmtTimeRange, dateBlock } from '@/lib/format'
+import { GAME_TYPE_LABEL, gameTitle } from '@/lib/constants'
+import type { Game, Training, TeamEvent } from '@/components/EventDetailModal'
 
 export type EventItem =
   | { kind: 'game'; date: string; game: Game }
   | { kind: 'training'; date: string; training: Training }
+  | { kind: 'event'; date: string; event: TeamEvent }
+
+/** The schedule row's id (games, trainings and events each have their own table) */
+export function eventId(item: EventItem) {
+  return item.kind === 'game' ? item.game.id : item.kind === 'training' ? item.training.id : item.event.id
+}
+
+/** "ORA vs Opponent", "Training", or the event's own title */
+export function eventTitle(item: EventItem) {
+  return item.kind === 'game' ? gameTitle(item.game.opponent) : item.kind === 'training' ? 'Training' : item.event.title
+}
+
+export function eventLocation(item: EventItem) {
+  return item.kind === 'game' ? item.game.location : item.kind === 'training' ? item.training.location : item.event.location
+}
+
+/** Optional end time (ISO) */
+export function eventEnd(item: EventItem) {
+  return (item.kind === 'game' ? item.game.ends_at : item.kind === 'training' ? item.training.ends_at : item.event.ends_at) ?? null
+}
+
+/** Optional "report early by" minutes */
+export function eventReportMinutes(item: EventItem) {
+  return (
+    (item.kind === 'game' ? item.game.report_minutes : item.kind === 'training' ? item.training.report_minutes : item.event.report_minutes) ??
+    null
+  )
+}
+
+export function eventNotes(item: EventItem) {
+  return item.kind === 'game' ? item.game.notes : item.kind === 'training' ? item.training.notes : item.event.notes
+}
 
 export type MyStatus = 'attending' | 'not_attending' | 'maybe'
 
@@ -37,7 +70,9 @@ export function EventRow({
   mine?: MyStatus
 }) {
   const isGame = item.kind === 'game'
-  const id = isGame ? item.game.id : item.training.id
+  const id = eventId(item)
+  const location = eventLocation(item)
+  const report = fmtReport(item.date, eventReportMinutes(item))
   const block = dateBlock(item.date)
   const going = attending?.[id]
 
@@ -51,20 +86,26 @@ export function EventRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="liga-event-title break-words text-sm font-semibold text-white">
-            {isGame ? `vs ${item.game.opponent}` : 'Training'}
+            {eventTitle(item)}
           </span>
           {isGame && item.game.game_type !== 'regular' && (
             <span className="liga-event-type rounded bg-amber-900/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-300">
-              {item.game.game_type}
+              {GAME_TYPE_LABEL[item.game.game_type] ?? item.game.game_type}
+            </span>
+          )}
+          {item.kind === 'event' && (
+            <span className="liga-event-type rounded bg-sky-900/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-sky-300">
+              Event
             </span>
           )}
         </div>
         <div className="liga-event-meta mt-0.5 text-xs text-slate-400">
-          {fmtTime(item.date)}
-          {(isGame ? item.game.location : item.training.location) &&
-            ` · ${isGame ? item.game.location : item.training.location}`}
+          {fmtTimeRange(item.date, eventEnd(item))}
+          {location && ` · ${location}`}
           {isGame && item.game.home_away && ` · ${item.game.home_away === 'home' ? 'Home' : 'Away'}`}
         </div>
+        {/* Report-early time — subtext under the date & time */}
+        {report && <div className="liga-event-report mt-0.5 text-[11px] text-slate-500">{report}</div>}
         {going != null && <div className="mt-0.5 text-[11px] text-slate-500">{going} attending</div>}
         {mine && (
           <div className={`mt-0.5 text-[11px] ${STATUS_CHIP[mine].cls}`}>{STATUS_CHIP[mine].label}</div>

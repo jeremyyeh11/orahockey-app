@@ -8,28 +8,39 @@ import BottomNav, { type NavItem } from '@/components/BottomNav'
 import TopNav from '@/components/TopNav'
 import PullToRefresh from '@/components/PullToRefresh'
 import NavigationProgress from '@/components/NavigationProgress'
+import { LockedSeasonStrip, SeasonMenu, SeasonTabs, type SeasonNav } from '@/components/SeasonSwitcher'
+
+// Pages whose data isn't season-scoped don't show the season switcher
+const NOT_SEASON_SCOPED = /\/(polls|profile)(\/|$)/
 
 /**
  * Shared app chrome for the admin and player areas: sticky top bar (crest +
- * wordmark + logout), scrollable content, and the floating bottom nav. The two
- * areas differ only in their nav items and a couple of header slots:
+ * wordmark + season switcher + logout), scrollable content, and the floating
+ * bottom nav. The two areas differ only in their nav items and a couple of
+ * header slots:
  *  - `titleExtra`   — rendered inside the wordmark (admin control badge)
  *  - `headerActions` — rendered left of the logout button (player "Admin view")
+ *
+ * The season switcher is a dropdown in the header row on desktop (lg+) and a
+ * row of tabs under it on touch layouts; both stay pinned with the header.
  */
 export default function AppShell({
   nav,
   titleExtra,
   headerActions,
+  seasonNav,
   children,
 }: {
   nav: NavItem[]
   titleExtra?: React.ReactNode
   headerActions?: React.ReactNode
+  seasonNav?: SeasonNav | null
   children: React.ReactNode
 }) {
   const router = useRouter()
   const pathname = usePathname()
   const ligaApp = isLigaAppPath(pathname)
+  const seasons = seasonNav && seasonNav.seasons.length > 0 && !NOT_SEASON_SCOPED.test(pathname) ? seasonNav : null
 
   async function handleLogout() {
     await signOut()
@@ -50,6 +61,7 @@ export default function AppShell({
           </span>
           <TopNav items={nav} />
           <div className="ml-auto flex items-center gap-3">
+            {seasons && <SeasonMenu {...seasons} />}
             {headerActions}
             <button
               onClick={handleLogout}
@@ -59,12 +71,18 @@ export default function AppShell({
             </button>
           </div>
         </div>
+        {seasons && (
+          <>
+            <SeasonTabs {...seasons} />
+            <LockedSeasonStrip {...seasons} />
+          </>
+        )}
       </header>
 
       {/* Page content — capped at the app width and padded bottom so it isn't hidden
           behind the floating nav (lg+ has no bottom nav). Pull down from the top to
           reload (the only way to refresh in the standalone PWA). */}
-      <PullToRefresh className="flex-1 overflow-y-auto pb-28 lg:pb-12">
+      <PullToRefresh className="flex-1 overflow-x-clip pb-28 lg:pb-12">
         <div className="app-container">{children}</div>
       </PullToRefresh>
 

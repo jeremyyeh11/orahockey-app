@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { gameTitle } from '@/lib/constants'
 import { preferredName } from './RosterList'
 import Modal from './Modal'
 import type { Game, PlayerLite } from './EventDetailModal'
@@ -263,7 +264,7 @@ export function MatchResultModal({
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Match Result</h2>
-        <span className="liga-meta text-slate-400">vs {game.opponent}</span>
+        <span className="liga-meta text-slate-400">{gameTitle(game.opponent)}</span>
       </div>
 
       {/* Score */}

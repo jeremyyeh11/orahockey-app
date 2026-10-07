@@ -6,7 +6,6 @@ import RosterTable from '@/components/RosterTable'
 import { startNavigationProgress } from '@/components/NavigationProgress'
 import {
   useSeasonStats,
-  SeasonSelect,
   TopScorersCard,
   TopAssistsCard,
   type PlayerLite,
@@ -17,10 +16,13 @@ import {
   type MatchCardRow,
 } from '@/components/SeasonStats'
 import type { RosterPlayer } from '@/components/RosterList'
+import { LEAGUE } from '@/lib/constants'
+import { seasonTitle, type Season } from '@/lib/season'
 
 type Player = RosterPlayer & PlayerLite
 
 export default function SquadClient({
+  season,
   players,
   games,
   stats,
@@ -29,6 +31,8 @@ export default function SquadClient({
   cards,
   myPlayerId,
 }: {
+  season: Season
+  /** The season's squad (season_players), with that season's jersey numbers */
   players: Player[]
   games: GameLite[]
   stats: SeasonStat[]
@@ -38,7 +42,8 @@ export default function SquadClient({
   myPlayerId: string | null
 }) {
   const router = useRouter()
-  const { seasons, season, setSeason, seasonGames, topScorerGroups, topAssistGroups, statsMap } = useSeasonStats({
+  const { topScorerGroups, topAssistGroups, statsMap } = useSeasonStats({
+    season,
     players,
     games,
     stats,
@@ -47,29 +52,8 @@ export default function SquadClient({
     cards,
   })
 
-  const currentYear = String(new Date().getFullYear())
-  const seasonGameIds = new Set(seasonGames.map((g) => g.id))
-  const playedIds = new Set(
-    seasonGames.filter((g) => g.result).map((g) => g.id)
-  )
-
-  const seasonPlayerIds = new Set<string>()
-  for (const s of stats) {
-    if (seasonGameIds.has(s.game_id)) seasonPlayerIds.add(s.player_id)
-  }
-  for (const m of potm) {
-    if (seasonGameIds.has(m.game_id)) seasonPlayerIds.add(m.player_id)
-  }
-  for (const a of attendance) {
-    if (playedIds.has(a.session_id)) seasonPlayerIds.add(a.player_id)
-  }
-
-  const visible =
-    season === currentYear
-      ? players.filter((p) => p.is_active)
-      : players.filter(
-          (p) => seasonPlayerIds.has(p.id) || p.is_active
-        )
+  // A past season shows everyone who was in that squad; an open one, who's active now
+  const visible = season.locked ? players : players.filter((p) => p.is_active)
   const rosterProps = {
     players: visible,
     myPlayerId,
@@ -85,26 +69,33 @@ export default function SquadClient({
       <div className="liga-page-header mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="liga-page-title text-white">Squad</h1>
-          <p className="liga-meta text-xs text-slate-400">{visible.length} players</p>
+          <p className="liga-meta text-xs text-slate-400">
+            {seasonTitle(season)} · {visible.length} players
+          </p>
         </div>
-        <SeasonSelect seasons={seasons} value={season} onChange={setSeason} />
       </div>
 
       {/* Top Scorers + Top Assists: side by side, stacked in a sticky side column next to the roster table at xl+ */}
       <div className="liga-squad-layout xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:items-start xl:gap-6">
-        <aside className="mb-4 grid grid-cols-2 items-start gap-3 xl:sticky xl:top-20 xl:order-last xl:mb-0 xl:grid-cols-1">
+        <aside className="mb-4 grid grid-cols-2 items-start gap-3 xl:sticky xl:top-24 xl:order-last xl:mb-0 xl:grid-cols-1">
           <TopScorersCard groups={topScorerGroups} />
           <TopAssistsCard groups={topAssistGroups} />
         </aside>
 
         {/* Cards on touch layouts, a sortable table on desktop */}
         <div className="min-w-0">
-          <div className="lg:hidden">
-            <RosterList {...rosterProps} />
-          </div>
-          <div className="hidden lg:block">
-            <RosterTable {...rosterProps} />
-          </div>
+          {visible.length === 0 ? (
+            <p className="py-4 text-center text-sm text-slate-500">No players in this season&apos;s squad yet.</p>
+          ) : (
+            <>
+              <div className="lg:hidden">
+                <RosterList {...rosterProps} />
+              </div>
+              <div className="hidden lg:block">
+                <RosterTable {...rosterProps} />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

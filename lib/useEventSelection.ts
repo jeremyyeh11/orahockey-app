@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import type { EventItem } from '@/components/EventRow'
+import { eventId, type EventItem } from '@/components/EventRow'
 import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
 
-export const eventKey = (item: EventItem) =>
-  item.kind === 'game' ? `game-${item.game.id}` : `training-${item.training.id}`
+export const eventKey = (item: EventItem) => `${item.kind}-${eventId(item)}`
 
 /**
  * Which schedule event's details are showing. Stored by key and looked up in the

@@ -202,10 +202,67 @@ test('admins and players share one Home dashboard', () => {
   assert.ok(!/href="\/(dashboard|admin)\//.test(home), 'links follow the caller section')
   assert.ok(home.includes('href={`${basePath}/schedule`}'))
   assert.ok(home.includes('href={`${basePath}/polls`}'))
-  assert.ok(read('app/admin/layout.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
+  assert.ok(read('app/admin/AdminShell.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
   // Desktop: season + your stats beside next up / last game / polls; phones stay one column
   assert.ok(home.includes('liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6'))
-  assert.ok(home.includes('<h2 className="liga-section-title mt-6 lg:mt-0">Next up</h2>'), 'right column starts flush with the hero')
+  // Next up: top of the right column on desktop (flush with the hero); under the hero on phones
+  assert.match(home, /<div className="hidden lg:block">\s*<h2 className="liga-section-title">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/, 'right column starts flush with the hero')
+  assert.match(home, /<div className="lg:hidden">\s*<h2 className="liga-section-title mt-6">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/)
+  assert.ok(home.indexOf('<div className="lg:hidden">') < home.indexOf('Your all-time stats'), 'phones: Next up above your season stats')
+})
+
+test('Home leads with the selected season and keeps all-time stats below it', () => {
+  const home = read('components/HomeView.tsx')
+  assert.match(home, /getSelectedSeason\(\)/, 'the season comes from the app-wide switcher')
+  assert.ok(home.indexOf('liga-stat-grid') < home.indexOf('liga-all-time'), 'season stats come before all time')
+  assert.match(home, /\{!season\.allTime && \(/, 'no separate All time block when "All time" is the selection')
+  // All time: always open, phones included
+  assert.match(home, /<div className="liga-all-time mt-6">/)
+  // Next up: the title says what it is, so the meta line is just when + where (no repeated "Training")
+  assert.doesNotMatch(home, /next\.kind/)
+  assert.match(home, /title: 'Team training'/)
+  assert.doesNotMatch(home, /<details/)
+})
+
+test('season switcher: header dropdown on desktop, pinned tabs on touch layouts, hidden where not season-scoped', () => {
+  const shell = read('components/AppShell.tsx')
+  assert.match(shell, /NOT_SEASON_SCOPED = \/\\\/\(polls\|profile\)/, 'Polls and Profile are not season-scoped')
+  assert.match(shell, /\{seasons && <SeasonMenu \{\.\.\.seasons\} \/>\}/, 'desktop dropdown sits in the header row')
+  assert.match(shell, /<SeasonTabs \{\.\.\.seasons\} \/>\s*<LockedSeasonStrip \{\.\.\.seasons\} \/>[\s\S]*<\/header>/, 'tabs + locked strip are inside the sticky header')
+  const switcher = read('components/SeasonSwitcher.tsx')
+  assert.match(switcher, /liga-season-menu relative hidden items-center lg:flex/, 'dropdown is desktop-only')
+  assert.match(switcher, /liga-season-bar border-t border-white\/10 lg:hidden/, 'tabs are touch-only')
+  assert.match(switcher, /liga-locked-strip hidden border-t border-white\/10 lg:block/, 'locked strip is desktop-only')
+  assert.match(switcher, /min-h-\[44px\][^"]*snap-start/, 'tabs keep a 44px hit target')
+  assert.match(switcher, /document\.cookie = `\$\{SEASON_COOKIE\}=\$\{encodeURIComponent\(season\.label\)\}; path=\/; samesite=lax`/, 'session cookie — fresh visits open the current season')
+  assert.match(switcher, /startTransition\(\(\) => router\.refresh\(\)\)/, 'server pages re-render for the new season')
+  for (const area of ['admin', 'dashboard']) {
+    assert.match(read(`app/${area}/layout.tsx`), /seasonNav=\{await getSeasonNav\(\)\}/, `${area} layout loads seasons on the server`)
+  }
+})
+
+test('locked seasons are read-only in the app, admins included', () => {
+  const detail = read('components/EventDetailModal.tsx')
+  assert.match(detail, /const isAdmin = isAdminUser && !readOnly/, 'admin controls switch off in a locked season')
+  assert.match(detail, /isGame && !editMode && !readOnly \?/, 'no result entry')
+  for (const area of ['admin', 'dashboard']) {
+    const schedule = read(`app/${area}/schedule/ScheduleClient.tsx`)
+    assert.match(schedule, /const readOnly = season\.locked/)
+    assert.match(schedule, /readOnly=\{readOnly\}/, `${area} schedule passes read-only to event details`)
+    assert.match(schedule, /\{!readOnly && \(\s*<div className="liga-event-actions/, `${area} schedule hides RSVP buttons`)
+  }
+  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /\{!readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
+  for (const fn of ['addGame', 'addTraining']) {
+    assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export async function ${fn}[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
+  }
+  assert.match(read('app/admin/team/actions.ts'), /export async function addPlayer[\s\S]*?requireOpenSeason\(\)/)
+  // The database is the real guard
+  const migration = read('supabase/migrations/011_seasons.sql')
+  assert.match(migration, /\) not in \('anon', 'authenticated'\)/, 'only app requests are blocked; backend writes pass')
+  for (const table of ['games', 'training_sessions', 'season_players', 'attendance', 'match_goals', 'match_cards', 'match_team_lists', 'player_stats', 'potm']) {
+    assert.ok(migration.includes(`'${table}'`), `${table} is lock-guarded`)
+  }
+  assert.doesNotMatch(migration, /create policy[^;]*on public\.seasons\s+for (insert|update|delete|all)/i, 'seasons have no app write policies')
 })
 
 test('navigation progress bar starts on link clicks and programmatic pushes', () => {
@@ -215,7 +272,7 @@ test('navigation progress bar starts on link clicks and programmatic pushes', ()
   assert.match(bar, /s === 'loading' \? 'done' : s/, 'finishes when the pathname changes')
   assert.match(bar, /10_000/, 'never spins forever')
   assert.match(read('components/AppShell.tsx'), /<NavigationProgress \/>/)
-  for (const f of ['app/admin/team/SquadClient.tsx', 'app/dashboard/team/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/layout.tsx', 'components/AdminControlPanel.tsx']) {
+  for (const f of ['app/admin/team/SquadClient.tsx', 'app/dashboard/team/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/DashboardShell.tsx', 'components/AdminControlPanel.tsx']) {
     assert.match(read(f), /startNavigationProgress\(\)\s+router\.push\(/, `${f} starts the bar before router.push`)
   }
 })
@@ -229,4 +286,37 @@ test('Liga surfaces are opt-in and preserve the existing palette', () => {
   for (const colour of ['#131315', '#1e1e21', '#26262a', '#323238', '#2e6b3e', '#245331', '#5aa971', '#E0C070', '#C0A050']) {
     assert.ok(theme.includes(colour), `preserve ${colour}`)
   }
+})
+
+test('server components never call functions exported from client modules', () => {
+  // A 'use client' module's exports are client references on the server: calling
+  // one throws "x is not a function" at render (this broke admin profiles once).
+  const files = []
+  const walk = (d) => {
+    for (const f of fs.readdirSync(d)) {
+      const p = path.join(d, f)
+      if (fs.statSync(p).isDirectory()) { if (f !== 'node_modules' && !f.startsWith('.')) walk(p) }
+      else if (/\.tsx?$/.test(f)) files.push(p)
+    }
+  }
+  for (const dir of ['app', 'components', 'lib']) walk(path.join(root, dir))
+  const directive = (src, d) => new RegExp(`^\s*['"]use ${d}['"]`).test(src)
+  const resolve = (from, spec) => {
+    const base = spec.startsWith('@/') ? path.join(root, spec.slice(2)) : spec.startsWith('.') ? path.join(path.dirname(from), spec) : null
+    return base && [base, `${base}.tsx`, `${base}.ts`].find((c) => fs.existsSync(c) && fs.statSync(c).isFile())
+  }
+  const offenders = []
+  for (const file of files) {
+    const src = fs.readFileSync(file, 'utf8')
+    if (directive(src, 'client') || directive(src, 'server')) continue
+    for (const [, names, spec] of src.matchAll(/^import\s+(?!type\b)(.+?)\s+from\s+['"]([^'"]+)['"]/gm)) {
+      const target = resolve(file, spec)
+      if (!target || !directive(fs.readFileSync(target, 'utf8'), 'client')) continue
+      const fns = names.replace(/[{}]/g, '').split(',').map((s) => s.trim())
+        .filter((s) => s && !s.startsWith('type ')).map((s) => s.split(' as ').pop())
+        .filter((n) => /^[a-z]/.test(n))
+      if (fns.length) offenders.push(`${path.relative(root, file)}: ${fns.join(', ')} from ${spec}`)
+    }
+  }
+  assert.deepEqual(offenders, [])
 })

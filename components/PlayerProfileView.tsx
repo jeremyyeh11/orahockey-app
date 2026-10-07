@@ -1,10 +1,14 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
-import { computeSeason, seasonsOf, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
+import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus, type SquadStatus } from '@/components/PlayerProfilePage'
+import { computeSeason, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
-import { getNow } from '@/lib/preview'
-import { LEAGUE } from '@/lib/constants'
+// Not from RosterList: that's a client module, and this server component calls it
+import { accountStatusOf } from '@/lib/account'
+import { getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
+import { getRequestUser } from '@/lib/supabase/request-user'
+import type { EditContext } from '@/app/admin/team/PlayerEditModal'
+import { seasonTitle } from '@/lib/season'
 
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
 // Admin view additionally exposes contact/role fields (+ auth link for account status).
@@ -22,8 +26,9 @@ export async function playerProfileMetadata(playerId: string): Promise<Metadata>
  * Shared loader + render for the player profile route. Used by both the admin
  * and player `[playerId]` routes — they differ only in whether the contact
  * (email/role) fields are selected, controlled by `includeContact`, and
- * whether the account/invite panel shows, controlled by `includeAccount`
- * (admin route only — it reads the admin-only player_whitelist table).
+ * whether the account/invite and squad panels show, controlled by
+ * `includeAccount` (admin route only — it reads the admin-only
+ * player_whitelist table, and squad changes are admin-only).
  */
 export async function PlayerProfileView({
   playerId,
@@ -38,9 +43,11 @@ export async function PlayerProfileView({
   overlay?: boolean
 }) {
   const supabase = createClient()
+  const [season, user] = await Promise.all([getSelectedSeason(), includeAccount ? getRequestUser() : null])
 
   const [
     { data: player, error: playerErr },
+    { data: seasonEntry },
     { data: games },
     { data: stats },
     { data: potm },
@@ -52,7 +59,17 @@ export async function PlayerProfileView({
       .select(includeContact ? ADMIN_FIELDS : BASE_FIELDS)
       .eq('id', playerId)
       .single(),
-    supabase.from('games').select('id, game_date, result, goals_against').order('game_date', { ascending: false }),
+    // Jersey number for the season being viewed (positions are per player).
+    // "All time" isn't a season: they keep their latest number from players.
+    season.allTime
+      ? Promise.resolve({ data: null })
+      : supabase
+          .from('season_players')
+          .select('jersey_number')
+          .eq('season_id', season.id)
+          .eq('player_id', playerId)
+          .maybeSingle(),
+    supabase.from('games').select('id, game_date, result, goals_against, season_id, game_type').order('game_date', { ascending: false }),
     supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending'),
@@ -63,36 +80,59 @@ export async function PlayerProfileView({
     return <div className="liga-page liga-error-state p-4 text-sm text-red-400">Player not found.</div>
   }
 
-  const profile = player as unknown as ProfilePlayer
+  // Not in this season's squad → keep their latest jersey number from players
+  const profile = { ...(player as unknown as ProfilePlayer), ...(seasonEntry ?? {}) } as ProfilePlayer
 
   // Account status for the admin invite panel
   let accountStatus: AccountStatus | undefined
   if (includeAccount) {
-    const p = player as unknown as { email: string; auth_user_id: string | null }
-    const { data: wl } = await supabase
-      .from('player_whitelist')
-      .select('invited_at')
-      .eq('email', p.email)
-      .maybeSingle()
-    accountStatus = p.auth_user_id ? 'active' : wl?.invited_at ? 'invited' : 'none'
+    const p = player as unknown as { email: string | null; auth_user_id: string | null }
+    // Pending players (no email yet) have no whitelist row to look up
+    const { data: wl } = p.email
+      ? await supabase.from('player_whitelist').select('invited_at').eq('email', p.email).maybeSingle()
+      : { data: null }
+    accountStatus = accountStatusOf(p, wl?.invited_at)
   }
-  const players: (PlayerLite & RosterPlayer)[] = [player as unknown as PlayerLite & RosterPlayer]
+
+  // Admin view: what the Edit form may change (the jersey number is per season)
+  let editContext: EditContext | undefined
+  if (includeAccount) {
+    const p = player as unknown as { auth_user_id: string | null }
+    editContext = {
+      seasonLabel: season.label,
+      jerseyMode: seasonEntry ? (season.locked ? 'archived' : 'season') : 'default',
+      hasAccount: !!p.auth_user_id,
+      isSelf: !!p.auth_user_id && p.auth_user_id === user?.id,
+    }
+  }
+
+  // Squad membership controls for the selected season — admin view, open seasons only
+  let squadStatus: SquadStatus | undefined
+  if (includeAccount && !season.locked) {
+    squadStatus = {
+      seasonLabel: season.label,
+      inSquad: !!seasonEntry,
+      hasRecord: seasonEntry ? await hasSeasonRecord(season.id, playerId) : false,
+      isActive: profile.is_active,
+    }
+  }
+  const players: (PlayerLite & RosterPlayer)[] = [profile as unknown as PlayerLite & RosterPlayer]
   const cards = (cardRows ?? []) as MatchCardRow[]
-  const seasons = seasonsOf(games ?? [])
-  const currentSeason = seasons[0] ?? String(getNow().getFullYear())
 
   let seasonRow: LeaderboardRow | undefined
   let careerRow: LeaderboardRow | undefined
 
   try {
-    const { leaderboard: seasonLb } = computeSeason({
+    // "All time": the career row is the whole story — no separate season row
+    const { leaderboard: seasonLb } = season.allTime ? { leaderboard: [] as LeaderboardRow[] } : computeSeason({
       players,
       games: games ?? [],
       stats: stats ?? [],
       potm: potm ?? [],
       attendance: att ?? [],
       cards,
-      season: currentSeason,
+      season: season.label,
+      seasonId: season.id,
     })
     const { leaderboard: careerLb } = computeSeason({
       players,
@@ -115,8 +155,10 @@ export async function PlayerProfileView({
       player={profile}
       seasonRow={seasonRow}
       careerRow={careerRow}
-      seasonLabel={`${LEAGUE} ${currentSeason}`}
+      seasonLabel={season.allTime ? null : seasonTitle(season)}
       accountStatus={accountStatus}
+      squadStatus={squadStatus}
+      editContext={editContext}
     />
   )
 }

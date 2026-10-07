@@ -52,6 +52,8 @@ export async function generateSetupLink(playerId: string): Promise<SetupLink> {
     .eq('id', playerId)
     .single()
   if (!player) throw new Error('Player not found')
+  // Pending players (added before onboarding) have no email yet — it's their login
+  if (!player.email) throw new Error('Add their email first — the setup link is tied to it.')
 
   // Whitelist gate: only roster emails may get accounts. The insert
   // trigger keeps this in sync, but self-heal for pre-trigger rows.

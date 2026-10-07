@@ -5,6 +5,7 @@ import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
 import { cookies } from 'next/headers'
 import { VIEW_COOKIE } from '@/lib/preview'
+import { getSeasonSquad, getSelectedSeason, inSeason, seasonRoster } from '@/lib/season-server'
 import type { GoalRow, CardRow } from './resultActions'
 
 export const metadata: Metadata = { title: 'Schedule' }
@@ -42,7 +43,7 @@ export type TeamListSelection = {
 export default async function PlayerSchedulePage() {
   const supabase = createClient()
 
-  const user = await getRequestUser()
+  const [user, season] = await Promise.all([getRequestUser(), getSelectedSeason()])
 
   const { data: me } = await supabase
     .from('players')
@@ -55,31 +56,30 @@ export default async function PlayerSchedulePage() {
   const [
     { data: games, error: gamesError },
     { data: trainings, error: trainingsError },
+    { data: events, error: eventsError },
     { data: myAtt },
     { data: allAtt },
-    { data: roster },
+    squad,
     { data: teamListRaw },
     { data: goalRows },
     { data: cardRows },
     { data: potmRows },
   ] = await Promise.all([
-    supabase
-      .from('games')
-      .select('id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes, team_list_status')
-      .order('game_date', { ascending: false }),
-    supabase
-      .from('training_sessions')
-      .select('id, session_date, location, notes')
+    inSeason(
+      supabase
+        .from('games')
+        .select('id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes, team_list_status, ends_at, report_minutes'),
+      season
+    ).order('game_date', { ascending: false }),
+    inSeason(supabase.from('training_sessions').select('id, session_date, location, notes, ends_at, report_minutes'), season)
       .order('session_date', { ascending: false }),
+    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes'), season)
+      .order('event_date', { ascending: false }),
     supabase.from('attendance').select('session_id, status').eq('player_id', me?.id ?? ''),
     supabase
       .from('attendance')
       .select('player_id, session_id, status, player:players(full_name, preferred_name)'),
-    supabase
-      .from('players')
-      .select('id, full_name, preferred_name, position, jersey_number')
-      .eq('is_active', true)
-      .order('full_name', { ascending: true }),
+    getSeasonSquad(season.id),
     // Admins see all team list selections; players only see published (RLS handles this)
     supabase
       .from('match_team_lists')
@@ -95,7 +95,7 @@ export default async function PlayerSchedulePage() {
     supabase.from('potm').select('game_id, player_id, place'),
   ])
 
-  const error = gamesError ?? trainingsError
+  const error = gamesError ?? trainingsError ?? eventsError
   if (error) {
     return (
       <div className="p-4">
@@ -125,11 +125,13 @@ export default async function PlayerSchedulePage() {
 
   return (
     <ScheduleClient
+      season={season}
       games={games ?? []}
       trainings={trainings ?? []}
+      events={events ?? []}
       myStatus={myStatus}
       now={getNow().toISOString()}
-      roster={(roster ?? []) as RosterPlayer[]}
+      roster={seasonRoster(squad, season.locked)}
       attendanceBySession={attendanceBySession}
       myPlayerId={me?.id ?? ''}
       isAdmin={isAdmin}

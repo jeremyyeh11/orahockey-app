@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { gameTitle } from '@/lib/constants'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { preferredName } from './RosterList'
@@ -162,7 +163,7 @@ function PotmCard({
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="liga-poll-title text-sm font-semibold text-white">POTM · vs {poll.opponent}</div>
+          <div className="liga-poll-title text-sm font-semibold text-white">POTM · {gameTitle(poll.opponent)}</div>
           <div className="liga-meta mt-0.5 text-slate-500">
             {poll.game_date && fmtDateTime(poll.game_date)}
             {' · '}

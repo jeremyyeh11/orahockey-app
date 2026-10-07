@@ -1,6 +1,12 @@
 'use client'
 
 import type { LeaderboardRow } from './SeasonStats'
+import type { AccountStatus } from '@/lib/account'
+
+// Re-exported for client components that import them from here. Server
+// components must import from '@/lib/account' — this is a client module.
+export type { AccountStatus }
+export { accountStatusOf } from '@/lib/account'
 
 export type RosterPlayer = {
   id: string
@@ -12,13 +18,14 @@ export type RosterPlayer = {
 }
 
 /** Login-account state shown as a dot on admin roster cards */
-export type AccountStatus = 'none' | 'invited' | 'active'
-
 export const ACCOUNT_DOT: Record<AccountStatus, { cls: string; title: string }> = {
   active: { cls: 'bg-green-400', title: 'Account active' },
   invited: { cls: 'bg-amber-400', title: 'Invited — not claimed yet' },
   none: { cls: 'bg-slate-500', title: 'No account yet' },
+  // Hollow dot: added before onboarding, no email to invite yet
+  pending: { cls: 'border border-slate-400 bg-transparent', title: 'Pending — no email yet' },
 }
+
 
 const POSITION_ORDER: Record<string, number> = { FWD: 0, MID: 1, DEF: 2, GK: 3 }
 

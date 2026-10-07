@@ -1,14 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import { preferredName } from './RosterList'
-import { LEAGUE } from '@/lib/constants'
 
 // Re-export types and pure functions from lib/stats.ts so existing imports work
 export type { PlayerLite, GameLite, SeasonStat, PotmRow, AttendanceRow, MatchCardRow, LeaderboardRow } from '@/lib/stats'
 
-import { computeSeason, seasonsOf } from '@/lib/stats'
-export { computeSeason, seasonsOf }
+import { computeSeason } from '@/lib/stats'
+export { computeSeason }
 import type {
   PlayerLite,
   GameLite,
@@ -20,13 +18,13 @@ import type {
 } from '@/lib/stats'
 
 /**
- * Season selection + leaderboard computation for the squad screens. Owns the
- * selected-season state (defaulting to the most recent season), runs
- * computeSeason, and exposes the id→row map the roster needs. Shared by the
- * admin and player SquadClients, which differ only in how they filter the
- * roster and whether they can edit it.
+ * Leaderboard computation for the squad screens: runs computeSeason for the
+ * season picked in the app's season switcher and exposes the id→row map the
+ * roster needs. Shared by the admin and player SquadClients, which differ only
+ * in how they filter the roster and whether they can edit it.
  */
 export function useSeasonStats({
+  season,
   players,
   games,
   stats,
@@ -34,6 +32,8 @@ export function useSeasonStats({
   attendance,
   cards,
 }: {
+  /** The selected season; `allTime` → career totals across every season */
+  season: { id: string; label: string; allTime?: boolean }
   players: PlayerLite[]
   games: GameLite[]
   stats: SeasonStat[]
@@ -41,9 +41,6 @@ export function useSeasonStats({
   attendance: AttendanceRow[]
   cards: MatchCardRow[]
 }) {
-  const seasons = seasonsOf(games)
-  const [season, setSeason] = useState<string>(seasons[0] ?? String(new Date().getFullYear()))
-
   const { seasonGames, leaderboard, pots, topScorerGroups, topAssistGroups } = computeSeason({
     players,
     games,
@@ -51,37 +48,13 @@ export function useSeasonStats({
     potm,
     attendance,
     cards,
-    season,
+    season: season.allTime ? 'all' : season.label,
+    seasonId: season.allTime ? undefined : season.id,
   })
 
   const statsMap = new Map<string, LeaderboardRow>(leaderboard.map((r) => [r.player.id, r]))
 
-  return { seasons, season, setSeason, seasonGames, leaderboard, pots, topScorerGroups, topAssistGroups, statsMap }
-}
-
-export function SeasonSelect({
-  seasons,
-  value,
-  onChange,
-}: {
-  seasons: string[]
-  value: string
-  onChange: (s: string) => void
-}) {
-  return (
-    <select
-      aria-label="Season"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="liga-season-select liga-button min-h-[44px] max-w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-    >
-      {seasons.map((s) => (
-        <option key={s} value={s}>
-          {LEAGUE} {s}
-        </option>
-      ))}
-    </select>
-  )
+  return { seasonGames, leaderboard, pots, topScorerGroups, topAssistGroups, statsMap }
 }
 
 export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {

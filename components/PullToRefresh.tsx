@@ -8,8 +8,8 @@ import { useEffect, useRef, useState } from 'react'
  * top of the scroll area and releasing past the threshold triggers a full
  * `window.location.reload()` (the browser-reload equivalent, not a soft router refresh).
  *
- * Renders the scrollable <main> so it owns the scroll container. Two iOS gotchas drive
- * the shape of this:
+ * Renders the page's <main> and listens for touches on it (the document is what
+ * scrolls). Two iOS gotchas drive the shape of this:
  *   1. If the first downward touchmove isn't preventDefault()-ed, Safari commits the
  *      gesture to its native rubber-band and then ignores later preventDefault — so we
  *      claim the gesture on the very first downward move, no direction-lock delay.
@@ -33,6 +33,9 @@ export default function PullToRefresh({
   // True while the content springs back after a released (sub-threshold) pull —
   // keeps the transform on just long enough for the return animation.
   const [settling, setSettling] = useState(false)
+  // The spinner sits just below the sticky header, whose height varies (the
+  // season tabs add a row on touch layouts) — measured when a pull starts.
+  const [spinnerTop, setSpinnerTop] = useState(64)
 
   // Live gesture state in refs so the listeners register once (depending on `pull`
   // here would re-run the effect every frame and reset the drag mid-gesture).
@@ -66,6 +69,8 @@ export default function PullToRefresh({
       startX = e.touches[0].clientX
       tracking = true
       pulling = false
+      const header = document.querySelector('.app-header')
+      if (header) setSpinnerTop(Math.round(header.getBoundingClientRect().bottom) + 4)
     }
 
     const onMove = (e: TouchEvent) => {
@@ -136,8 +141,9 @@ export default function PullToRefresh({
           Fades and slides in as you pull; spins while the reload is in flight. */}
       <div
         aria-hidden={!visible}
-        className="pointer-events-none fixed inset-x-0 top-[64px] z-40 flex justify-center"
+        className="pointer-events-none fixed inset-x-0 z-40 flex justify-center"
         style={{
+          top: spinnerTop,
           transform: `translateY(${(refreshing ? THRESHOLD : pull) * 0.35}px)`,
           opacity: refreshing ? 1 : progress,
           transition: !visible ? 'transform 0.2s, opacity 0.2s' : 'none',
@@ -171,7 +177,10 @@ export default function PullToRefresh({
         </span>
       </div>
 
-      <main ref={mainRef} className={className} style={{ overscrollBehaviorY: 'contain' }}>
+      {/* <main> must not be a scroll container: the document scrolls. A non-scrolling
+          overflow/overscroll container swallows mouse-wheel scrolling in Chrome
+          and stops position:sticky children from sticking to the viewport. */}
+      <main ref={mainRef} className={className}>
         {/* Content follows the finger, then springs back on release.
             IMPORTANT: the transform is only applied while a pull is in flight.
             A permanent transform (even translateY(0)) makes this div the

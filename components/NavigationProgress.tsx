@@ -4,10 +4,16 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 let startListener: (() => void) | null = null
+let finishListener: (() => void) | null = null
 
 /** Start the bar for a programmatic navigation — call just before `router.push`. */
 export function startNavigationProgress() {
   startListener?.()
+}
+
+/** Finish the bar for a load that doesn't change the pathname (e.g. `router.refresh`). */
+export function finishNavigationProgress() {
+  finishListener?.()
 }
 
 /**
@@ -23,7 +29,9 @@ export default function NavigationProgress() {
 
   useEffect(() => {
     const start = () => setState('loading')
+    const finish = () => setState((s) => (s === 'loading' ? 'done' : s))
     startListener = start
+    finishListener = finish
 
     // Capture phase: next/link calls preventDefault() on the way up, so a bubbling
     // listener would see every in-app link click as already handled.
@@ -41,6 +49,7 @@ export default function NavigationProgress() {
     return () => {
       document.removeEventListener('click', onClick, true)
       if (startListener === start) startListener = null
+      if (finishListener === finish) finishListener = null
     }
   }, [])
 
