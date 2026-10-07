@@ -195,12 +195,24 @@ test('season switcher: accessible dropdown (desktop) and 44px tabs (touch), lock
   const switcherLoad = createTsLoader({ 'next/navigation': { useRouter: () => ({ refresh() {} }) } })
   const { SeasonMenu, SeasonTabs, LockedSeasonStrip } = switcherLoad('components/SeasonSwitcher.tsx')
 
+  // Custom listbox (styled like the app) instead of a native <select>
   const menu = render(SeasonMenu, { seasons: SEASONS, selectedId: 's2026' })
-  assert.match(menu, /<select[^>]*aria-label="Season"/)
-  assert.ok(classesOf(menu.slice(menu.indexOf('<select'))).split(/\s+/).includes('min-h-[44px]'))
-  assert.match(menu, /<option value="s2027">MHL1 2027 · Current<\/option>/)
-  assert.match(menu, /<option value="s2026" selected="">MHL1 2026 · Archived<\/option>/)
-  assert.match(menu, /<svg[^>]*aria-hidden/, 'lock icon beside a locked selection')
+  const trigger = buttonsOf(menu)[0]
+  assert.match(trigger, /aria-haspopup="listbox"/)
+  assert.match(trigger, /aria-expanded="false"/)
+  assert.match(trigger, /aria-label="Season: MHL1 2026"/)
+  assert.ok(classesOf(trigger).split(/\s+/).includes('min-h-[44px]'))
+  assert.match(trigger, /<svg[^>]*aria-hidden/, 'lock icon beside an archived selection')
+  assert.doesNotMatch(menu, /<select/)
+  assert.match(menu, /<ul[^>]*role="listbox"[^>]*aria-label="Season"[^>]*hidden=""/, 'menu closed until opened')
+  const optionTags = menu.match(/<li[^>]*role="option"[^>]*>[\s\S]*?<\/li>/g) ?? []
+  assert.deepEqual(optionTags.map(textOf), ['MHL1 2027Current', 'MHL1 2026Archived'])
+  assert.match(optionTags[1], /aria-selected="true"/)
+  assert.match(optionTags[1], /M8 11V7a4 4 0 0 1 8 0v4/, 'archived season: lock icon')
+  assert.equal(optionTags[1].replace(/<span class="sr-only">Archived<\/span>/, '').includes('Archived'), false, 'no visible "Archived" text, only for screen readers')
+  assert.match(optionTags[1], /shadow-\[inset_3px_0_0_#5aa971\]/, 'selected season gets the green bar used across the app')
+  assert.match(optionTags[0], /aria-selected="false"/)
+  assert.match(menu, /bg-surface-card/, 'dark card menu, not the OS list')
 
   const tabs = render(SeasonTabs, { seasons: SEASONS, selectedId: 's2026' })
   assert.match(tabs, /role="group" aria-label="Season"/)
@@ -620,9 +632,10 @@ test('All time: first in the switcher, view-only, never labelled Archived; squad
   const nav = { seasons: [ALL_TIME, ...SEASONS], selectedId: 'all' }
 
   const menu = render(SeasonMenu, nav)
-  const options = (menu.match(/<option[^>]*>[^<]*<\/option>/g) ?? []).map(textOf)
-  assert.deepEqual(options, ['All time', 'MHL1 2027 · Current', 'MHL1 2026 · Archived'], 'All time on top; only real past seasons say Archived')
-  assert.doesNotMatch(menu.slice(0, menu.indexOf('<select')), /<svg/, 'no lock icon for All time')
+  const options = (menu.match(/<li[^>]*role="option"[^>]*>[\s\S]*?<\/li>/g) ?? [])
+  assert.deepEqual(options.map(textOf), ['All time', 'MHL1 2027Current', 'MHL1 2026Archived'], 'All time on top; only real past seasons say Archived')
+  assert.match(options[0], /border-b border-surface-border/, 'divider under All time')
+  assert.doesNotMatch(buttonsOf(menu)[0], /M8 11V7a4 4 0 0 1 8 0v4/, 'no lock icon on the trigger for All time')
 
   const tabs = render(SeasonTabs, nav)
   const buttons = buttonsOf(tabs)
