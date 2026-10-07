@@ -205,7 +205,10 @@ test('admins and players share one Home dashboard', () => {
   assert.ok(read('app/admin/AdminShell.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
   // Desktop: season + your stats beside next up / last game / polls; phones stay one column
   assert.ok(home.includes('liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6'))
-  assert.ok(home.includes(`<h2 className="liga-section-title mt-6 lg:mt-0">{season.locked && !season.allTime ? 'Season' : 'Next up'}</h2>`), 'right column starts flush with the hero')
+  // Next up: top of the right column on desktop (flush with the hero); under the hero on phones
+  assert.match(home, /<div className="hidden lg:block">\s*<h2 className="liga-section-title">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/, 'right column starts flush with the hero')
+  assert.match(home, /<div className="lg:hidden">\s*<h2 className="liga-section-title mt-6">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/)
+  assert.ok(home.indexOf('<div className="lg:hidden">') < home.indexOf('Your all-time stats'), 'phones: Next up above your season stats')
 })
 
 test('Home leads with the selected season and keeps all-time stats below it', () => {
@@ -213,9 +216,9 @@ test('Home leads with the selected season and keeps all-time stats below it', ()
   assert.match(home, /getSelectedSeason\(\)/, 'the season comes from the app-wide switcher')
   assert.ok(home.indexOf('liga-stat-grid') < home.indexOf('liga-all-time'), 'season stats come before all time')
   assert.match(home, /\{!season\.allTime && \(/, 'no separate All time block when "All time" is the selection')
-  // All time: collapsed on touch layouts, always open on desktop
-  assert.match(home, /<details className="liga-all-time group mt-6 lg:hidden">/)
-  assert.match(home, /<div className="liga-all-time mt-6 hidden lg:block">/)
+  // All time: always open, phones included
+  assert.match(home, /<div className="liga-all-time mt-6">/)
+  assert.doesNotMatch(home, /<details/)
 })
 
 test('season switcher: header dropdown on desktop, pinned tabs on touch layouts, hidden where not season-scoped', () => {

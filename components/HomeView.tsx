@@ -132,6 +132,38 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       ? { kind: 'Game', title: `vs ${nextGame!.opponent}`, when: nextGame!.game_date, place: nextGame!.location }
       : { kind: 'Training', title: 'Team training', when: nextTraining!.session_date, place: nextTraining!.location }
 
+  // Next up / season complete — shown under the hero on phones, top right on desktop
+  const nextUpTitle = season.locked && !season.allTime ? 'Season' : 'Next up'
+  const nextUpCard =
+    season.locked && !season.allTime ? (
+      <div className="liga-link-row card mt-2 p-4">
+        <div className="liga-link-title text-sm font-semibold text-white">Season finished</div>
+        <div className="liga-meta mt-0.5 text-slate-400">
+          {LEAGUE} {season.label} is a past season. Switch season to see what&apos;s next.
+        </div>
+      </div>
+    ) : next ? (
+      <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
+        <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
+        <div className="liga-meta mt-0.5 text-slate-400">
+          {next.kind} · {fmtDateTime(next.when)}
+          {next.place ? ` · ${next.place}` : ''}
+        </div>
+      </Link>
+    ) : played.length > 0 ? (
+      <div className="liga-link-row card mt-2 p-4">
+        <div className="liga-link-title text-sm font-semibold text-white">Season complete</div>
+        <div className="liga-meta mt-0.5 text-slate-400">Nothing scheduled — enjoy the off-season.</div>
+      </div>
+    ) : (
+      <div className="liga-link-row card mt-2 p-4">
+        <div className="liga-link-title text-sm font-semibold text-white">Nothing scheduled yet</div>
+        <div className="liga-meta mt-0.5 text-slate-400">
+          {season.allTime ? 'Upcoming' : seasonTitle(season)} fixtures and trainings will show here.
+        </div>
+      </div>
+    )
+
   const RESULT_LABEL: Record<string, string> = { win: 'Win', loss: 'Loss', tie: 'Draw', ot_win: 'OT Win', ot_loss: 'OT Loss' }
 
   return (
@@ -166,6 +198,12 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             </div>
           </div>
 
+          {/* Next up — phones: straight under the season record */}
+          <div className="lg:hidden">
+            <h2 className="liga-section-title mt-6">{nextUpTitle}</h2>
+            {nextUpCard}
+          </div>
+
           {/* My stats tiles — this season */}
           <h2 className="liga-section-title mt-6">{season.allTime ? 'Your all-time stats' : `Your ${season.label} season`}</h2>
           <div className="liga-stat-grid mt-2 grid grid-cols-3 gap-3">
@@ -174,56 +212,22 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             <Tile value={`${attendancePct}%`} label="Attendance" />
           </div>
 
-          {/* All time — below the season: open on desktop, collapsed on touch layouts.
-              Not shown when "All time" itself is selected (the stats above are already that). */}
+          {/* All time — below the season, always open. Not shown when "All time" itself
+              is selected (the stats above are already that). */}
           {!season.allTime && (
-          <>
-          <details className="liga-all-time group mt-6 lg:hidden">
-            <summary className="liga-section-title flex min-h-[44px] cursor-pointer list-none items-center justify-between">
-              All time
-              <span aria-hidden className="text-slate-500 transition group-open:rotate-180">▾</span>
-            </summary>
-            <AllTime totals={allTime} record={allTimeRecord} games={playedAll.length} />
-          </details>
-          <div className="liga-all-time mt-6 hidden lg:block">
-            <h2 className="liga-section-title">All time</h2>
-            <AllTime totals={allTime} record={allTimeRecord} games={playedAll.length} />
-          </div>
-          </>
+            <div className="liga-all-time mt-6">
+              <h2 className="liga-section-title">All time</h2>
+              <AllTime totals={allTime} record={allTimeRecord} games={playedAll.length} />
+            </div>
           )}
         </div>
 
         <div className="min-w-0">
-          {/* Next up / season complete */}
-          <h2 className="liga-section-title mt-6 lg:mt-0">{season.locked && !season.allTime ? 'Season' : 'Next up'}</h2>
-          {season.locked && !season.allTime ? (
-            <div className="liga-link-row card mt-2 p-4">
-              <div className="liga-link-title text-sm font-semibold text-white">Season finished</div>
-              <div className="liga-meta mt-0.5 text-slate-400">
-                {LEAGUE} {season.label} is a past season. Switch season to see what&apos;s next.
-              </div>
-            </div>
-          ) : next ? (
-            <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
-              <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
-              <div className="liga-meta mt-0.5 text-slate-400">
-                {next.kind} · {fmtDateTime(next.when)}
-                {next.place ? ` · ${next.place}` : ''}
-              </div>
-            </Link>
-          ) : played.length > 0 ? (
-            <div className="liga-link-row card mt-2 p-4">
-              <div className="liga-link-title text-sm font-semibold text-white">Season complete</div>
-              <div className="liga-meta mt-0.5 text-slate-400">Nothing scheduled — enjoy the off-season.</div>
-            </div>
-          ) : (
-            <div className="liga-link-row card mt-2 p-4">
-              <div className="liga-link-title text-sm font-semibold text-white">Nothing scheduled yet</div>
-              <div className="liga-meta mt-0.5 text-slate-400">
-                {season.allTime ? 'Upcoming' : seasonTitle(season)} fixtures and trainings will show here.
-              </div>
-            </div>
-          )}
+          {/* Next up — desktop: top of the right column, beside the season record */}
+          <div className="hidden lg:block">
+            <h2 className="liga-section-title">{nextUpTitle}</h2>
+            {nextUpCard}
+          </div>
 
           {/* Last result */}
           {lastGame && (
