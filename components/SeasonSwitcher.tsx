@@ -68,7 +68,7 @@ export function SeasonMenu({ seasons, selectedId }: SeasonNav) {
         {seasons.map((s) => (
           <option key={s.id} value={s.id}>
             {seasonName(s)}
-            {s.locked ? ' · Locked' : s.is_current ? ' · Current' : ''}
+            {s.locked ? ' · Archived' : s.is_current ? ' · Current' : ''}
           </option>
         ))}
       </select>

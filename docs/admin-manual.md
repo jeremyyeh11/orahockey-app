@@ -13,10 +13,10 @@ Players can view the schedule, squad, and polls, mark their own attendance, and 
 ### Seasons
 Everything below works on the **season selected** in the season switcher (see the [user manual](user-manual.md#seasons)). New players, games and trainings go into that season.
 
-**Past seasons are locked and read-only for everyone, admins included:** no Add Player, + Game / + Training, Edit, Delete, Update result, Team list or attendance buttons. The database rejects any change to a locked season that comes from the app. Corrections to a past season, starting a new season and locking the old one are done from the backend (Supabase SQL editor):
+**Past seasons are archived and read-only for everyone, admins included:** no Add Player, + Game / + Training, Edit, Delete, Update result, Team list or attendance buttons. The database rejects any change to an archived season that comes from the app. Corrections to a past season, starting a new season and archiving the old one are done from the backend (Supabase SQL editor) - archiving is the `locked` flag on the season:
 
 ```sql
--- start a new season: add it, make it current, lock the old one, copy the squad
+-- start a new season: add it, make it current, archive the old one, copy the squad
 insert into seasons (label, starts_on, ends_on) values ('2028', '2028-01-01', '2028-12-31');
 update seasons set is_current = false, locked = true where label = '2027';
 update seasons set is_current = true where label = '2028';

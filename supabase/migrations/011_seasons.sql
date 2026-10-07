@@ -207,8 +207,8 @@ begin
   end if;
 
   if lbl is not null then
-    raise exception 'Season % is locked — past seasons are read-only.', lbl
-      using errcode = 'P0001', hint = 'Changes to a locked season can only be made from the backend.';
+    raise exception 'Season % is archived — past seasons are read-only.', lbl
+      using errcode = 'P0001', hint = 'Changes to an archived season can only be made from the backend.';
   end if;
   return coalesce(new, old);
 end;

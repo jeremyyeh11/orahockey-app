@@ -199,7 +199,7 @@ test('season switcher: accessible dropdown (desktop) and 44px tabs (touch), lock
   assert.match(menu, /<select[^>]*aria-label="Season"/)
   assert.ok(classesOf(menu.slice(menu.indexOf('<select'))).split(/\s+/).includes('min-h-[44px]'))
   assert.match(menu, /<option value="s2027">MHL1 2027 · Current<\/option>/)
-  assert.match(menu, /<option value="s2026" selected="">MHL1 2026 · Locked<\/option>/)
+  assert.match(menu, /<option value="s2026" selected="">MHL1 2026 · Archived<\/option>/)
   assert.match(menu, /<svg[^>]*aria-hidden/, 'lock icon beside a locked selection')
 
   const tabs = render(SeasonTabs, { seasons: SEASONS, selectedId: 's2026' })

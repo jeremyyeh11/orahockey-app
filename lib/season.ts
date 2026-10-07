@@ -10,10 +10,10 @@ export type Season = {
   starts_on: string
   ends_on: string
   is_current: boolean
-  /** Past seasons are locked: read-only in the app, editable only from the backend */
+  /** Past seasons are locked (shown as "Archived"): read-only in the app, editable only from the backend */
   locked: boolean
 }
 
 export function lockedSeasonMessage(label: string) {
-  return `Season ${label} is locked — past seasons are read-only.`
+  return `Season ${label} is archived — past seasons are read-only.`
 }
