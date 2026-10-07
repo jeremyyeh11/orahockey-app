@@ -32,7 +32,7 @@ The season's squad with each player's stats for that season: goals by type (**FG
 **Tap a player** to open their profile - age, years at ORA, appearances, and their stats for the selected season with career stats below. It opens full screen on a phone and as a pop-up on a computer; close it with the back arrow, the **✕**, or Esc.
 
 ### Schedule
-A list of the season's games, training sessions and team **events** (gatherings, meetings…), split into **Upcoming** and **Past**. Friendly games are tagged **Friendly**.
+A list of the season's games, training sessions and team **events** (gatherings, meetings…), split into **Upcoming** and **Past**. Friendly games are tagged **Friendly** and don't count towards records or stats. Times show as a range when there's an end time (e.g. *Sat 10 Oct · 09:00 – 11:00*), with the time to report by underneath when there is one.
 
 - Use the **All / Games / Trainings / Events** filter chips to narrow the list.
 - For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance.

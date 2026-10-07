@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
-import { fmtDateTime } from '@/lib/format'
+import { fmtDateTime, fmtDateTimeRange, fmtReport } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { GAME_TYPE_LABEL, LEAGUE } from '@/lib/constants'
 import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season-server'
@@ -69,17 +69,17 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id')
       .order('game_date', { ascending: false }),
     // Next event: within the season — or across every season for "All time"
-    inSeason(supabase.from('games').select('opponent, game_date, location'), season)
+    inSeason(supabase.from('games').select('opponent, game_date, location, ends_at, report_minutes'), season)
       .gte('game_date', now)
       .order('game_date')
       .limit(1)
       .maybeSingle(),
-    inSeason(supabase.from('training_sessions').select('session_date, location'), season)
+    inSeason(supabase.from('training_sessions').select('session_date, location, ends_at, report_minutes'), season)
       .gte('session_date', now)
       .order('session_date')
       .limit(1)
       .maybeSingle(),
-    inSeason(supabase.from('team_events').select('title, event_date, location'), season)
+    inSeason(supabase.from('team_events').select('title, event_date, location, ends_at, report_minutes'), season)
       .gte('event_date', now)
       .order('event_date')
       .limit(1)
@@ -151,11 +151,13 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   // Soonest of the next game, training and team event
   const next =
     [
-      nextGame && { kind: 'Game', title: `vs ${nextGame.opponent}`, when: nextGame.game_date, place: nextGame.location },
-      nextTraining && { kind: 'Training', title: 'Team training', when: nextTraining.session_date, place: nextTraining.location },
-      nextEvent && { kind: 'Event', title: nextEvent.title, when: nextEvent.event_date, place: nextEvent.location },
+      nextGame && { kind: 'Game', title: `vs ${nextGame.opponent}`, when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
+      nextTraining && { kind: 'Training', title: 'Team training', when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
+      nextEvent && { kind: 'Event', title: nextEvent.title, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
     ]
-      .filter((x): x is { kind: string; title: string; when: string; place: string | null } => !!x)
+      .filter(
+        (x): x is { kind: string; title: string; when: string; ends: string | null; report: number | null; place: string | null } => !!x
+      )
       .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime())[0] ?? null
 
   // Next up / season complete — shown under the hero on phones, top right on desktop
@@ -172,9 +174,12 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
         <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
         <div className="liga-meta mt-0.5 text-slate-400">
-          {next.kind} · {fmtDateTime(next.when)}
+          {next.kind} · {fmtDateTimeRange(next.when, next.ends)}
           {next.place ? ` · ${next.place}` : ''}
         </div>
+        {fmtReport(next.when, next.report) && (
+          <div className="liga-event-report mt-0.5 text-[11px] text-slate-500">{fmtReport(next.when, next.report)}</div>
+        )}
       </Link>
     ) : played.length > 0 ? (
       <div className="liga-link-row card mt-2 p-4">

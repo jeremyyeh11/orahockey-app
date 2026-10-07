@@ -817,3 +817,43 @@ test('friendlies never count towards records or stats', () => {
     assert.match(read(f), /from\('games'\)[^\n]*game_type/, `${f} loads game_type so friendlies can be left out`)
   }
 })
+
+test('schedule times: optional end (same-day ranges stay short), report-early subtext', () => {
+  const f = load('lib/format.ts')
+  const nine = '2026-10-10T01:00:00.000Z' // Sat 10 Oct 09:00 SGT
+  const ten30pm = '2026-10-10T14:30:00.000Z' // 22:30 SGT
+  assert.equal(f.fmtDateTimeRange(nine, null), 'Sat 10 Oct · 09:00')
+  assert.equal(f.fmtDateTimeRange(nine, f.endFromTime(nine, '11:00')), 'Sat 10 Oct · 09:00 – 11:00', 'same day: date once')
+  assert.equal(f.fmtDateTimeRange(ten30pm, f.endFromTime(ten30pm, '01:00')), 'Sat 10 Oct · 22:30 – Sun 11 Oct · 01:00', 'past midnight: both dates')
+  assert.equal(f.fmtTimeRange(nine, f.endFromTime(nine, '11:00')), '09:00 – 11:00')
+  assert.equal(f.endFromTime(nine, ''), null, 'no end time')
+  assert.equal(f.toTimeLocal(f.endFromTime(nine, '11:00')), '11:00', 'edit form round-trip')
+  assert.equal(f.fmtReport(nine, 15), 'Report 08:45 · 15 min early')
+  assert.equal(f.fmtReport(nine, null), null)
+  assert.equal(f.fmtReport(nine, 0), null)
+
+  const { EventRow } = load('components/EventRow.tsx')
+  const training = {
+    kind: 'training', date: nine,
+    training: { id: 't', session_date: nine, location: 'RI', notes: null, ends_at: f.endFromTime(nine, '11:00'), report_minutes: 15 },
+  }
+  const html = render(EventRow, { item: training })
+  assert.match(textOf(html), /09:00 – 11:00 · RI/)
+  assert.match(html, /class="liga-event-report[^"]*">Report 08:45 · 15 min early</, 'report time is subtext under the time')
+  assert.ok(textOf(html).indexOf('09:00 – 11:00') < textOf(html).indexOf('Report 08:45'))
+
+  const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+  const admin = read('app/admin/schedule/ScheduleClient.tsx')
+  assert.ok(admin.indexOf("setAddModal('event')") < admin.indexOf("setAddModal('training')"), '+ Event first')
+  assert.ok(admin.indexOf("setAddModal('training')") < admin.indexOf("setAddModal('game')"))
+  assert.equal((admin.match(/<ScheduleTimeFields \/>/g) ?? []).length, 3, 'add forms: game, training, event')
+  assert.equal((read('components/EventDetailModal.tsx').match(/<ScheduleTimeFields defaultEnd=/g) ?? []).length, 3, 'edit forms: game, training, event')
+  const actions = read('app/admin/schedule/actions.ts')
+  for (const fn of ['addGame', 'updateGame', 'addTraining', 'updateTraining']) {
+    assert.match(actions, new RegExp(`export async function ${fn}[\\s\\S]*?checkTimes\\(`), `${fn} validates end/report`)
+  }
+  const migration = read('supabase/migrations/016_schedule_times.sql')
+  for (const t of ['games', 'training_sessions', 'team_events']) {
+    assert.ok(migration.includes(`alter table public.${t}`) && migration.includes(`${t}_ends_after_start`), `${t}: ends_at after start`)
+  }
+})

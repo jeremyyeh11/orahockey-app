@@ -1,4 +1,4 @@
-import { fmtTime, dateBlock } from '@/lib/format'
+import { fmtReport, fmtTimeRange, dateBlock } from '@/lib/format'
 import { GAME_TYPE_LABEL } from '@/lib/constants'
 import type { Game, Training, TeamEvent } from '@/components/EventDetailModal'
 
@@ -19,6 +19,19 @@ export function eventTitle(item: EventItem) {
 
 export function eventLocation(item: EventItem) {
   return item.kind === 'game' ? item.game.location : item.kind === 'training' ? item.training.location : item.event.location
+}
+
+/** Optional end time (ISO) */
+export function eventEnd(item: EventItem) {
+  return (item.kind === 'game' ? item.game.ends_at : item.kind === 'training' ? item.training.ends_at : item.event.ends_at) ?? null
+}
+
+/** Optional "report early by" minutes */
+export function eventReportMinutes(item: EventItem) {
+  return (
+    (item.kind === 'game' ? item.game.report_minutes : item.kind === 'training' ? item.training.report_minutes : item.event.report_minutes) ??
+    null
+  )
 }
 
 export function eventNotes(item: EventItem) {
@@ -59,6 +72,7 @@ export function EventRow({
   const isGame = item.kind === 'game'
   const id = eventId(item)
   const location = eventLocation(item)
+  const report = fmtReport(item.date, eventReportMinutes(item))
   const block = dateBlock(item.date)
   const going = attending?.[id]
 
@@ -86,10 +100,12 @@ export function EventRow({
           )}
         </div>
         <div className="liga-event-meta mt-0.5 text-xs text-slate-400">
-          {fmtTime(item.date)}
+          {fmtTimeRange(item.date, eventEnd(item))}
           {location && ` · ${location}`}
           {isGame && item.game.home_away && ` · ${item.game.home_away === 'home' ? 'Home' : 'Away'}`}
         </div>
+        {/* Report-early time — subtext under the date & time */}
+        {report && <div className="liga-event-report mt-0.5 text-[11px] text-slate-500">{report}</div>}
         {going != null && <div className="mt-0.5 text-[11px] text-slate-500">{going} attending</div>}
         {mine && (
           <div className={`mt-0.5 text-[11px] ${STATUS_CHIP[mine].cls}`}>{STATUS_CHIP[mine].label}</div>

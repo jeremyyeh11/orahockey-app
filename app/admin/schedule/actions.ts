@@ -13,12 +13,16 @@ export type GameInput = {
   goals_for: number | null
   goals_against: number | null
   notes: string | null
+  ends_at: string | null
+  report_minutes: number | null
 }
 
 export type TrainingInput = {
   session_date: string
   location: string | null
   notes: string | null
+  ends_at: string | null
+  report_minutes: number | null
 }
 
 /** A titled team event — gathering, meeting, social… */
@@ -27,12 +31,25 @@ export type EventInput = {
   event_date: string
   location: string | null
   notes: string | null
+  ends_at: string | null
+  report_minutes: number | null
 }
 
 function cleanEvent(data: EventInput): EventInput {
   const title = data.title.trim()
   if (!title) throw new Error('Give the event a title.')
+  checkTimes(data.event_date, data)
   return { ...data, title }
+}
+
+/** End after start; report-early 0–600 whole minutes (the database checks too) */
+function checkTimes(start: string, data: { ends_at: string | null; report_minutes: number | null }) {
+  if (data.ends_at && new Date(data.ends_at).getTime() <= new Date(start).getTime()) {
+    throw new Error('The end time must be after the start.')
+  }
+  if (data.report_minutes != null && (!Number.isInteger(data.report_minutes) || data.report_minutes < 0 || data.report_minutes > 600)) {
+    throw new Error('Report early must be 0–600 minutes.')
+  }
 }
 
 function deriveResult(gf: number | null, ga: number | null) {
@@ -53,6 +70,7 @@ function revalidate() {
 
 export async function addGame(data: GameInput) {
   const supabase = createClient()
+  checkTimes(data.game_date, data)
   const season = await requireOpenSeason()
 
   const { data: team } = await supabase.from('teams').select('id').limit(1).single()
@@ -70,6 +88,7 @@ export async function addGame(data: GameInput) {
 
 export async function updateGame(id: string, data: GameInput) {
   const supabase = createClient()
+  checkTimes(data.game_date, data)
 
   const { error } = await supabase
     .from('games')
@@ -91,6 +110,7 @@ export async function deleteGame(id: string) {
 
 export async function addTraining(data: TrainingInput) {
   const supabase = createClient()
+  checkTimes(data.session_date, data)
   const season = await requireOpenSeason()
 
   const { data: team } = await supabase.from('teams').select('id').limit(1).single()
@@ -107,6 +127,7 @@ export async function addTraining(data: TrainingInput) {
 
 export async function updateTraining(id: string, data: TrainingInput) {
   const supabase = createClient()
+  checkTimes(data.session_date, data)
 
   const { error } = await supabase.from('training_sessions').update(data).eq('id', id)
 

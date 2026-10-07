@@ -37,7 +37,7 @@ export default async function AdminSchedulePage() {
   ] = await Promise.all([
     inSeason(supabase.from('games').select('*'), season).order('game_date', { ascending: false }),
     inSeason(supabase.from('training_sessions').select('*'), season).order('session_date', { ascending: false }),
-    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes'), season).order('event_date', { ascending: false }),
+    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes'), season).order('event_date', { ascending: false }),
     supabase.from('attendance').select('player_id, session_id, status, player:players(full_name, preferred_name)'),
     supabase
       .from('players')

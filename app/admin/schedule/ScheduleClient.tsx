@@ -25,6 +25,7 @@ import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 import type { Season } from '@/lib/season'
 import Modal from '@/components/Modal'
 import { GameTypeSwitch } from '@/components/GameTypeSwitch'
+import { ScheduleTimeFields, readTimeFields } from '@/components/ScheduleTimeFields'
 import { countsForRecord } from '@/lib/stats'
 
 const inputCls =
@@ -167,9 +168,10 @@ export default function ScheduleClient({
   function submitAddGame(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
+    const gameDate = fromDatetimeLocal(fd.get('game_date') as string)
     const data: GameInput = {
       opponent: fd.get('opponent') as string,
-      game_date: fromDatetimeLocal(fd.get('game_date') as string),
+      game_date: gameDate,
       location: (fd.get('location') as string) || null,
       home_away: (fd.get('home_away') as 'home' | 'away') || null,
       game_type: fd.get('game_type') as GameInput['game_type'],
@@ -177,6 +179,7 @@ export default function ScheduleClient({
       goals_for: null,
       goals_against: null,
       notes: (fd.get('notes') as string) || null,
+      ...readTimeFields(fd, gameDate),
     }
     setError(null)
     startTransition(async () => {
@@ -192,10 +195,12 @@ export default function ScheduleClient({
   function submitAddTraining(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
+    const sessionDate = fromDatetimeLocal(fd.get('session_date') as string)
     const data: TrainingInput = {
-      session_date: fromDatetimeLocal(fd.get('session_date') as string),
+      session_date: sessionDate,
       location: (fd.get('location') as string) || null,
       notes: (fd.get('notes') as string) || null,
+      ...readTimeFields(fd, sessionDate),
     }
     setError(null)
     startTransition(async () => {
@@ -211,11 +216,13 @@ export default function ScheduleClient({
   function submitAddEvent(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
+    const eventDate = fromDatetimeLocal(fd.get('event_date') as string)
     const data: EventInput = {
       title: fd.get('title') as string,
-      event_date: fromDatetimeLocal(fd.get('event_date') as string),
+      event_date: eventDate,
       location: (fd.get('location') as string) || null,
       notes: (fd.get('notes') as string) || null,
+      ...readTimeFields(fd, eventDate),
     }
     setError(null)
     startTransition(async () => {
@@ -261,6 +268,12 @@ export default function ScheduleClient({
         {!readOnly && (
           <div className="flex flex-wrap items-center gap-2">
             <button
+              onClick={() => setAddModal('event')}
+              className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+            >
+              + Event
+            </button>
+            <button
               onClick={() => setAddModal('training')}
               className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
             >
@@ -271,12 +284,6 @@ export default function ScheduleClient({
               className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
             >
               + Game
-            </button>
-            <button
-              onClick={() => setAddModal('event')}
-              className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-            >
-              + Event
             </button>
           </div>
         )}
@@ -421,6 +428,7 @@ export default function ScheduleClient({
               <label className={labelCls}>Date &amp; time *</label>
               <input name="game_date" type="datetime-local" required className={dateInputCls} />
             </div>
+            <ScheduleTimeFields />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium" />
@@ -453,6 +461,7 @@ export default function ScheduleClient({
               <label className={labelCls}>Date &amp; time *</label>
               <input name="session_date" type="datetime-local" required className={dateInputCls} />
             </div>
+            <ScheduleTimeFields />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium — Pitch 2" />
@@ -479,6 +488,7 @@ export default function ScheduleClient({
               <label className={labelCls}>Date &amp; time *</label>
               <input name="event_date" type="datetime-local" required className={dateInputCls} />
             </div>
+            <ScheduleTimeFields />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Optional" />

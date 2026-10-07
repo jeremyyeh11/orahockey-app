@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { ReadEditModal } from './ReadEditModal'
 import { preferredName } from './RosterList'
-import { fmtDateTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/lib/format'
+import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
-import { eventId, eventLocation, eventNotes, eventTitle, type EventItem } from './EventRow'
+import { eventEnd, eventId, eventLocation, eventNotes, eventReportMinutes, eventTitle, type EventItem } from './EventRow'
+import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
 import { GAME_TYPE_LABEL } from '@/lib/constants'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
@@ -33,6 +34,8 @@ export type Game = {
   result: string | null
   notes: string | null
   team_list_status: 'draft' | 'published' | null
+  ends_at?: string | null
+  report_minutes?: number | null
 }
 
 export type Training = {
@@ -40,6 +43,8 @@ export type Training = {
   session_date: string
   location: string | null
   notes: string | null
+  ends_at?: string | null
+  report_minutes?: number | null
 }
 
 /** A titled team event — gathering, meeting, social… */
@@ -49,6 +54,8 @@ export type TeamEvent = {
   event_date: string
   location: string | null
   notes: string | null
+  ends_at?: string | null
+  report_minutes?: number | null
 }
 
 export type PlayerLite = {
@@ -185,6 +192,8 @@ export function EventDetailModal({
   const notes = eventNotes(currentItem)
 
   const title = eventTitle(currentItem)
+  const endIso = eventEnd(currentItem)
+  const editEnd = endIso ? toTimeLocal(endIso) : ''
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
 
   // Update result — matches only, enabled once the match date/time has passed
@@ -255,30 +264,36 @@ export function EventDetailModal({
     if (isGame) {
       const gf = fd.get('goals_for') as string
       const ga = fd.get('goals_against') as string
+      const gameDate = fromDatetimeLocal(fd.get('game_date') as string)
       const data: GameInput = {
         opponent: fd.get('opponent') as string,
-        game_date: fromDatetimeLocal(fd.get('game_date') as string),
+        game_date: gameDate,
         location: (fd.get('location') as string) || null,
         home_away: (fd.get('home_away') as 'home' | 'away') || null,
         game_type: fd.get('game_type') as GameInput['game_type'],
         goals_for: gf === '' ? null : Number(gf),
         goals_against: ga === '' ? null : Number(ga),
         notes: (fd.get('notes') as string) || null,
+        ...readTimeFields(fd, gameDate),
       }
       onSaveGame(sessionId, data)
     } else if (kind === 'event') {
+      const eventDate = fromDatetimeLocal(fd.get('event_date') as string)
       const data: EventInput = {
         title: fd.get('title') as string,
-        event_date: fromDatetimeLocal(fd.get('event_date') as string),
+        event_date: eventDate,
         location: (fd.get('location') as string) || null,
         notes: (fd.get('notes') as string) || null,
+        ...readTimeFields(fd, eventDate),
       }
       onSaveEvent(sessionId, data)
     } else {
+      const sessionDate = fromDatetimeLocal(fd.get('session_date') as string)
       const data: TrainingInput = {
-        session_date: fromDatetimeLocal(fd.get('session_date') as string),
+        session_date: sessionDate,
         location: (fd.get('location') as string) || null,
         notes: (fd.get('notes') as string) || null,
+        ...readTimeFields(fd, sessionDate),
       }
       onSaveTraining(sessionId, data)
     }
@@ -360,7 +375,11 @@ export function EventDetailModal({
         <div className="space-y-5">
           {/* Event details */}
           <div className="space-y-2">
-            <DetailRow label="Date & time" value={fmtDateTime(dateStr)} />
+            <DetailRow
+              label="Date & time"
+              value={fmtDateTimeRange(dateStr, endIso)}
+              sub={fmtReport(dateStr, eventReportMinutes(currentItem))}
+            />
             {isGame && currentItem.kind === 'game' && (
               <>
                 <DetailRow label="Opponent" value={currentItem.game.opponent} />
@@ -509,6 +528,7 @@ export function EventDetailModal({
                 <label className={labelCls}>Date &amp; time *</label>
                 <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={dateInputCls} />
               </div>
+              <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.game.location ?? ''} className={inputCls} placeholder="Sengkang Hockey Stadium" />
@@ -548,6 +568,7 @@ export function EventDetailModal({
                 <label className={labelCls}>Date &amp; time *</label>
                 <input name="event_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.event.event_date)} className={dateInputCls} />
               </div>
+              <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.event.location ?? ''} className={inputCls} placeholder="Optional" />
@@ -564,6 +585,7 @@ export function EventDetailModal({
                 <label className={labelCls}>Date &amp; time *</label>
                 <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={dateInputCls} />
               </div>
+              <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.training.location ?? ''} className={inputCls} placeholder="Sengkang Hockey Stadium — Pitch 2" />
@@ -580,11 +602,15 @@ export function EventDetailModal({
   )
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value, sub }: { label: string; value: string; sub?: string | null }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-start justify-between gap-3">
       <span className="text-xs font-medium text-slate-400">{label}</span>
-      <span className="text-sm text-white">{value}</span>
+      <span className="text-right text-sm text-white">
+        {value}
+        {/* e.g. the report-early time under the date & time */}
+        {sub && <span className="liga-event-report mt-0.5 block text-[11px] text-slate-400">{sub}</span>}
+      </span>
     </div>
   )
 }
