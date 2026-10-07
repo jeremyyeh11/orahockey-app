@@ -151,12 +151,12 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   // Soonest of the next game, training and team event
   const next =
     [
-      nextGame && { kind: 'Game', title: `vs ${nextGame.opponent}`, when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
-      nextTraining && { kind: 'Training', title: 'Team training', when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
-      nextEvent && { kind: 'Event', title: nextEvent.title, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
+      nextGame && { title: `vs ${nextGame.opponent}`, when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
+      nextTraining && { title: 'Team training', when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
+      nextEvent && { title: nextEvent.title, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
     ]
       .filter(
-        (x): x is { kind: string; title: string; when: string; ends: string | null; report: number | null; place: string | null } => !!x
+        (x): x is { title: string; when: string; ends: string | null; report: number | null; place: string | null } => !!x
       )
       .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime())[0] ?? null
 
@@ -174,7 +174,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
         <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
         <div className="liga-meta mt-0.5 text-slate-400">
-          {next.kind} · {fmtDateTimeRange(next.when, next.ends)}
+          {fmtDateTimeRange(next.when, next.ends)}
           {next.place ? ` · ${next.place}` : ''}
         </div>
         {fmtReport(next.when, next.report) && (

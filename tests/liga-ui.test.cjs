@@ -218,6 +218,9 @@ test('Home leads with the selected season and keeps all-time stats below it', ()
   assert.match(home, /\{!season\.allTime && \(/, 'no separate All time block when "All time" is the selection')
   // All time: always open, phones included
   assert.match(home, /<div className="liga-all-time mt-6">/)
+  // Next up: the title says what it is, so the meta line is just when + where (no repeated "Training")
+  assert.doesNotMatch(home, /next\.kind/)
+  assert.match(home, /title: 'Team training'/)
   assert.doesNotMatch(home, /<details/)
 })
 
