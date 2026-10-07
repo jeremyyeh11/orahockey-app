@@ -280,3 +280,36 @@ test('Liga surfaces are opt-in and preserve the existing palette', () => {
     assert.ok(theme.includes(colour), `preserve ${colour}`)
   }
 })
+
+test('server components never call functions exported from client modules', () => {
+  // A 'use client' module's exports are client references on the server: calling
+  // one throws "x is not a function" at render (this broke admin profiles once).
+  const files = []
+  const walk = (d) => {
+    for (const f of fs.readdirSync(d)) {
+      const p = path.join(d, f)
+      if (fs.statSync(p).isDirectory()) { if (f !== 'node_modules' && !f.startsWith('.')) walk(p) }
+      else if (/\.tsx?$/.test(f)) files.push(p)
+    }
+  }
+  for (const dir of ['app', 'components', 'lib']) walk(path.join(root, dir))
+  const directive = (src, d) => new RegExp(`^\s*['"]use ${d}['"]`).test(src)
+  const resolve = (from, spec) => {
+    const base = spec.startsWith('@/') ? path.join(root, spec.slice(2)) : spec.startsWith('.') ? path.join(path.dirname(from), spec) : null
+    return base && [base, `${base}.tsx`, `${base}.ts`].find((c) => fs.existsSync(c) && fs.statSync(c).isFile())
+  }
+  const offenders = []
+  for (const file of files) {
+    const src = fs.readFileSync(file, 'utf8')
+    if (directive(src, 'client') || directive(src, 'server')) continue
+    for (const [, names, spec] of src.matchAll(/^import\s+(?!type\b)(.+?)\s+from\s+['"]([^'"]+)['"]/gm)) {
+      const target = resolve(file, spec)
+      if (!target || !directive(fs.readFileSync(target, 'utf8'), 'client')) continue
+      const fns = names.replace(/[{}]/g, '').split(',').map((s) => s.trim())
+        .filter((s) => s && !s.startsWith('type ')).map((s) => s.split(' as ').pop())
+        .filter((n) => /^[a-z]/.test(n))
+      if (fns.length) offenders.push(`${path.relative(root, file)}: ${fns.join(', ')} from ${spec}`)
+    }
+  }
+  assert.deepEqual(offenders, [])
+})

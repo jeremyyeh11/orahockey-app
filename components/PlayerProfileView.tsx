@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus, type SquadStatus } from '@/components/PlayerProfilePage'
 import { computeSeason, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
-import { accountStatusOf, type RosterPlayer } from '@/components/RosterList'
+import type { RosterPlayer } from '@/components/RosterList'
+// Not from RosterList: that's a client module, and this server component calls it
+import { accountStatusOf } from '@/lib/account'
 import { getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
 import { LEAGUE } from '@/lib/constants'
 
