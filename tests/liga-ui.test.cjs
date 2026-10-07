@@ -190,8 +190,7 @@ test('every page has its own tab title and profile names keep their spaces', () 
     assert.match(read(`app/${area}/team/[playerId]/page.tsx`), /generateMetadata[\s\S]*playerProfileMetadata\(params\.playerId\)/, 'profile title is the player name')
   }
   const profile = read('components/PlayerProfilePage.tsx')
-  assert.match(profile, /\{before\}\{beforeSep && '\\u00a0'\}/, 'space after leading names survives the flex edge')
-  assert.match(profile, /\{afterSep && '\\u00a0'\}\{after\}/, 'space before trailing names survives the flex edge')
+  assert.match(profile, /\{part\.text\.replace\(\/ \/g, '\\u00a0'\)\}/, 'spaces stay non-breaking so they survive the flex edges')
 })
 
 test('admins and players share one Home dashboard', () => {

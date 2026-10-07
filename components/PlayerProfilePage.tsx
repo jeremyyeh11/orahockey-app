@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { preferredName, splitName, sortPositions } from './RosterList'
+import { nameParts, preferredName, sortPositions } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
@@ -249,42 +249,37 @@ export function PlayerProfilePage({
         link.kind === 'invite' ? 'setup' : 'password reset'
       } link. Open it and set your password:\n\n${link.url}\n\n(The link expires in ${link.expiresIn} — ask me for a new one if it stops working.)`
     : ''
-  const { before, beforeSep, preferred, afterSep, after } = splitName(player)
+  const parts = nameParts(player)
+  const partsKey = parts.map((x) => `${x.highlight ? '*' : ''}${x.text}`).join('|')
   const positions = sortPositions(player.position)
 
-  // Keep the whole name on one line: preferred stays a fixed 48px, the rest of
-  // the full name auto-shrinks to fit the remaining width.
+  // Keep the whole name on one line: the preferred words stay a fixed 48px, the
+  // rest of the full name auto-shrinks to fit the remaining width.
   const nameRef = useRef<HTMLDivElement>(null)
-  const preferredRef = useRef<HTMLSpanElement>(null)
-  const beforeRef = useRef<HTMLSpanElement>(null)
-  const afterRef = useRef<HTMLSpanElement>(null)
 
   useIsoLayoutEffect(() => {
     const container = nameRef.current
-    const pref = preferredRef.current
-    if (!container || !pref) return
+    if (!container) return
 
     const fit = () => {
-      const b = beforeRef.current
-      const a = afterRef.current
+      const rest = Array.from(container.querySelectorAll<HTMLElement>('[data-name-part="rest"]'))
+      const prefs = Array.from(container.querySelectorAll<HTMLElement>('[data-name-part="pref"]'))
       // Reset to the class-based base size before measuring natural width.
-      if (b) b.style.fontSize = ''
-      if (a) a.style.fontSize = ''
-      const restW = (b?.offsetWidth ?? 0) + (a?.offsetWidth ?? 0)
+      rest.forEach((el) => (el.style.fontSize = ''))
+      const restW = rest.reduce((w, el) => w + el.offsetWidth, 0)
       if (restW === 0) return
-      const base = parseFloat(getComputedStyle(b ?? a!).fontSize) || 20
-      const available = container.clientWidth - pref.offsetWidth - 6
+      const base = parseFloat(getComputedStyle(rest[0]).fontSize) || 20
+      const available = container.clientWidth - prefs.reduce((w, el) => w + el.offsetWidth, 0) - 6
       if (available > 0 && restW > available) {
         const size = Math.max(9, base * (available / restW))
-        if (b) b.style.fontSize = `${size}px`
-        if (a) a.style.fontSize = `${size}px`
+        rest.forEach((el) => (el.style.fontSize = `${size}px`))
       }
     }
 
     fit()
     window.addEventListener('resize', fit)
     return () => window.removeEventListener('resize', fit)
-  }, [before, beforeSep, preferred, afterSep, after])
+  }, [partsKey])
 
   // Only the touch page view is a fixed overlay that needs the page frozen behind
   // it; overlays get their lock from Modal, and the desktop page is a normal page.
@@ -338,19 +333,24 @@ export function PlayerProfilePage({
       <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
         <div className="liga-profile-identity bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
-          {/* Name — preferred fixed at 48px, rest auto-shrinks to stay one line.
-              Separators are non-breaking: a plain space at the edge of a flex item
-              is stripped, which ran "AKASH" into "PREBHASH". */}
+          {/* Name — preferred words fixed at 48px wherever they sit in the full name,
+              the rest auto-shrinks to stay one line. Spaces are non-breaking: a
+              plain space at the edge of a flex item is stripped, which ran "AKASH"
+              into "PREBHASH". */}
           <div
             ref={nameRef}
             className="flex items-baseline overflow-hidden whitespace-nowrap font-display text-xl font-extrabold uppercase leading-[0.95] text-white"
           >
-            {before && (
-              <span ref={beforeRef} className="font-semibold tracking-wide text-slate-300">{before}{beforeSep && '\u00a0'}</span>
-            )}
-            <span ref={preferredRef} className="text-5xl">{preferred}</span>
-            {after && (
-              <span ref={afterRef} className="font-semibold tracking-wide text-slate-300">{afterSep && '\u00a0'}{after}</span>
+            {parts.map((part, i) =>
+              part.highlight ? (
+                <span key={i} data-name-part="pref" className="text-5xl">
+                  {part.text.replace(/ /g, '\u00a0')}
+                </span>
+              ) : (
+                <span key={i} data-name-part="rest" className="font-semibold tracking-wide text-slate-300">
+                  {part.text.replace(/ /g, '\u00a0')}
+                </span>
+              )
             )}
           </div>
 

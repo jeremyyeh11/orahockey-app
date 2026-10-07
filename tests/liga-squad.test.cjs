@@ -889,3 +889,22 @@ test('Home card: ORA vs titles, MHL1/Friendly, day banner, phase + quote outside
   assert.match(home, /phase === 'pre-season' \? pickQuote\(PRE_SEASON_QUOTES\) : phase === 'post-season' \? pickQuote\(POST_SEASON_QUOTES\)/)
   assert.match(home, /<CompetitionTag label=\{competitionLabel\(lastGame\.game_type\)\} \/>/)
 })
+
+test('names: every preferred word is highlighted where it sits in the full name, in any order', () => {
+  const { nameParts } = load('components/RosterList.tsx')
+  const show = (full_name, preferred_name) =>
+    nameParts({ full_name, preferred_name }).map((p) => (p.highlight ? `[${p.text}]` : p.text)).join('')
+  assert.equal(show('MAK RUI AN RYAN', 'MAK RYAN'), '[MAK] RUI AN [RYAN]')
+  assert.equal(show('MAK RUI AN RYAN', 'RYAN MAK'), '[MAK] RUI AN [RYAN]', 'order of the preferred words does not matter')
+  assert.equal(show('PEH YU TAY', 'PEH YU'), '[PEH YU] TAY', 'adjacent words highlight as one run')
+  assert.equal(show('ISHWARPAL SINGH GREWAL', 'ISH'), '[ISH]WARPAL SINGH GREWAL', 'inside a longer word')
+  assert.equal(show('KEAEN-SETH TAN', 'KEAEN'), '[KEAEN]-SETH TAN')
+  assert.equal(show('JEREMY YEH BO HSIEN', null), '[JEREMY] YEH BO HSIEN', 'default = first word')
+  assert.equal(show('MUHAMAD RAZIQ BIN MOHD NOOR', 'raziq'), 'MUHAMAD [RAZIQ] BIN MOHD NOOR', 'case-insensitive')
+  assert.equal(show('LONG ORIGINAL NAME', 'NICK'), '[NICK] LONG ORIGINAL NAME', 'not in the full name: preferred leads')
+  assert.equal(show('RYAN JAY NAIDU', 'RYAN NAIDU'), '[RYAN] JAY [NAIDU]')
+
+  // Rendered in the Squad card: highlighted words plain, the rest muted
+  const card = render(RosterList, { players: [player('m', 'MAK RUI AN RYAN', ['MID'], { preferred_name: 'MAK RYAN' })], myPlayerId: null })
+  assert.match(card, /<span>MAK<\/span><span class="[^"]*text-slate-400[^"]*"> RUI AN <\/span><span>RYAN<\/span>/)
+})

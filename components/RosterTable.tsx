@@ -6,7 +6,7 @@ import {
   ACCOUNT_DOT,
   CardsCell,
   sortPositions,
-  splitName,
+  nameParts,
   statColumns,
   statValue,
   type AccountStatus,
@@ -127,12 +127,13 @@ export default function RosterTable<T extends RosterPlayer>({
             const row = statsMap?.get(p.id)
             const applies = statColumns(p.position)
             const account = accountMap?.get(p.id)
-            const { before, beforeSep, preferred, afterSep, after } = splitName(p)
             const name = (
               <>
-                {before && <span className="font-normal text-slate-400">{before}{beforeSep}</span>}
-                <span className="font-semibold text-white">{preferred}</span>
-                {after && <span className="font-normal text-slate-400">{afterSep}{after}</span>}
+                {nameParts(p).map((part, i) => (
+                  <span key={i} className={part.highlight ? 'font-semibold text-white' : 'font-normal text-slate-400'}>
+                    {part.text}
+                  </span>
+                ))}
                 {isMe && <span className="sr-only"> (you)</span>}
               </>
             )
