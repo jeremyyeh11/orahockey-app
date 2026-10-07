@@ -8,8 +8,8 @@ import { useEffect, useRef, useState } from 'react'
  * top of the scroll area and releasing past the threshold triggers a full
  * `window.location.reload()` (the browser-reload equivalent, not a soft router refresh).
  *
- * Renders the scrollable <main> so it owns the scroll container. Two iOS gotchas drive
- * the shape of this:
+ * Renders the page's <main> and listens for touches on it (the document is what
+ * scrolls). Two iOS gotchas drive the shape of this:
  *   1. If the first downward touchmove isn't preventDefault()-ed, Safari commits the
  *      gesture to its native rubber-band and then ignores later preventDefault — so we
  *      claim the gesture on the very first downward move, no direction-lock delay.
@@ -177,7 +177,10 @@ export default function PullToRefresh({
         </span>
       </div>
 
-      <main ref={mainRef} className={className} style={{ overscrollBehaviorY: 'contain' }}>
+      {/* <main> must not be a scroll container: the document scrolls. A non-scrolling
+          overflow/overscroll container swallows mouse-wheel scrolling in Chrome
+          and stops position:sticky children from sticking to the viewport. */}
+      <main ref={mainRef} className={className}>
         {/* Content follows the finger, then springs back on release.
             IMPORTANT: the transform is only applied while a pull is in flight.
             A permanent transform (even translateY(0)) makes this div the

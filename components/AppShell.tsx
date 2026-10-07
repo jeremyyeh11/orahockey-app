@@ -82,7 +82,7 @@ export default function AppShell({
       {/* Page content — capped at the app width and padded bottom so it isn't hidden
           behind the floating nav (lg+ has no bottom nav). Pull down from the top to
           reload (the only way to refresh in the standalone PWA). */}
-      <PullToRefresh className="flex-1 overflow-y-auto pb-28 lg:pb-12">
+      <PullToRefresh className="flex-1 overflow-x-clip pb-28 lg:pb-12">
         <div className="app-container">{children}</div>
       </PullToRefresh>
 
