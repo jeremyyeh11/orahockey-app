@@ -4,8 +4,9 @@ import { getRequestUser } from '@/lib/supabase/request-user'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { LEAGUE } from '@/lib/constants'
-import { getSelectedSeason, inSeason } from '@/lib/season-server'
-import { seasonTitle } from '@/lib/season'
+import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season-server'
+import { PHASE_LABEL, seasonPhase, seasonTitle } from '@/lib/season'
+import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
 
 function firstName(full: string) {
   const f = full.split(/\s+/)[0] ?? ''
@@ -101,6 +102,16 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   )
   const played = season.allTime ? playedAll : playedAll.filter((g) => g.season_id === season.id)
 
+  // Pre-season / season / post-season, from this season's fixtures (open seasons only)
+  const phase =
+    season.locked || season.allTime
+      ? null
+      : seasonPhase(((games ?? []) as HomeGame[]).filter((g) => g.season_id === season.id).map((g) => g.game_date), nowDate)
+
+  // Admin Danger zone: closing the current season (admin Home, viewing that season)
+  const closeSummary =
+    basePath === '/admin' && season.is_current && !season.locked ? await getCloseSeasonSummary(season) : null
+
   const record = recordOf(played)
   const goalsFor = played.reduce((s, g) => s + (g.goals_for ?? 0), 0)
   const goalsAgainst = played.reduce((s, g) => s + (g.goals_against ?? 0), 0)
@@ -187,6 +198,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             <div className="liga-meta text-white/70">
               {season.allTime ? `All time · ${LEAGUE}` : `Season ${season.label} · ${LEAGUE}`}
               {season.locked && !season.allTime ? ' · Final' : ''}
+              {phase ? ` · ${PHASE_LABEL[phase]}` : ''}
             </div>
             <div className="mt-2 flex items-end gap-3">
               <span className="font-display text-4xl font-extrabold leading-none text-white">
@@ -274,6 +286,9 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
           )}
         </div>
       </div>
+
+      {/* Admins only: close the current season (multi-step confirmation) */}
+      {closeSummary && <CloseSeasonPanel summary={closeSummary} />}
     </div>
   )
 }

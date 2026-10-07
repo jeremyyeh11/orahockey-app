@@ -1,7 +1,8 @@
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
-import { ALL_TIME, SEASON_COOKIE, lockedSeasonMessage, type Season } from '@/lib/season'
+import { getNow } from '@/lib/preview'
+import { ALL_TIME, SEASON_COOKIE, lockedSeasonMessage, nextSeasonLabel, seasonPhase, type Season, type SeasonPhase } from '@/lib/season'
 
 /** All seasons, newest first. Deduped per request. */
 export const getSeasons = cache(async (): Promise<Season[]> => {
@@ -149,4 +150,43 @@ export async function getSeasonSquad<T extends SquadMember = SquadMember>(
         (a.jersey_number ?? Infinity) - (b.jersey_number ?? Infinity) ||
         a.full_name.localeCompare(b.full_name)
     )
+}
+
+export type CloseSeasonSummary = {
+  label: string
+  nextLabel: string | null
+  phase: SeasonPhase
+  fixtures: number
+  firstFixture: string | null
+  lastFixture: string | null
+  /** Games + trainings after now — they'd be archived with the season */
+  upcomingEvents: number
+  /** Active squad members — they carry over to the next season */
+  carryOver: number
+}
+
+/** What closing the current season would do — for the admin Danger zone on Home. */
+export async function getCloseSeasonSummary(season: Season): Promise<CloseSeasonSummary> {
+  const supabase = createClient()
+  const now = getNow().toISOString()
+  const [{ data: games }, { count: upcomingTrainings }, squad] = await Promise.all([
+    supabase.from('games').select('game_date').eq('season_id', season.id).order('game_date'),
+    supabase
+      .from('training_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('season_id', season.id)
+      .gt('session_date', now),
+    getSeasonSquad(season.id),
+  ])
+  const dates = (games ?? []).map((g) => g.game_date as string)
+  return {
+    label: season.label,
+    nextLabel: nextSeasonLabel(season.label),
+    phase: seasonPhase(dates, getNow()),
+    fixtures: dates.length,
+    firstFixture: dates[0] ?? null,
+    lastFixture: dates[dates.length - 1] ?? null,
+    upcomingEvents: dates.filter((d) => new Date(d).getTime() > new Date(now).getTime()).length + (upcomingTrainings ?? 0),
+    carryOver: squad.filter((p) => p.is_active).length,
+  }
 }

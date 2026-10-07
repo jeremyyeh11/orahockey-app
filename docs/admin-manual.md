@@ -13,7 +13,11 @@ Players can view the schedule, squad, and polls, mark their own attendance, and 
 ### Seasons
 Everything below works on the **season selected** in the season switcher (see the [user manual](user-manual.md#seasons)). New players, games and trainings go into that season.
 
-**Past seasons are archived and read-only for everyone, admins included:** no Add Player, + Game / + Training, Edit, Delete, Update result, Team list or attendance buttons. The database rejects any change to an archived season that comes from the app. Corrections to a past season, starting a new season and archiving the old one are done from the backend (Supabase SQL editor) - archiving is the `locked` flag on the season:
+**Past seasons are archived and read-only for everyone, admins included:** no Add Player, + Game / + Training, Edit, Delete, Update result, Team list or attendance buttons. The database rejects any change to an archived season that comes from the app. **Closing a season:** at the bottom of Home (admins only, while viewing the current season) is a **Danger zone** with **Close season**. It archives the current season, makes the next one (e.g. 2028) current, and carries the active players over with their jersey numbers. It asks three times: the button, **Yes, close 2027**, then typing `CLOSE`. If the season isn't in post-season yet, it warns how many upcoming games/trainings would be archived with it.
+
+**Season phase** is worked out from the current season's fixtures and today's date (Singapore time) and shows on the Home season card: **Pre-season** (no fixtures yet, or before the first), **Season** (first to last fixture day), **Post-season** (after the last).
+
+Corrections to a past season (and undoing a close) are done from the backend (Supabase SQL editor) - archiving is the `locked` flag on the season. The manual equivalent of Close season:
 
 ```sql
 -- start a new season: add it, make it current, archive the old one, copy the squad

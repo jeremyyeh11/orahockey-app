@@ -669,3 +669,53 @@ test('All time: first in the switcher, view-only, never labelled Archived; squad
   assert.match(html, /All time · 1 players/)
   assert.match(textOf(html), /Top Scorers1SOME3/, 'career goals across both seasons')
 })
+
+test('season phase is derived from fixtures and today (Singapore days)', () => {
+  const { seasonPhase, nextSeasonLabel, PHASE_LABEL } = load('lib/season.ts')
+  const at = (iso) => new Date(iso)
+  const fixtures = ['2027-04-12T02:00:00Z', '2027-05-10T02:00:00Z', '2027-06-27T07:00:00Z']
+  assert.equal(seasonPhase([], at('2027-05-01T00:00:00Z')), 'pre-season', 'no fixtures yet')
+  assert.equal(seasonPhase(fixtures, at('2027-04-11T10:00:00Z')), 'pre-season', 'before the first fixture day')
+  assert.equal(seasonPhase(fixtures, at('2027-04-12T00:30:00Z')), 'season', 'first fixture day counts as season')
+  assert.equal(seasonPhase(fixtures, at('2027-05-20T00:00:00Z')), 'season')
+  assert.equal(seasonPhase(fixtures, at('2027-06-27T12:00:00Z')), 'season', 'last fixture day (19:00 SGT) still season')
+  assert.equal(seasonPhase(fixtures, at('2027-06-27T16:30:00Z')), 'post-season', '00:30 SGT the day after the last fixture')
+  assert.equal(seasonPhase([...fixtures].reverse(), at('2027-04-11T10:00:00Z')), 'pre-season', 'order of fixtures does not matter')
+  assert.equal(PHASE_LABEL['post-season'], 'Post-season')
+  assert.equal(nextSeasonLabel('2027'), '2028')
+  assert.equal(nextSeasonLabel('Spring league'), null)
+})
+
+test('close season: admin-only Danger zone with three confirmations', () => {
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ refresh() {} }) },
+    './seasonActions': { closeSeason: async () => assert.fail('render must not close a season') },
+  })
+  const { default: CloseSeasonPanel } = boundaryLoad('app/admin/dashboard/CloseSeasonPanel.tsx')
+  const summary = {
+    label: '2027', nextLabel: '2028', phase: 'season', fixtures: 3,
+    firstFixture: '2027-04-12T02:00:00Z', lastFixture: '2027-06-27T07:00:00Z', upcomingEvents: 2, carryOver: 28,
+  }
+  const html = render(CloseSeasonPanel, { summary })
+  assert.match(textOf(html), /Danger zone/i)
+  assert.match(textOf(html), /Close MHL1 2027/)
+  assert.match(textOf(html), /Season · 3 fixtures/)
+  assert.doesNotMatch(html, /role="dialog"/, 'nothing opens until the button is pressed')
+  assert.match(render(CloseSeasonPanel, { summary: { ...summary, nextLabel: null } }), /<button[^>]*disabled=""[^>]*>Close season/)
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const panel = read('app/admin/dashboard/CloseSeasonPanel.tsx')
+  assert.match(panel, /onClick=\{\(\) => setStep\('confirm'\)\}/, '1. the Close season button opens the confirmation')
+  assert.match(panel, /onClick=\{\(\) => setStep\('type'\)\}/, '2. "Yes, close" moves to the typing step')
+  assert.match(panel, /const CONFIRM_WORD = 'CLOSE'/)
+  assert.match(panel, /disabled=\{typed !== CONFIRM_WORD \|\| isPending\}/, '3. final button only once CLOSE is typed exactly')
+  const action = read('app/admin/dashboard/seasonActions.ts')
+  assert.match(action, /if \(confirmation !== 'CLOSE'\) throw/, 'server re-checks the typed word')
+  assert.match(action, /rpc\('is_admin'\)[\s\S]*rpc\('close_current_season'\)/)
+  const home = read('components/HomeView.tsx')
+  assert.match(home, /basePath === '\/admin' && season\.is_current && !season\.locked \? await getCloseSeasonSummary\(season\)/, 'admin Home, current season only')
+  const migration = read('supabase/migrations/014_close_season.sql')
+  assert.match(migration, /if not public\.is_admin\(\) then\s+raise exception/)
+  assert.match(migration, /update seasons set is_current = false, locked = true where id = cur\.id/)
+  assert.match(migration, /revoke execute on function public\.close_current_season\(\) from public, anon;/)
+})

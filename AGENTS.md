@@ -40,6 +40,9 @@ season's jersey number (positions live on `players`, across seasons). The select
 header switcher (`components/SeasonSwitcher.tsx`) sets it. A `season_lock` BEFORE trigger on every
 season-scoped table rejects app (JWT anon/authenticated) writes to a locked season — admins
 included; SQL editor / service-role writes pass. `seasons` has no app write policies.
+The one app path that writes `seasons` is `close_current_season()` (014, admin-checked definer fn)
+behind the admin Home Danger zone (button → Yes → type CLOSE). Season phase (pre-season / season /
+post-season) is derived from the season's fixtures + today in `lib/season.ts:seasonPhase()`, never stored.
 
 Match results (goals/cards) are per-event rows: `match_goals` (scorer + assist slot `pc`/`ps`/player,
 chronological via `goal_number`) and `match_cards` (green/yellow/red; `game_id NULL` = legacy card with
