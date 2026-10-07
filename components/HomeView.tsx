@@ -4,7 +4,8 @@ import { getRequestUser } from '@/lib/supabase/request-user'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { LEAGUE } from '@/lib/constants'
-import { getSelectedSeason } from '@/lib/season-server'
+import { getSelectedSeason, inSeason } from '@/lib/season-server'
+import { seasonTitle } from '@/lib/season'
 
 function firstName(full: string) {
   const f = full.split(/\s+/)[0] ?? ''
@@ -64,18 +65,13 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .from('games')
       .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id')
       .order('game_date', { ascending: false }),
-    supabase
-      .from('games')
-      .select('opponent, game_date, location')
-      .eq('season_id', season.id)
+    // Next event: within the season — or across every season for "All time"
+    inSeason(supabase.from('games').select('opponent, game_date, location'), season)
       .gte('game_date', now)
       .order('game_date')
       .limit(1)
       .maybeSingle(),
-    supabase
-      .from('training_sessions')
-      .select('session_date, location')
-      .eq('season_id', season.id)
+    inSeason(supabase.from('training_sessions').select('session_date, location'), season)
       .gte('session_date', now)
       .order('session_date')
       .limit(1)
@@ -87,13 +83,15 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .eq('player_id', me?.id ?? '')
       .eq('session_type', 'game')
       .eq('status', 'attending'),
-    // Jersey number for the season being viewed
-    supabase
-      .from('season_players')
-      .select('jersey_number')
-      .eq('season_id', season.id)
-      .eq('player_id', me?.id ?? '')
-      .maybeSingle(),
+    // Jersey number for the season being viewed ("All time": their latest, below)
+    season.allTime
+      ? Promise.resolve({ data: null })
+      : supabase
+          .from('season_players')
+          .select('jersey_number')
+          .eq('season_id', season.id)
+          .eq('player_id', me?.id ?? '')
+          .maybeSingle(),
     supabase.from('polls').select('*', { count: 'exact', head: true }).eq('is_active', true),
   ])
 
@@ -101,7 +99,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const playedAll = ((games ?? []) as HomeGame[]).filter(
     (g) => g.result !== null && new Date(g.game_date).getTime() <= nowDate.getTime()
   )
-  const played = playedAll.filter((g) => g.season_id === season.id)
+  const played = season.allTime ? playedAll : playedAll.filter((g) => g.season_id === season.id)
 
   const record = recordOf(played)
   const goalsFor = played.reduce((s, g) => s + (g.goals_for ?? 0), 0)
@@ -155,8 +153,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
           {/* Season record hero */}
           <div className="liga-hero bg-accent relative overflow-hidden rounded-[1.5rem] p-5">
             <div className="liga-meta text-white/70">
-              Season {season.label} · {LEAGUE}
-              {season.locked ? ' · Final' : ''}
+              {season.allTime ? `All time · ${LEAGUE}` : `Season ${season.label} · ${LEAGUE}`}
+              {season.locked && !season.allTime ? ' · Final' : ''}
             </div>
             <div className="mt-2 flex items-end gap-3">
               <span className="font-display text-4xl font-extrabold leading-none text-white">
@@ -169,14 +167,17 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
           </div>
 
           {/* My stats tiles — this season */}
-          <h2 className="liga-section-title mt-6">Your {season.label} season</h2>
+          <h2 className="liga-section-title mt-6">{season.allTime ? 'Your all-time stats' : `Your ${season.label} season`}</h2>
           <div className="liga-stat-grid mt-2 grid grid-cols-3 gap-3">
             <Tile value={mine.goals} label="Goals" />
             <Tile value={mine.assists} label="Assists" />
             <Tile value={`${attendancePct}%`} label="Attendance" />
           </div>
 
-          {/* All time — below the season: open on desktop, collapsed on touch layouts */}
+          {/* All time — below the season: open on desktop, collapsed on touch layouts.
+              Not shown when "All time" itself is selected (the stats above are already that). */}
+          {!season.allTime && (
+          <>
           <details className="liga-all-time group mt-6 lg:hidden">
             <summary className="liga-section-title flex min-h-[44px] cursor-pointer list-none items-center justify-between">
               All time
@@ -188,12 +189,14 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             <h2 className="liga-section-title">All time</h2>
             <AllTime totals={allTime} record={allTimeRecord} games={playedAll.length} />
           </div>
+          </>
+          )}
         </div>
 
         <div className="min-w-0">
           {/* Next up / season complete */}
-          <h2 className="liga-section-title mt-6 lg:mt-0">{season.locked ? 'Season' : 'Next up'}</h2>
-          {season.locked ? (
+          <h2 className="liga-section-title mt-6 lg:mt-0">{season.locked && !season.allTime ? 'Season' : 'Next up'}</h2>
+          {season.locked && !season.allTime ? (
             <div className="liga-link-row card mt-2 p-4">
               <div className="liga-link-title text-sm font-semibold text-white">Season finished</div>
               <div className="liga-meta mt-0.5 text-slate-400">
@@ -217,7 +220,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             <div className="liga-link-row card mt-2 p-4">
               <div className="liga-link-title text-sm font-semibold text-white">Nothing scheduled yet</div>
               <div className="liga-meta mt-0.5 text-slate-400">
-                {LEAGUE} {season.label} fixtures and trainings will show here.
+                {season.allTime ? 'Upcoming' : seasonTitle(season)} fixtures and trainings will show here.
               </div>
             </div>
           )}

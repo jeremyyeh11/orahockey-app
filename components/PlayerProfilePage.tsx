@@ -127,7 +127,8 @@ type PlayerProfileProps = {
   player: ProfilePlayer
   seasonRow: LeaderboardRow | undefined
   careerRow: LeaderboardRow | undefined
-  seasonLabel: string
+  /** e.g. "MHL1 2027"; null for "All time" — then only the Career panel shows */
+  seasonLabel: string | null
   /** Admin view only — enables the account/invite panel */
   accountStatus?: AccountStatus
   /** Admin view, open season only — enables the squad (add / remove / inactive) panel */
@@ -379,7 +380,7 @@ export function PlayerProfilePage({
         </div>
 
         {/* Translucent stat panel — the selected season first, career below */}
-        {seasonRow ? (
+        {seasonLabel === null ? null : seasonRow ? (
           <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
@@ -401,10 +402,12 @@ export function PlayerProfilePage({
         {/* Career stats */}
         {careerRow && (
           <div className="liga-profile-panel bg-black/70 backdrop-blur-sm px-6 py-3">
-            <div className="mb-1.5">
+            <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 Career
               </span>
+              {/* With "All time" selected this is the only panel, so it carries the cards */}
+              {seasonLabel === null && <CardBadges row={careerRow} />}
             </div>
             <StatLine row={careerRow} positions={player.position} />
           </div>

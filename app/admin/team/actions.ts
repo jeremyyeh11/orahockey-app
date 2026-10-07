@@ -146,12 +146,15 @@ export async function updatePlayer(id: string, data: PlayerDetailsInput) {
     throw new Error('You can’t change your own role.')
   }
 
-  const { data: entry, error: entryError } = await supabase
-    .from('season_players')
-    .select('player_id')
-    .eq('season_id', season.id)
-    .eq('player_id', id)
-    .maybeSingle()
+  // "All time" isn't a season: the jersey field is then their default number
+  const { data: entry, error: entryError } = season.allTime
+    ? { data: null, error: null }
+    : await supabase
+        .from('season_players')
+        .select('player_id')
+        .eq('season_id', season.id)
+        .eq('player_id', id)
+        .maybeSingle()
   if (entryError) throw new Error(entryError.message)
 
   // players.jersey_number is the default carried into new seasons: set it when

@@ -8,7 +8,7 @@ import { accountStatusOf } from '@/lib/account'
 import { getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import type { EditContext } from '@/app/admin/team/PlayerEditModal'
-import { LEAGUE } from '@/lib/constants'
+import { seasonTitle } from '@/lib/season'
 
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
 // Admin view additionally exposes contact/role fields (+ auth link for account status).
@@ -59,13 +59,16 @@ export async function PlayerProfileView({
       .select(includeContact ? ADMIN_FIELDS : BASE_FIELDS)
       .eq('id', playerId)
       .single(),
-    // Jersey number for the season being viewed (positions are per player)
-    supabase
-      .from('season_players')
-      .select('jersey_number')
-      .eq('season_id', season.id)
-      .eq('player_id', playerId)
-      .maybeSingle(),
+    // Jersey number for the season being viewed (positions are per player).
+    // "All time" isn't a season: they keep their latest number from players.
+    season.allTime
+      ? Promise.resolve({ data: null })
+      : supabase
+          .from('season_players')
+          .select('jersey_number')
+          .eq('season_id', season.id)
+          .eq('player_id', playerId)
+          .maybeSingle(),
     supabase.from('games').select('id, game_date, result, goals_against, season_id').order('game_date', { ascending: false }),
     supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
     supabase.from('potm').select('game_id, player_id, place'),
@@ -120,7 +123,8 @@ export async function PlayerProfileView({
   let careerRow: LeaderboardRow | undefined
 
   try {
-    const { leaderboard: seasonLb } = computeSeason({
+    // "All time": the career row is the whole story — no separate season row
+    const { leaderboard: seasonLb } = season.allTime ? { leaderboard: [] as LeaderboardRow[] } : computeSeason({
       players,
       games: games ?? [],
       stats: stats ?? [],
@@ -151,7 +155,7 @@ export async function PlayerProfileView({
       player={profile}
       seasonRow={seasonRow}
       careerRow={careerRow}
-      seasonLabel={`${LEAGUE} ${season.label}`}
+      seasonLabel={season.allTime ? null : seasonTitle(season)}
       accountStatus={accountStatus}
       squadStatus={squadStatus}
       editContext={editContext}

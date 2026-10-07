@@ -22,7 +22,7 @@ import {
 } from '@/components/SeasonStats'
 import { accountStatusOf, type RosterPlayer, type AccountStatus } from '@/components/RosterList'
 import { LEAGUE, POSITIONS } from '@/lib/constants'
-import type { Season } from '@/lib/season'
+import { seasonTitle, type Season } from '@/lib/season'
 
 type Player = RosterPlayer & PlayerLite & {
   /** null = pending: added before onboarding, no email yet */
@@ -176,7 +176,7 @@ export default function SquadClient({
         <div className="min-w-0">
           <h1 className="liga-page-title text-white">Squad</h1>
           <p className="liga-meta text-xs text-slate-400">
-            {LEAGUE} {season.label} · {visible.length} players
+            {seasonTitle(season)} · {visible.length} players
           </p>
         </div>
         {!season.locked && (

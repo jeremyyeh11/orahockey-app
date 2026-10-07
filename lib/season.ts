@@ -1,6 +1,8 @@
 // Season types + cookie name, shared by server pages and client components.
 // Server-side loaders live in lib/season-server.ts.
 
+import { LEAGUE } from '@/lib/constants'
+
 /** Selected season label (e.g. "2026"). Session cookie: a fresh visit opens the current season. */
 export const SEASON_COOKIE = 'ora-season'
 
@@ -12,8 +14,32 @@ export type Season = {
   is_current: boolean
   /** Past seasons are locked (shown as "Archived"): read-only in the app, editable only from the backend */
   locked: boolean
+  /** The "All time" view: every season combined (not a database row) */
+  allTime?: boolean
 }
 
-export function lockedSeasonMessage(label: string) {
-  return `Season ${label} is archived — past seasons are read-only.`
+/**
+ * Pseudo-season for the switcher's "All time" option: every season combined.
+ * View-only (locked), since changes always belong to one season. Its label is
+ * the cookie value; display it with seasonTitle().
+ */
+export const ALL_TIME: Season = {
+  id: 'all',
+  label: 'all',
+  starts_on: '',
+  ends_on: '',
+  is_current: false,
+  locked: true,
+  allTime: true,
+}
+
+/** Display name: "MHL1 2027", or "All time" */
+export function seasonTitle(s: Pick<Season, 'label' | 'allTime'>) {
+  return s.allTime ? 'All time' : `${LEAGUE} ${s.label}`
+}
+
+export function lockedSeasonMessage(season: Pick<Season, 'label' | 'allTime'>) {
+  return season.allTime
+    ? 'All time is view-only — pick a season to make changes.'
+    : `Season ${season.label} is archived — past seasons are read-only.`
 }

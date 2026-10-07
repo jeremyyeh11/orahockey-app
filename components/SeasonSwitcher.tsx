@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { LEAGUE } from '@/lib/constants'
-import { SEASON_COOKIE, type Season } from '@/lib/season'
+import { SEASON_COOKIE, seasonTitle, type Season } from '@/lib/season'
 import { LockIcon } from './icons'
 import { finishNavigationProgress, startNavigationProgress } from './NavigationProgress'
 
@@ -39,9 +38,10 @@ function useSeasonSwitch(selectedId: string) {
   return { activeId: pendingId ?? selectedId, select, isPending }
 }
 
-function seasonName(s: Season) {
-  return `${LEAGUE} ${s.label}`
-}
+const seasonName = seasonTitle
+
+/** An archived season (the lock icon) — not the "All time" view, which is view-only too */
+const isArchived = (s: Season | undefined) => !!s?.locked && !s.allTime
 
 /** Desktop (lg+): compact dropdown in the header, next to Logout. */
 export function SeasonMenu({ seasons, selectedId }: SeasonNav) {
@@ -50,7 +50,7 @@ export function SeasonMenu({ seasons, selectedId }: SeasonNav) {
 
   return (
     <div className="liga-season-menu relative hidden items-center lg:flex">
-      {active?.locked && (
+      {isArchived(active) && (
         <LockIcon aria-hidden className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-amber-300" />
       )}
       <select
@@ -62,13 +62,13 @@ export function SeasonMenu({ seasons, selectedId }: SeasonNav) {
           if (s) select(s)
         }}
         className={`liga-season-select min-h-[44px] cursor-pointer rounded-lg border border-surface-border bg-surface py-2 pr-3 text-sm font-medium text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand ${
-          active?.locked ? 'pl-8' : 'pl-3'
+          isArchived(active) ? 'pl-8' : 'pl-3'
         }`}
       >
         {seasons.map((s) => (
           <option key={s.id} value={s.id}>
             {seasonName(s)}
-            {s.locked ? ' · Archived' : s.is_current ? ' · Current' : ''}
+            {s.allTime ? '' : s.locked ? ' · Archived' : s.is_current ? ' · Current' : ''}
           </option>
         ))}
       </select>
@@ -105,16 +105,19 @@ export function SeasonTabs({ seasons, selectedId }: SeasonNav) {
                   on ? 'border-brand-light text-white' : 'border-transparent text-slate-400 hover:text-white'
                 }`}
               >
-                {s.locked && <LockIcon aria-hidden className="h-3 w-3" />}
+                {isArchived(s) && <LockIcon aria-hidden className="h-3 w-3" />}
                 {seasonName(s)}
               </button>
             )
-          })}
+          }).flatMap((tab, i) =>
+            // Thin divider between "All time" (first) and the seasons
+            seasons[i]?.allTime ? [tab, <span key="all-divider" aria-hidden className="my-3 w-px shrink-0 bg-white/10" />] : [tab]
+          )}
         </div>
         {active?.locked && (
           <span className="liga-meta inline-flex shrink-0 items-center gap-1 text-[11px] text-amber-300">
-            <LockIcon aria-hidden className="h-3 w-3" />
-            Read-only
+            {!active.allTime && <LockIcon aria-hidden className="h-3 w-3" />}
+            {active.allTime ? 'View only' : 'Read-only'}
           </span>
         )}
       </div>
@@ -129,10 +132,18 @@ export function LockedSeasonStrip({ seasons, selectedId }: SeasonNav) {
   return (
     <div className="liga-locked-strip hidden border-t border-white/10 lg:block">
       <div className="app-container flex items-center gap-2 px-4 py-1.5 text-xs text-amber-300">
-        <LockIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
-        <span>
-          {seasonName(season)} is a past season — <span className="font-semibold">read-only</span>.
-        </span>
+        {season.allTime ? (
+          <span>
+            All time — every season combined. <span className="font-semibold">View only</span>; pick a season to make changes.
+          </span>
+        ) : (
+          <>
+            <LockIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              {seasonName(season)} is a past season — <span className="font-semibold">read-only</span>.
+            </span>
+          </>
+        )}
       </div>
     </div>
   )

@@ -325,7 +325,7 @@ export default function ScheduleClient({
 
           {/* Past */}
           <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
-            {upcoming.length > 0 ? 'Past' : `Season ${season.label}`}
+            {upcoming.length > 0 ? 'Past' : season.allTime ? 'All time' : `Season ${season.label}`}
           </h2>
           <div className="liga-event-list">
             {past.length === 0 && upcoming.length === 0 && (

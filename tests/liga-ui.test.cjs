@@ -205,13 +205,14 @@ test('admins and players share one Home dashboard', () => {
   assert.ok(read('app/admin/AdminShell.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
   // Desktop: season + your stats beside next up / last game / polls; phones stay one column
   assert.ok(home.includes('liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6'))
-  assert.ok(home.includes(`<h2 className="liga-section-title mt-6 lg:mt-0">{season.locked ? 'Season' : 'Next up'}</h2>`), 'right column starts flush with the hero')
+  assert.ok(home.includes(`<h2 className="liga-section-title mt-6 lg:mt-0">{season.locked && !season.allTime ? 'Season' : 'Next up'}</h2>`), 'right column starts flush with the hero')
 })
 
 test('Home leads with the selected season and keeps all-time stats below it', () => {
   const home = read('components/HomeView.tsx')
   assert.match(home, /getSelectedSeason\(\)/, 'the season comes from the app-wide switcher')
-  assert.ok(home.indexOf('Your {season.label} season') < home.indexOf('All time'), 'season stats come before all time')
+  assert.ok(home.indexOf('liga-stat-grid') < home.indexOf('liga-all-time'), 'season stats come before all time')
+  assert.match(home, /\{!season\.allTime && \(/, 'no separate All time block when "All time" is the selection')
   // All time: collapsed on touch layouts, always open on desktop
   assert.match(home, /<details className="liga-all-time group mt-6 lg:hidden">/)
   assert.match(home, /<div className="liga-all-time mt-6 hidden lg:block">/)

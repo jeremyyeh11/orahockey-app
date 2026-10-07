@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
-import { SEASON_COOKIE, lockedSeasonMessage, type Season } from '@/lib/season'
+import { ALL_TIME, SEASON_COOKIE, lockedSeasonMessage, type Season } from '@/lib/season'
 
 /** All seasons, newest first. Deduped per request. */
 export const getSeasons = cache(async (): Promise<Season[]> => {
@@ -16,10 +16,13 @@ export const getSeasons = cache(async (): Promise<Season[]> => {
 /**
  * The season the app is showing: the one picked in the season switcher (cookie),
  * else the current season. An unknown or stale cookie falls back to current.
+ * "All time" (ALL_TIME, `allTime: true`) has no database id: pages skip their
+ * season_id filter for it (see inSeason).
  */
 export const getSelectedSeason = cache(async (): Promise<Season> => {
   const seasons = await getSeasons()
   const wanted = cookies().get(SEASON_COOKIE)?.value
+  if (wanted === ALL_TIME.label && seasons.length > 0) return ALL_TIME
   const season = seasons.find((s) => s.label === wanted) ?? seasons.find((s) => s.is_current) ?? seasons[0]
   if (!season) throw new Error('No seasons set up yet.')
   return season
@@ -30,7 +33,8 @@ export async function getSeasonNav(): Promise<{ seasons: Season[]; selectedId: s
   try {
     const seasons = await getSeasons()
     if (seasons.length === 0) return null
-    return { seasons, selectedId: (await getSelectedSeason()).id }
+    // "All time" first, so it stays on top as seasons stack up (newest season next)
+    return { seasons: [ALL_TIME, ...seasons], selectedId: (await getSelectedSeason()).id }
   } catch {
     // Signed out (RLS hides seasons) or seasons unavailable — render the shell without a switcher
     return null
@@ -43,8 +47,17 @@ export async function getSeasonNav(): Promise<{ seasons: Season[]; selectedId: s
  */
 export async function requireOpenSeason(): Promise<Season> {
   const season = await getSelectedSeason()
-  if (season.locked) throw new Error(lockedSeasonMessage(season.label))
+  if (season.locked) throw new Error(lockedSeasonMessage(season))
   return season
+}
+
+/**
+ * Filter a Supabase query to the season, or leave it unfiltered for "All time".
+ * (Unconstrained generic on purpose: constraining Q against Supabase's builder
+ * types trips TypeScript's instantiation-depth limit on long selects.)
+ */
+export function inSeason<Q>(query: Q, season: Season, column = 'season_id'): Q {
+  return season.allTime ? query : (query as unknown as { eq(column: string, value: string): Q }).eq(column, season.id)
 }
 
 /**
@@ -106,26 +119,31 @@ export function seasonRoster(squad: SquadMember[], locked: boolean) {
 /**
  * A season's squad: its season_players rows joined to players, with that
  * season's jersey number (positions are per player). `fields` adds extra
- * players columns.
+ * players columns. For "All time" (ALL_TIME.id): everyone who's been in any
+ * season's squad, once each, with their latest jersey number.
  * Sorted by jersey number, then name.
  */
 export async function getSeasonSquad<T extends SquadMember = SquadMember>(
   seasonId: string,
   fields = ''
 ): Promise<T[]> {
-  const base = 'id, full_name, preferred_name, is_active, position'
-  const { data, error } = await createClient()
+  const allTime = seasonId === ALL_TIME.id
+  const base = `id, full_name, preferred_name, is_active, position${allTime ? ', jersey_number' : ''}`
+  let query = createClient()
     .from('season_players')
     .select(`jersey_number, player:players!inner(${fields ? `${base}, ${fields}` : base})`)
-    .eq('season_id', seasonId)
+  if (!allTime) query = query.eq('season_id', seasonId)
+  const { data, error } = await query
   if (error) throw new Error(`Error loading squad: ${error.message}`)
 
   const rows = (data ?? []) as unknown as {
     jersey_number: number | null
     player: Record<string, unknown>
   }[]
-  return rows
-    .map((r) => ({ ...r.player, jersey_number: r.jersey_number }) as unknown as T)
+  const members = allTime
+    ? Array.from(new Map(rows.map((r) => [r.player.id as string, r.player])).values())
+    : rows.map((r) => ({ ...r.player, jersey_number: r.jersey_number }))
+  return (members as unknown as T[])
     .sort(
       (a, b) =>
         (a.jersey_number ?? Infinity) - (b.jersey_number ?? Infinity) ||

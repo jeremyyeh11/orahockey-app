@@ -5,7 +5,7 @@ import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
 import { cookies } from 'next/headers'
 import { VIEW_COOKIE } from '@/lib/preview'
-import { getSeasonSquad, getSelectedSeason, seasonRoster } from '@/lib/season-server'
+import { getSeasonSquad, getSelectedSeason, inSeason, seasonRoster } from '@/lib/season-server'
 import type { GoalRow, CardRow } from './resultActions'
 
 export const metadata: Metadata = { title: 'Schedule' }
@@ -64,15 +64,13 @@ export default async function PlayerSchedulePage() {
     { data: cardRows },
     { data: potmRows },
   ] = await Promise.all([
-    supabase
-      .from('games')
-      .select('id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes, team_list_status')
-      .eq('season_id', season.id)
-      .order('game_date', { ascending: false }),
-    supabase
-      .from('training_sessions')
-      .select('id, session_date, location, notes')
-      .eq('season_id', season.id)
+    inSeason(
+      supabase
+        .from('games')
+        .select('id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes, team_list_status'),
+      season
+    ).order('game_date', { ascending: false }),
+    inSeason(supabase.from('training_sessions').select('id, session_date, location, notes'), season)
       .order('session_date', { ascending: false }),
     supabase.from('attendance').select('session_id, status').eq('player_id', me?.id ?? ''),
     supabase

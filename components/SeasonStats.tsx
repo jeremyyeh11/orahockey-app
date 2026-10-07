@@ -32,7 +32,8 @@ export function useSeasonStats({
   attendance,
   cards,
 }: {
-  season: { id: string; label: string }
+  /** The selected season; `allTime` → career totals across every season */
+  season: { id: string; label: string; allTime?: boolean }
   players: PlayerLite[]
   games: GameLite[]
   stats: SeasonStat[]
@@ -47,8 +48,8 @@ export function useSeasonStats({
     potm,
     attendance,
     cards,
-    season: season.label,
-    seasonId: season.id,
+    season: season.allTime ? 'all' : season.label,
+    seasonId: season.allTime ? undefined : season.id,
   })
 
   const statsMap = new Map<string, LeaderboardRow>(leaderboard.map((r) => [r.player.id, r]))

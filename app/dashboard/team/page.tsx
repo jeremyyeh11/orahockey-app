@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
-import { getSeasonSquad, getSelectedSeason } from '@/lib/season-server'
+import { getSeasonSquad, getSelectedSeason, inSeason } from '@/lib/season-server'
 import SquadClient from './SquadClient'
 import type { MatchCardRow } from '@/lib/stats'
 
@@ -26,11 +26,7 @@ export default async function PlayerSquadPage() {
     supabase
       .from('player_stats')
       .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
-    supabase
-      .from('games')
-      .select('id, game_date, result, goals_against, season_id')
-      .eq('season_id', season.id)
-      .order('game_date', { ascending: false }),
+    inSeason(supabase.from('games').select('id, game_date, result, goals_against, season_id'), season).order('game_date', { ascending: false }),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase
       .from('attendance')

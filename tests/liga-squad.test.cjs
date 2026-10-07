@@ -608,3 +608,51 @@ test('admin player edit: prefilled form, season-aware jersey, locked email/role 
   assert.match(view, /let editContext: EditContext \| undefined\s+if \(includeAccount\) \{/, 'edit only on the admin route')
   assert.doesNotMatch(read('supabase/migrations/013_universal_positions.sql'), /insert into season_players \(season_id, player_id, jersey_number, position\)/)
 })
+
+test('All time: first in the switcher, view-only, never labelled Archived; squad shows career totals', () => {
+  const { ALL_TIME, seasonTitle } = load('lib/season.ts')
+  assert.equal(seasonTitle(ALL_TIME), 'All time')
+  assert.equal(seasonTitle(SEASONS[0]), 'MHL1 2027')
+  assert.equal(ALL_TIME.locked, true, 'view-only: every write path refuses it')
+
+  const switcherLoad = createTsLoader({ 'next/navigation': { useRouter: () => ({ refresh() {} }) } })
+  const { SeasonMenu, SeasonTabs, LockedSeasonStrip } = switcherLoad('components/SeasonSwitcher.tsx')
+  const nav = { seasons: [ALL_TIME, ...SEASONS], selectedId: 'all' }
+
+  const menu = render(SeasonMenu, nav)
+  const options = (menu.match(/<option[^>]*>[^<]*<\/option>/g) ?? []).map(textOf)
+  assert.deepEqual(options, ['All time', 'MHL1 2027 · Current', 'MHL1 2026 · Archived'], 'All time on top; only real past seasons say Archived')
+  assert.doesNotMatch(menu.slice(0, menu.indexOf('<select')), /<svg/, 'no lock icon for All time')
+
+  const tabs = render(SeasonTabs, nav)
+  const buttons = buttonsOf(tabs)
+  assert.deepEqual(buttons.map(textOf), ['All time', 'MHL1 2027', 'MHL1 2026'])
+  assert.doesNotMatch(buttons[0], /<svg/, 'All time tab has no lock')
+  assert.match(tabs, /All time<\/button><span aria-hidden="true" class="[^"]*w-px/, 'divider between All time and the seasons')
+  assert.match(textOf(tabs), /View only$/)
+  assert.match(textOf(render(LockedSeasonStrip, nav)), /All time — every season combined\. View only; pick a season to make changes\./)
+
+  const server = fs.readFileSync(path.join(root, 'lib/season-server.ts'), 'utf8')
+  assert.match(server, /seasons: \[ALL_TIME, \.\.\.seasons\]/, 'switcher lists All time first')
+  assert.match(server, /if \(wanted === ALL_TIME\.label && seasons\.length > 0\) return ALL_TIME/)
+
+  // Squad under All time: every game counts, read-only header
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ push() {} }) },
+  })
+  const SquadClient = boundaryLoad('app/dashboard/team/SquadClient.tsx').default
+  const players = [player('p', 'Some Player')]
+  const { html } = captureRender(SquadClient, {
+    season: ALL_TIME, players, myPlayerId: null, potm: [], attendance: [], cards: [],
+    games: [
+      { id: 'g26', game_date: '2026-05-01T12:00:00Z', result: 'win', goals_against: 0, season_id: 's2026' },
+      { id: 'g27', game_date: '2027-05-01T12:00:00Z', result: 'win', goals_against: 0, season_id: 's2027' },
+    ],
+    stats: [
+      { player_id: 'p', game_id: 'g26', goals_fg: 2, goals_pc: 0, goals_ps: 0, assists: 0 },
+      { player_id: 'p', game_id: 'g27', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 0 },
+    ],
+  })
+  assert.match(html, /All time · 1 players/)
+  assert.match(textOf(html), /Top Scorers1SOME3/, 'career goals across both seasons')
+})

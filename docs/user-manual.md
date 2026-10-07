@@ -17,6 +17,8 @@ After setup, sign in with your roster email and chosen password. Players see **H
 ### Seasons
 Home, Squad and Schedule all show **one season at a time** - the current season (e.g. MHL1 2027) when you open the app. To look back at a past season, use the season switcher: the row of season tabs just under the top bar on a phone, or the season dropdown next to **Logout** on a computer. Switching changes Home, Squad, Schedule and player profiles together.
 
+**All time** (always first in the switcher) shows every season combined: the all-time record and your all-time stats on Home, everyone who's played for the club with their career numbers on Squad, every game and training on Schedule, and career stats on profiles. It's view only - pick a season to change anything.
+
 Past seasons are **archived** (marked with a lock icon) and **read-only** - you can look at results, stats, team lists and attendance, but nothing can be changed (not even by coaches). The app goes back to the current season the next time you open it.
 
 ### Home

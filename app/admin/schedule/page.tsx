@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
-import { getSeasonSquad, getSelectedSeason, seasonRoster } from '@/lib/season-server'
+import { getSeasonSquad, getSelectedSeason, inSeason, seasonRoster } from '@/lib/season-server'
 import type { AttendanceRow, TeamListSelection } from '@/app/dashboard/schedule/page'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 
@@ -34,8 +34,8 @@ export default async function AdminSchedulePage() {
     { data: cardRows },
     { data: potmRows },
   ] = await Promise.all([
-    supabase.from('games').select('*').eq('season_id', season.id).order('game_date', { ascending: false }),
-    supabase.from('training_sessions').select('*').eq('season_id', season.id).order('session_date', { ascending: false }),
+    inSeason(supabase.from('games').select('*'), season).order('game_date', { ascending: false }),
+    inSeason(supabase.from('training_sessions').select('*'), season).order('session_date', { ascending: false }),
     supabase.from('attendance').select('player_id, session_id, status, player:players(full_name, preferred_name)'),
     supabase
       .from('players')
