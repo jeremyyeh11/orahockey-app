@@ -14,7 +14,7 @@ export type RosterPlayer = {
 /** Login-account state shown as a dot on admin roster cards */
 export type AccountStatus = 'none' | 'invited' | 'active'
 
-const ACCOUNT_DOT: Record<AccountStatus, { cls: string; title: string }> = {
+export const ACCOUNT_DOT: Record<AccountStatus, { cls: string; title: string }> = {
   active: { cls: 'bg-green-400', title: 'Account active' },
   invited: { cls: 'bg-amber-400', title: 'Invited — not claimed yet' },
   none: { cls: 'bg-slate-500', title: 'No account yet' },
@@ -108,7 +108,7 @@ function CardShape({ color, count }: { color: 'green' | 'yellow' | 'red'; count:
     red: <span className="text-red-400">●</span>,
   }
   return (
-    <span className="inline-flex items-center gap-0.5 text-xs">
+    <span className="inline-flex items-center gap-0.5 whitespace-nowrap text-xs tabular-nums">
       {shapes[color]}
       <span className="text-slate-400">{count}</span>
     </span>
@@ -116,7 +116,7 @@ function CardShape({ color, count }: { color: 'green' | 'yellow' | 'red'; count:
 }
 
 
-function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+export function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
   const { green, yellow, red } = row.cards
   if (green === 0 && yellow === 0 && red === 0) {
     return <span className="text-slate-600 text-xs">–</span>
@@ -132,7 +132,7 @@ function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
 
 const STAT_COLS = ['FG', 'PC', 'PS', 'A', 'CS', 'POTM', 'App'] as const
 
-function statValue(row: LeaderboardRow, col: string): number {
+export function statValue(row: LeaderboardRow, col: string): number {
   switch (col) {
     case 'FG': return row.fg
     case 'PC': return row.pc
@@ -145,45 +145,38 @@ function statValue(row: LeaderboardRow, col: string): number {
   }
 }
 
-function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean; positions: string[] | null }) {
-  const valCls = (v: number) =>
-    v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'
-  const labelCls = isMe ? 'text-white/50' : 'text-slate-500'
-
+/** Stat columns that apply to a player's positions. */
+export function statColumns(positions: string[] | null): string[] {
   const isGK = positions?.includes('GK') ?? false
   const isOutfield = positions?.some((p) => p !== 'GK') ?? false
 
   // GK-only: show CS, hide FG/PC/PS/A
   // Outfield-only: show FG/PC/PS/A, hide CS
   // Both (GK + outfield): show everything
-  const showGoals = isOutfield
-  const showCS = isGK
-
   const cols: string[] = []
-  if (showGoals) cols.push('FG', 'PC', 'PS', 'A')
-  if (showCS) cols.push('CS')
+  if (isOutfield) cols.push('FG', 'PC', 'PS', 'A')
+  if (isGK) cols.push('CS')
   cols.push('POTM', 'APP')
+  return cols
+}
+
+function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean; positions: string[] | null }) {
+  const valCls = (v: number) =>
+    v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'
+  const labelCls = isMe ? 'text-white/50' : 'text-slate-500'
+  const cols = statColumns(positions)
 
   return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 mt-1.5 text-[11px]">
+    <div className="liga-roster-stats liga-meta min-w-0 flex flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 mt-1.5 text-xs tabular-nums">
       {cols.map((col) => {
         const v = statValue(row, col)
         return (
-          <span key={col} className="inline-flex items-baseline gap-0.5">
-            <span className={`font-semibold ${valCls(v)}`}>{v > 0 ? v : '–'}</span>
+          <span key={col} className="liga-roster-stat inline-flex shrink-0 items-baseline gap-0.5 whitespace-nowrap">
+            <span className={`font-medium ${valCls(v)}`}>{v > 0 ? v : '–'}</span>
             <span className={labelCls}>{col}</span>
           </span>
         )
       })}
-    </div>
-  )
-}
-
-function StatHeader() {
-  return (
-    <div className="flex items-center px-4 pb-1 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-      <span className="flex-1">FG  PC  PS  A  CS  POTM  APP</span>
-      <span className="w-12 text-center">Cards</span>
     </div>
   )
 }
@@ -213,13 +206,12 @@ export default function RosterList<T extends RosterPlayer>({
   })
 
   return (
-    <div className="space-y-2">
-      {statsMap && <StatHeader />}
+    <div className="liga-roster-list space-y-2">
       {sorted.map((player) => {
         const isMe = player.id === myPlayerId
         const stats = statsMap?.get(player.id)
         const account = accountMap?.get(player.id)
-        const cardCls = `relative block w-full overflow-hidden rounded-xl px-4 py-3 text-left transition ${
+        const cardCls = `liga-roster-card relative block w-full overflow-hidden rounded-lg px-4 py-3 text-left transition ${
           isMe ? 'bg-accent ring-1 ring-white/10' : 'border border-surface-border bg-surface-card'
         } ${!player.is_active ? 'opacity-50' : ''}`
 
@@ -228,7 +220,7 @@ export default function RosterList<T extends RosterPlayer>({
             {player.jersey_number != null && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute -top-1.5 right-2 select-none font-display text-[2.75rem] font-extrabold leading-none text-white opacity-15"
+                className="liga-roster-number liga-meta pointer-events-none absolute right-8 top-3 select-none text-xs tabular-nums text-white"
               >
                 {player.jersey_number}
               </span>
@@ -237,12 +229,12 @@ export default function RosterList<T extends RosterPlayer>({
             {account && (
               <span
                 title={ACCOUNT_DOT[account].title}
-                className={`absolute right-3 top-3 h-2 w-2 rounded-full ${ACCOUNT_DOT[account].cls}`}
+                className={`liga-account-dot absolute right-3 top-3.5 h-2 w-2 rounded-full ${ACCOUNT_DOT[account].cls}`}
               />
             )}
 
-            <div className="relative min-w-0 pr-16">
-              <div className="truncate font-semibold text-white">
+            <div className="relative min-w-0 pr-12">
+              <div className="liga-roster-name break-words font-medium leading-snug text-white">
                 {(() => {
                   const { before, beforeSep, preferred, afterSep, after } = splitName(player)
                   return (
@@ -258,8 +250,8 @@ export default function RosterList<T extends RosterPlayer>({
                 {sortPositions(player.position).map((pos) => (
                   <span
                     key={pos}
-                    className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                      isMe ? 'bg-white/15 text-white' : 'bg-white/[0.07] text-slate-300'
+                    className={`liga-roster-position text-xs font-medium ${
+                      isMe ? 'text-white' : 'text-slate-300'
                     }`}
                   >
                     {pos}
@@ -269,9 +261,9 @@ export default function RosterList<T extends RosterPlayer>({
             </div>
 
             {stats && (
-              <div className="relative mt-1 flex items-end justify-between">
+              <div className="liga-roster-details relative mt-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
                 <StatRow row={stats} isMe={isMe} positions={player.position} />
-                <div className="shrink-0 pl-2">
+                <div className="liga-roster-sanctions liga-meta shrink-0">
                   <CardsCell row={stats} isMe={isMe} />
                 </div>
               </div>

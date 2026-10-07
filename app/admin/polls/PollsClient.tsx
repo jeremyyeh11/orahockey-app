@@ -8,10 +8,10 @@ import PotmPolls from '@/components/PotmPolls'
 import { PollResults } from '@/components/PollResults'
 import type { PotmPoll } from '@/lib/potm'
 import type { Poll } from '@/lib/polls'
-import { useModalScrollLock } from '@/lib/useModalScrollLock'
+import Modal from '@/components/Modal'
 
 const inputCls =
-  'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
@@ -28,7 +28,6 @@ export default function PollsClient({
   const [options, setOptions] = useState<string[]>(['', ''])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  useModalScrollLock(showModal)
 
   const active = polls.filter((p) => p.is_active)
   const closed = polls.filter((p) => !p.is_active)
@@ -76,13 +75,13 @@ export default function PollsClient({
   }
 
   return (
-    <div className="p-4">
+    <div className="liga-page liga-polls p-4">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Polls</h1>
+      <div className="liga-page-header mb-4 flex items-end justify-between gap-3">
+        <h1 className="liga-page-title text-white">Polls</h1>
         <button
           onClick={openModal}
-          className="bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
+          className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
         >
           + New Poll
         </button>
@@ -96,8 +95,8 @@ export default function PollsClient({
 
       {active.length > 0 && (
         <>
-          <h2 className="mb-2 text-sm font-semibold text-white">Active</h2>
-          <div className="mb-6 space-y-3">
+          <h2 className="liga-section-title mb-2">Active</h2>
+          <div className="liga-poll-list mb-6 space-y-0">
             {active.map((poll) => (
               <PollCard
                 key={poll.id}
@@ -114,8 +113,8 @@ export default function PollsClient({
 
       {closed.length > 0 && (
         <>
-          <h2 className="mb-2 text-sm font-semibold text-white">Closed</h2>
-          <div className="space-y-3">
+          <h2 className="liga-section-title mb-2">Closed</h2>
+          <div className="liga-poll-list space-y-0">
             {closed.map((poll) => (
               <PollCard
                 key={poll.id}
@@ -132,88 +131,84 @@ export default function PollsClient({
 
       {/* Create modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setShowModal(false)} />
-          <div className="relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-            <h2 className="mb-5 text-lg font-bold text-white">New Poll</h2>
+        <Modal onClose={() => setShowModal(false)} scrollable>
+          <h2 className="mb-5 text-lg font-bold text-white">New Poll</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className={labelCls}>Question *</label>
-                <input
-                  name="question"
-                  type="text"
-                  required
-                  className={inputCls}
-                  placeholder="Which night should we train?"
-                />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className={labelCls}>Question *</label>
+              <input
+                name="question"
+                type="text"
+                required
+                className={inputCls}
+                placeholder="Which night should we train?"
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>Options *</label>
+              <div className="space-y-2">
+                {options.map((opt, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={opt}
+                      onChange={(e) =>
+                        setOptions((prev) => prev.map((o, j) => (j === i ? e.target.value : o)))
+                      }
+                      className={inputCls}
+                      placeholder={`Option ${i + 1}`}
+                    />
+                    {options.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setOptions((prev) => prev.filter((_, j) => j !== i))}
+                        className="shrink-0 rounded-lg border border-surface-border px-3 text-slate-400 transition hover:text-white"
+                        aria-label="Remove option"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-
-              <div>
-                <label className={labelCls}>Options *</label>
-                <div className="space-y-2">
-                  {options.map((opt, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={opt}
-                        onChange={(e) =>
-                          setOptions((prev) => prev.map((o, j) => (j === i ? e.target.value : o)))
-                        }
-                        className={inputCls}
-                        placeholder={`Option ${i + 1}`}
-                      />
-                      {options.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => setOptions((prev) => prev.filter((_, j) => j !== i))}
-                          className="shrink-0 rounded-lg border border-surface-border px-3 text-slate-400 transition hover:text-white"
-                          aria-label="Remove option"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {options.length < 6 && (
-                  <button
-                    type="button"
-                    onClick={() => setOptions((prev) => [...prev, ''])}
-                    className="mt-2 text-xs font-medium text-brand-light transition hover:text-white"
-                  >
-                    + Add option
-                  </button>
-                )}
-              </div>
-
-              <div>
-                <label className={labelCls}>Closes at (optional)</label>
-                <input name="closes_at" type="datetime-local" className={dateInputCls} />
-              </div>
-
-              {error && <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-
-              <div className="flex gap-3 pt-1">
+              {options.length < 6 && (
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+                  onClick={() => setOptions((prev) => [...prev, ''])}
+                  className="mt-2 text-xs font-medium text-brand-light transition hover:text-white"
                 >
-                  Cancel
+                  + Add option
                 </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-                >
-                  {isPending ? 'Creating…' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              )}
+            </div>
+
+            <div>
+              <label className={labelCls}>Closes at (optional)</label>
+              <input name="closes_at" type="datetime-local" className={dateInputCls} />
+            </div>
+
+            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+              >
+                {isPending ? 'Creating…' : 'Create'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   )
@@ -256,17 +251,17 @@ function PollCard({
   }
 
   return (
-    <div className="card p-4">
+    <div className="liga-poll-card card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-white">{poll.question}</div>
-          <div className="mt-0.5 text-xs text-slate-500">
+          <div className="liga-poll-title text-sm font-semibold text-white">{poll.question}</div>
+          <div className="liga-meta mt-0.5 text-slate-500">
             {total} vote{total === 1 ? '' : 's'}
             {poll.closes_at && ` · ${poll.is_active ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
           </div>
         </div>
         {poll.is_active && (
-          <span className="shrink-0 rounded-full bg-green-900/50 px-2 py-0.5 text-[10px] font-semibold uppercase text-green-300">
+          <span className="liga-status-label shrink-0 text-[10px] font-semibold uppercase text-green-300">
             Active
           </span>
         )}
@@ -277,14 +272,14 @@ function PollCard({
 
       {/* Cast your own vote (admins are players too) */}
       {canVote && (
-        <div className="mt-4 border-t border-white/5 pt-3">
+        <div className="liga-divider mt-4 border-t border-white/5 pt-3">
           <div className="mb-2 text-xs font-medium text-slate-400">Your vote</div>
           <div className="flex flex-wrap gap-1.5">
             {sorted.map((opt) => (
               <button
                 key={opt.id}
                 onClick={() => setSelected(opt.id)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                className={`liga-poll-option liga-button rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                   selected === opt.id
                     ? 'border-brand bg-brand/20 text-white'
                     : 'border-surface-border text-slate-400 hover:text-white'
@@ -296,30 +291,30 @@ function PollCard({
             <button
               onClick={handleVote}
               disabled={!selected || isVoting}
-              className="bg-accent rounded-full px-4 py-1.5 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
+              className="liga-button liga-button-primary bg-accent rounded-full px-4 py-1.5 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
             >
               {isVoting ? 'Voting…' : 'Vote'}
             </button>
           </div>
           {voteError && (
-            <p className="mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-400">{voteError}</p>
+            <p className="liga-alert liga-alert-error mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-400">{voteError}</p>
           )}
         </div>
       )}
 
       {/* Actions */}
-      <div className="mt-4 flex gap-2 border-t border-white/5 pt-3">
+      <div className="liga-actions mt-4 flex gap-2 border-t border-white/5 pt-3">
         <button
           onClick={onToggle}
           disabled={isPending}
-          className="rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
+          className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
         >
           {poll.is_active ? 'Close poll' : 'Reopen'}
         </button>
         <button
           onClick={onDelete}
           disabled={isPending}
-          className="rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-40"
+          className="liga-button liga-button-danger rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-40"
         >
           Delete
         </button>

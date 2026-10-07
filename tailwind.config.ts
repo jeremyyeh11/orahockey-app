@@ -39,6 +39,10 @@ const config: Config = {
           orange: '#f97316',
         },
       },
+      maxWidth: {
+        // Same cap as .app-container, for one-off elements (fixed bars, overlays)
+        app: 'var(--app-max-width)',
+      },
       fontFamily: {
         sans: ['var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['var(--font-sora)', 'var(--font-inter)', 'ui-sans-serif', 'system-ui', 'sans-serif'],

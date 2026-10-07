@@ -44,7 +44,7 @@ export function useSeasonStats({
   const seasons = seasonsOf(games)
   const [season, setSeason] = useState<string>(seasons[0] ?? String(new Date().getFullYear()))
 
-  const { seasonGames, leaderboard, pots, topScorerGroups } = computeSeason({
+  const { seasonGames, leaderboard, pots, topScorerGroups, topAssistGroups } = computeSeason({
     players,
     games,
     stats,
@@ -56,7 +56,7 @@ export function useSeasonStats({
 
   const statsMap = new Map<string, LeaderboardRow>(leaderboard.map((r) => [r.player.id, r]))
 
-  return { seasons, season, setSeason, seasonGames, leaderboard, pots, topScorerGroups, statsMap }
+  return { seasons, season, setSeason, seasonGames, leaderboard, pots, topScorerGroups, topAssistGroups, statsMap }
 }
 
 export function SeasonSelect({
@@ -70,9 +70,10 @@ export function SeasonSelect({
 }) {
   return (
     <select
+      aria-label="Season"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+      className="liga-season-select liga-button min-h-[44px] max-w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
     >
       {seasons.map((s) => (
         <option key={s} value={s}>
@@ -83,25 +84,23 @@ export function SeasonSelect({
   )
 }
 
-const MEDALS = ['🥇', '🥈', '🥉']
-
 export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
   if (pots.length === 0) return null
   return (
-    <div className="card overflow-hidden">
-      <div className="border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+    <div className="liga-panel card overflow-hidden">
+      <h2 className="liga-panel-heading border-b border-white/10 px-3 py-2 text-xs font-medium text-slate-400">
         POTS Race
-      </div>
+      </h2>
       {pots.map((r, i) => (
         <div
           key={r.player.id}
-          className="flex items-center gap-2 border-b border-white/5 px-3 py-2 last:border-0"
+          className="liga-panel-row flex items-baseline gap-2 border-b border-white/5 px-3 py-2 last:border-0"
         >
-          <span className="w-5 text-center text-sm">{MEDALS[i]}</span>
-          <span className="min-w-0 flex-1 truncate text-xs font-medium text-white">
+          <span className="liga-rank liga-meta w-5 shrink-0 text-center text-xs tabular-nums">{i + 1}</span>
+          <span className="liga-panel-name min-w-0 flex-1 break-words text-xs font-medium text-white">
             {preferredName(r.player)}
           </span>
-          <span className="shrink-0 text-xs font-semibold text-brand-light">{r.potsPts} pts</span>
+          <span className="liga-panel-value shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-brand-light">{r.potsPts} pts</span>
         </div>
       ))}
     </div>
@@ -109,22 +108,45 @@ export function PotsCard({ pots }: { pots: LeaderboardRow[] }) {
 }
 
 export function TopScorersCard({ groups }: { groups: LeaderboardRow[][] }) {
+  return <RankedCard title="Top Scorers" groups={groups} value={(r) => r.goals} />
+}
+
+export function TopAssistsCard({ groups }: { groups: LeaderboardRow[][] }) {
+  return <RankedCard title="Top Assists" groups={groups} value={(r) => r.assists} />
+}
+
+function RankedCard({
+  title,
+  groups,
+  value,
+}: {
+  title: string
+  groups: LeaderboardRow[][]
+  value: (r: LeaderboardRow) => number
+}) {
   if (groups.length === 0) return null
+  // One row per player; tied players share their group's rank (1, 1, 3, …)
+  let ahead = 0
+  const rows = groups.flatMap((grp) => {
+    const rank = ahead + 1
+    ahead += grp.length
+    return grp.map((r) => ({ r, rank }))
+  })
   return (
-    <div className="card overflow-hidden">
-      <div className="border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-        Top Scorers
-      </div>
-      {groups.map((grp, i) => (
+    <div className="liga-panel card overflow-hidden">
+      <h2 className="liga-panel-heading border-b border-white/10 px-3 py-2 text-xs font-medium text-slate-400">
+        {title}
+      </h2>
+      {rows.map(({ r, rank }) => (
         <div
-          key={i}
-          className="flex items-center gap-2 border-b border-white/5 px-3 py-2 last:border-0"
+          key={r.player.id}
+          className="liga-panel-row flex items-baseline gap-2 border-b border-white/5 px-3 py-2 last:border-0"
         >
-          <span className="w-5 text-center text-sm">{MEDALS[i]}</span>
-          <span className="min-w-0 flex-1 truncate text-xs font-medium text-white">
-            {grp.map((r) => preferredName(r.player)).join(' / ')}
+          <span className="liga-rank liga-meta w-5 shrink-0 text-center text-xs tabular-nums">{rank}</span>
+          <span className="liga-panel-name min-w-0 flex-1 break-words text-xs font-medium text-white">
+            {preferredName(r.player)}
           </span>
-          <span className="shrink-0 text-xs font-semibold text-brand-light">{grp[0].goals}</span>
+          <span className="liga-panel-value shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-brand-light">{value(r)}</span>
         </div>
       ))}
     </div>
@@ -146,7 +168,7 @@ export function LeaderboardTable({
     )
   }
   return (
-    <div className="card overflow-hidden">
+    <div className="liga-panel card overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-slate-500">

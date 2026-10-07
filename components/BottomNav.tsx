@@ -12,7 +12,7 @@ export type NavItem = {
   exact?: boolean
 }
 
-function isActive(item: NavItem, pathname: string) {
+export function isActive(item: NavItem, pathname: string) {
   return item.exact
     ? pathname === item.href
     : pathname === item.href || pathname.startsWith(item.href + '/')
@@ -22,7 +22,8 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname()
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+24px)]">
+    // Touch layouts only — desktop (lg+) uses the labelled TopNav in the header
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+24px)] lg:hidden">
       <nav className="menu-dock flex items-center gap-0.5 p-1.5">
         {items.map((item) => {
           const active = isActive(item, pathname)

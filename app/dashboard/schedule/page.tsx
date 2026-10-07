@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
@@ -5,6 +6,8 @@ import { getNow } from '@/lib/preview'
 import { cookies } from 'next/headers'
 import { VIEW_COOKIE } from '@/lib/preview'
 import type { GoalRow, CardRow } from './resultActions'
+
+export const metadata: Metadata = { title: 'Schedule' }
 
 function groupByGame<T extends { game_id: string | null }>(rows: T[]): Record<string, T[]> {
   const byGame: Record<string, T[]> = {}

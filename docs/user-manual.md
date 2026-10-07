@@ -10,22 +10,26 @@ For players using the ORA Hockey team app on a phone or in a browser. Coaches an
 - **Forgot your password?** Ask a coach/manager — they can send you a reset link the same way (that one expires after 1 hour).
 
 
-After setup, sign in with your roster email and chosen password. Players see **Home**, **Squad**, **Schedule**, and **Polls** in the bottom navigation.
+After setup, sign in with your roster email and chosen password. Players see **Home**, **Squad**, **Schedule**, and **Polls** - in the bar along the bottom on a phone, or in the top bar on a computer. A thin green line across the top of the screen means a page is loading.
 
 ## Using the app
 
 ### Home
-Your landing screen. Shows the season record (W - D - L), your own stats tiles (Goals, Assists, Attendance %), the next scheduled game or training, the last result, and a prompt if there are active polls awaiting your vote.
+Your landing screen. Shows the season record (W - D - L), your own stats tiles (Goals, Assists, Attendance %), the next scheduled game or training, the last result, and a prompt if there are active polls awaiting your vote. On a computer, the season and your stats sit on the left and what's coming up on the right.
 
 ### Squad
-The full roster with season stats shown inline on each player's card (goals, assists, attendance, POTM points). Use the **season selector** at the top to switch between seasons. The two cards at the top show the live **POTS race** (player of the season points) and **top scorers**.
+The full roster with each player's season stats: goals by type (**FG** field goal, **PC** penalty corner, **PS** penalty stroke), assists (**A**), clean sheets for keepers (**CS**), Player of the Match wins (**POTM**) and appearances (**APP**). On a phone each player is a card; on a computer the roster is a table - click any column heading to sort by it. Use the **season selector** at the top to switch between seasons.
+
+**Top Scorers** and **Top Assists** sit at the top (in a side column on wide screens). Each player gets their own row; players level on the same total share a rank (1, 1, 3 …), and the list carries on until it reaches 5th place.
+
+**Tap a player** to open their profile - age, years at ORA, appearances, and this season's and career stats. It opens full screen on a phone and as a pop-up on a computer; close it with the back arrow, the **✕**, or Esc.
 
 ### Schedule
 A list of games and training sessions, split into **Upcoming** and **Past**.
 
 - Use the **All / Games / Trainings** filter chips to narrow the list.
 - For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance.
-- **Tap any event** to open its detail view. There you can:
+- **Tap any event** to open its detail view. On a computer the details sit in a panel beside the list instead - it shows the next event to start with; click any event to switch. There you can:
   - see the full details (opponent, date/time, venue, home/away, type, result and score for played games),
   - set or change your attendance,
   - see the **attendance breakdown** - Attending, Maybe, Not attending, Hasn't responded, in that order,

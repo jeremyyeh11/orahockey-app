@@ -15,13 +15,14 @@ import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
 import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
+import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 import { seasonsOf } from '@/lib/stats'
-import { useModalScrollLock } from '@/lib/useModalScrollLock'
+import Modal from '@/components/Modal'
 
 const inputCls =
-  'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
@@ -55,7 +56,6 @@ export default function ScheduleClient({
   potmByGame: Record<string, PotmPlacing[]>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
-  const [selectedItem, setSelectedItem] = useState<EventItem | null>(null)
   const [addModal, setAddModal] = useState<'game' | 'training' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -75,6 +75,7 @@ export default function ScheduleClient({
   const past = items
     .filter((i) => new Date(i.date).getTime() < nowMs)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const { isDesktop, selected: selectedItem, select: setSelectedItem, isSelected } = useEventSelection(upcoming, past)
 
   const season = seasonsOf(games)[0] ?? String(new Date(now).getFullYear())
   const played = games.filter(
@@ -102,7 +103,8 @@ export default function ScheduleClient({
     startTransition(async () => {
       try {
         await updateGame(id, data)
-        setSelectedItem(null)
+        // The modal closes after saving; the desktop panel stays on the edited event
+        if (!isDesktop) setSelectedItem(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
       }
@@ -113,7 +115,8 @@ export default function ScheduleClient({
     startTransition(async () => {
       try {
         await updateTraining(id, data)
-        setSelectedItem(null)
+        // The modal closes after saving; the desktop panel stays on the edited event
+        if (!isDesktop) setSelectedItem(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
       }
@@ -178,21 +181,44 @@ export default function ScheduleClient({
     })
   }
 
+  const detail = selectedItem && (
+    <EventDetailModal
+      key={eventKey(selectedItem)}
+      inline={isDesktop}
+      item={selectedItem}
+      isAdmin={isAdmin}
+      teamListByGame={teamListByGame}
+      myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
+      attendanceBySession={attendanceBySession}
+      roster={roster}
+      myPlayerId={myPlayerId}
+      now={now}
+      goalsByGame={goalsByGame}
+      cardsByGame={cardsByGame}
+      potmByGame={potmByGame}
+      onClose={() => { setSelectedItem(null); setError(null) }}
+      onSaveGame={handleSaveGame}
+      onSaveTraining={handleSaveTraining}
+      onDelete={handleDelete}
+      isPending={isPending}
+    />
+  )
+
   return (
-    <div className="p-4">
+    <div className="liga-page p-4">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Schedule</h1>
+      <div className="liga-page-header mb-4 flex items-center justify-between gap-3">
+        <h1 className="liga-page-title text-xl text-white">Schedule</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAddModal('training')}
-            className="rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+            className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
           >
             + Training
           </button>
           <button
             onClick={() => setAddModal('game')}
-            className="bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
+            className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
           >
             + Game
           </button>
@@ -201,7 +227,7 @@ export default function ScheduleClient({
 
       {/* Season record */}
       {played.length > 0 && (
-        <div className="mb-4 flex gap-4 text-sm text-slate-400">
+        <div className="liga-meta mb-4 flex gap-4 text-sm text-slate-400">
           <span>
             <span className="font-semibold text-white">{record.w}W</span> ·{' '}
             <span className="font-semibold text-white">{record.d}D</span> ·{' '}
@@ -211,126 +237,120 @@ export default function ScheduleClient({
         </div>
       )}
 
-      {/* Filter chips */}
-      <div className="mb-4 flex gap-1.5">
-        {(
-          [
-            ['all', 'All'],
-            ['games', 'Games'],
-            ['trainings', 'Trainings'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              filter === key
-                ? 'bg-accent text-white ring-1 ring-white/10'
-                : 'border border-surface-border text-slate-400 hover:text-white'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Upcoming */}
-      {upcoming.length > 0 && (
-        <>
-          <h2 className="mb-2 text-sm font-semibold text-white">Upcoming</h2>
-          <div className="mb-6 space-y-2">
-            {upcoming.map((item) => {
-              const id = item.kind === 'game' ? item.game.id : item.training.id
-              const mine = myStatus[id]
-              return (
-                <div key={`${item.kind}-${id}`} className="card px-4 py-3">
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedItem(item)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
-                    className="cursor-pointer"
-                  >
-                    <EventRow item={item} attending={attending} />
-                  </div>
-                  <div className="mt-3 flex gap-2 border-t border-white/5 pt-3">
-                    {(
-                      [
-                        ['attending', "I'm in"],
-                        ['maybe', 'Maybe'],
-                        ['not_attending', 'Out'],
-                      ] as const
-                    ).map(([status, label]) => (
-                      <button
-                        key={status}
-                        onClick={() => respond(item, status)}
-                        disabled={isPending && respondingId === id}
-                        className={`flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
-                          mine === status
-                            ? status === 'attending'
-                              ? 'bg-accent text-white ring-1 ring-white/10'
-                              : status === 'maybe'
-                              ? 'bg-amber-900/60 text-amber-300'
-                              : 'bg-slate-700 text-slate-300'
-                            : 'border border-surface-border text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
+      {/* Desktop (lg+): the event list beside a sticky details panel. Touch layouts open details as a modal. */}
+      <div className="liga-schedule-layout lg:grid lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-6">
+        <div className="min-w-0">
+          {/* Filter chips */}
+          <div className="liga-tabs mb-4 flex gap-1.5">
+            {(
+              [
+                ['all', 'All'],
+                ['games', 'Games'],
+                ['trainings', 'Trainings'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                aria-pressed={filter === key}
+                className={`liga-tab liga-button rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  filter === key
+                    ? 'bg-accent text-white ring-1 ring-white/10'
+                    : 'border border-surface-border text-slate-400 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-        </>
-      )}
 
-      {/* Past */}
-      <h2 className="mb-2 text-sm font-semibold text-white">
-        {upcoming.length > 0 ? 'Past' : `Season ${season}`}
-      </h2>
-      <div className="space-y-2">
-        {past.length === 0 && upcoming.length === 0 && (
-          <p className="py-4 text-center text-sm text-slate-500">
-            Nothing scheduled yet. Add a game or training above.
-          </p>
-        )}
-        {past.map((item) => (
-          <EventCard
-            key={`${item.kind}-${item.kind === 'game' ? item.game.id : item.training.id}`}
-            item={item}
-            attending={attending}
-            onClick={() => setSelectedItem(item)}
-          />
-        ))}
+          {/* Upcoming */}
+          {upcoming.length > 0 && (
+            <>
+              <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">Upcoming</h2>
+              <div className="liga-event-list mb-6">
+                {upcoming.map((item) => {
+                  const id = item.kind === 'game' ? item.game.id : item.training.id
+                  const mine = myStatus[id]
+                  return (
+                    <div key={`${item.kind}-${id}`} data-selected={isSelected(item) || undefined} className="liga-event-card card px-4 py-3">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-current={isSelected(item) || undefined}
+                        onClick={() => setSelectedItem(item)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
+                        className="cursor-pointer"
+                      >
+                        <EventRow item={item} attending={attending} />
+                      </div>
+                      <div className="liga-event-actions mt-2 flex gap-2">
+                        {(
+                          [
+                            ['attending', "I'm in"],
+                            ['maybe', 'Maybe'],
+                            ['not_attending', 'Out'],
+                          ] as const
+                        ).map(([status, label]) => (
+                          <button
+                            key={status}
+                            onClick={() => respond(item, status)}
+                            disabled={isPending && respondingId === id}
+                            className={`liga-button flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
+                              mine === status
+                                ? status === 'attending'
+                                  ? 'bg-accent text-white ring-1 ring-white/10'
+                                  : status === 'maybe'
+                                  ? 'bg-amber-900/60 text-amber-300'
+                                  : 'bg-slate-700 text-slate-300'
+                                : 'liga-event-action-quiet text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Past */}
+          <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
+            {upcoming.length > 0 ? 'Past' : `Season ${season}`}
+          </h2>
+          <div className="liga-event-list">
+            {past.length === 0 && upcoming.length === 0 && (
+              <p className="py-4 text-center text-sm text-slate-500">
+                Nothing scheduled yet. Add a game or training above.
+              </p>
+            )}
+            {past.map((item) => (
+              <EventCard
+                key={`${item.kind}-${item.kind === 'game' ? item.game.id : item.training.id}`}
+                item={item}
+                attending={attending}
+                selected={isSelected(item)}
+                onClick={() => setSelectedItem(item)}
+              />
+            ))}
+          </div>
+
+        </div>
+
+        <aside className="liga-schedule-detail hidden lg:sticky lg:top-20 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+          {isDesktop && detail}
+        </aside>
       </div>
 
-      {/* Event Detail Modal */}
-      {selectedItem && (
-        <EventDetailModal
-          item={selectedItem}
-          isAdmin={isAdmin}
-          teamListByGame={teamListByGame}
-          myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
-          attendanceBySession={attendanceBySession}
-          roster={roster}
-          myPlayerId={myPlayerId}
-          now={now}
-          goalsByGame={goalsByGame}
-          cardsByGame={cardsByGame}
-          potmByGame={potmByGame}
-          onClose={() => { setSelectedItem(null); setError(null) }}
-          onSaveGame={handleSaveGame}
-          onSaveTraining={handleSaveTraining}
-          onDelete={handleDelete}
-          isPending={isPending}
-        />
-      )}
+      {/* Touch layouts: event details as a modal */}
+      {!isDesktop && detail}
 
       {/* Add Game Modal */}
       {addModal === 'game' && (
-        <Modal title="Add Game" onClose={() => { setAddModal(null); setError(null) }}>
+        <FormModal title="Add Game" onClose={() => { setAddModal(null); setError(null) }}>
           <form onSubmit={submitAddGame} className="space-y-4">
             <div>
               <label className={labelCls}>Opponent *</label>
@@ -366,15 +386,15 @@ export default function ScheduleClient({
               <label className={labelCls}>Notes</label>
               <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-            {error && <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
             <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
-        </Modal>
+        </FormModal>
       )}
 
       {/* Add Training Modal */}
       {addModal === 'training' && (
-        <Modal title="Add Training" onClose={() => { setAddModal(null); setError(null) }}>
+        <FormModal title="Add Training" onClose={() => { setAddModal(null); setError(null) }}>
           <form onSubmit={submitAddTraining} className="space-y-4">
             <div>
               <label className={labelCls}>Date &amp; time *</label>
@@ -388,10 +408,10 @@ export default function ScheduleClient({
               <label className={labelCls}>Notes</label>
               <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-            {error && <p className="rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
             <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
-        </Modal>
+        </FormModal>
       )}
     </div>
   )
@@ -400,33 +420,33 @@ export default function ScheduleClient({
 function EventCard({
   item,
   attending,
+  selected,
   onClick,
 }: {
   item: EventItem
   attending: Record<string, number>
+  /** Showing in the desktop details panel */
+  selected: boolean
   onClick: () => void
 }) {
   return (
     <button
       onClick={onClick}
-      className="card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
+      aria-current={selected || undefined}
+      data-selected={selected || undefined}
+      className="liga-event-card card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
     >
       <EventRow item={item} attending={attending} />
     </button>
   )
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  useModalScrollLock()
+function FormModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-full overflow-y-auto scrollbar-hide rounded-t-2xl border border-surface-border bg-surface-card px-6 pb-8 pt-6 shadow-xl sm:max-w-sm sm:rounded-2xl">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-        <h2 className="mb-5 text-lg font-bold text-white">{title}</h2>
-        {children}
-      </div>
-    </div>
+    <Modal onClose={onClose} scrollable>
+      <h2 className="mb-5 text-lg font-bold text-white">{title}</h2>
+      {children}
+    </Modal>
   )
 }
 
@@ -436,14 +456,14 @@ function ModalButtons({ isPending, onCancel }: { isPending: boolean; onCancel: (
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+        className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={isPending}
-        className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+        className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
       >
         {isPending ? 'Saving…' : 'Save'}
       </button>

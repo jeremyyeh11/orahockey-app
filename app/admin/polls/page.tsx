@@ -1,7 +1,10 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import PollsClient from './PollsClient'
 import { getPotmPolls } from '@/lib/potm'
+
+export const metadata: Metadata = { title: 'Polls' }
 
 export default async function AdminPollsPage() {
   const supabase = createClient()
@@ -21,8 +24,8 @@ export default async function AdminPollsPage() {
 
   if (error) {
     return (
-      <div className="p-4">
-        <p className="text-sm text-red-400">Error loading polls: {error.message}</p>
+      <div className="liga-page liga-error-state p-4">
+        <p className="liga-alert liga-alert-error text-sm text-red-400">Error loading polls: {error.message}</p>
       </div>
     )
   }

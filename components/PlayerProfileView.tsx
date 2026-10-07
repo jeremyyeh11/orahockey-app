@@ -1,5 +1,6 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
+import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
 import { computeSeason, seasonsOf, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
 import { getNow } from '@/lib/preview'
@@ -8,6 +9,14 @@ import { LEAGUE } from '@/lib/constants'
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
 // Admin view additionally exposes contact/role fields (+ auth link for account status).
 const ADMIN_FIELDS = `${BASE_FIELDS}, email, role, auth_user_id`
+
+/** Tab title for a profile route — the player's name, e.g. "Akash Prebhash Chandra · ORA Hockey". */
+export async function playerProfileMetadata(playerId: string): Promise<Metadata> {
+  const { data } = await createClient().from('players').select('full_name').eq('id', playerId).maybeSingle()
+  // Names are stored in capitals; title case reads better in a browser tab
+  const name = data?.full_name?.toLowerCase().replace(/(^|[\s-])[a-z]/g, (c: string) => c.toUpperCase())
+  return { title: name ?? 'Player' }
+}
 
 /**
  * Shared loader + render for the player profile route. Used by both the admin
@@ -20,10 +29,13 @@ export async function PlayerProfileView({
   playerId,
   includeContact = false,
   includeAccount = false,
+  overlay = false,
 }: {
   playerId: string
   includeContact?: boolean
   includeAccount?: boolean
+  /** Opened over the Squad list via the intercepted route (dialog on desktop) */
+  overlay?: boolean
 }) {
   const supabase = createClient()
 
@@ -48,7 +60,7 @@ export async function PlayerProfileView({
   ])
 
   if (playerErr || !player) {
-    return <div className="p-4 text-sm text-red-400">Player not found.</div>
+    return <div className="liga-page liga-error-state p-4 text-sm text-red-400">Player not found.</div>
   }
 
   const profile = player as unknown as ProfilePlayer
@@ -97,8 +109,9 @@ export async function PlayerProfileView({
     // computeSeason may crash if data is incomplete — that's fine, just show no stats
   }
 
+  const Profile = overlay ? PlayerProfileOverlay : PlayerProfilePage
   return (
-    <PlayerProfilePage
+    <Profile
       player={profile}
       seasonRow={seasonRow}
       careerRow={careerRow}

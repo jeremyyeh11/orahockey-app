@@ -13,7 +13,7 @@ export type ProfilePlayer = PlayerLite & {
 }
 
 const inputCls =
-  'w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 const POSITIONS = ['FWD', 'MID', 'DEF', 'GK'] as const
@@ -193,7 +193,7 @@ export function PlayerProfileModal({
                 {positions.length > 0 && (
                   <div className="mt-1 flex gap-1.5">
                     {positions.map((pos) => (
-                      <span key={pos} className="rounded bg-white/[0.1] px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
+                      <span key={pos} className="liga-position-label text-[10px] font-medium text-slate-300">
                         {pos}
                       </span>
                     ))}
@@ -241,7 +241,7 @@ export function PlayerProfileModal({
       {editMode && (
         <form id="player-profile-form" onSubmit={handleSave} className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-surface-border bg-surface">
+            <div className="liga-profile-mark flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-surface-border bg-surface">
               <span className="text-2xl font-bold text-slate-500">
                 {player.jersey_number ?? '—'}
               </span>
@@ -268,7 +268,7 @@ export function PlayerProfileModal({
                   key={pos}
                   type="button"
                   onClick={() => togglePosition(pos)}
-                  className={`rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
+                  className={`liga-button rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
                     selectedPositions.includes(pos)
                       ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
                       : 'border-surface-border text-slate-400 hover:text-white hover:border-slate-500'

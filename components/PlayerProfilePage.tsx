@@ -1,10 +1,13 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { preferredName, splitName, sortPositions } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
+import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
+import Modal from './Modal'
+import { startNavigationProgress } from './NavigationProgress'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
 
 export type AccountStatus = 'none' | 'invited' | 'active'
@@ -106,19 +109,29 @@ const ACCOUNT_LABEL: Record<AccountStatus, { text: string; dot: string }> = {
   active: { text: 'Active', dot: 'bg-green-400' },
 }
 
-export function PlayerProfilePage({
-  player,
-  seasonRow,
-  careerRow,
-  seasonLabel,
-  accountStatus,
-}: {
+type PlayerProfileProps = {
   player: ProfilePlayer
   seasonRow: LeaderboardRow | undefined
   careerRow: LeaderboardRow | undefined
   seasonLabel: string
   /** Admin view only — enables the account/invite panel */
   accountStatus?: AccountStatus
+}
+
+export function PlayerProfilePage({
+  player,
+  seasonRow,
+  careerRow,
+  seasonLabel,
+  accountStatus,
+  presentation = 'page',
+}: PlayerProfileProps & {
+  /**
+   * `page` — the /team/[id] route: full screen below the app header.
+   * `dialog` / `fullScreen` — opened over the Squad list: a centred dialog on
+   * desktop, a full-page modal (covering header and nav) on touch layouts.
+   */
+  presentation?: 'page' | 'dialog' | 'fullScreen'
 }) {
   const router = useRouter()
 
@@ -194,27 +207,28 @@ export function PlayerProfilePage({
     return () => window.removeEventListener('resize', fit)
   }, [before, beforeSep, preferred, afterSep, after])
 
-  useModalScrollLock()
+  // Only the touch page view is a fixed overlay that needs the page frozen behind
+  // it; overlays get their lock from Modal, and the desktop page is a normal page.
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  useModalScrollLock(presentation === 'page' && !isDesktop)
+  const pathname = usePathname()
+  const squadPath = pathname.replace(/\/[^/]+$/, '') // /admin/team/123 → /admin/team
 
-  return (
+  // Photo, name and stat panels — shared by the full-screen and dialog layouts
+  const body = (
     <>
-    {/* Background layer — extends behind header to avoid seam */}
-    <div className="fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
-
-    <div className="fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide">
-
       {/* Large faded jersey number — aligned with back button */}
       {player.jersey_number != null && (
         <span
           aria-hidden
-          className="pointer-events-none absolute right-4 top-1 select-none font-display text-[7rem] font-extrabold leading-none text-white/8"
+          className="pointer-events-none absolute right-4 top-1 select-none font-display text-[7rem] font-extrabold leading-none text-white/[0.08]"
         >
           {player.jersey_number}
         </span>
       )}
 
       {/* Player image — real photo scaled to cover, silhouette fallback */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="liga-profile-image absolute inset-0 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`/players/${player.id}.png`}
@@ -241,32 +255,23 @@ export function PlayerProfilePage({
       {/* Fade image out at bottom */}
       <div className="absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-surface-card via-surface-card/80 to-transparent" />
 
-      {/* Back button — top left */}
-      <button
-        onClick={() => router.back()}
-        className="fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
-        aria-label="Back"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-      </button>
-
       {/* Layer 2: Translucent stats overlay at bottom */}
       <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
-        <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
-          {/* Name — preferred fixed at 48px, rest auto-shrinks to stay one line */}
+        <div className="liga-profile-identity bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
+          {/* Name — preferred fixed at 48px, rest auto-shrinks to stay one line.
+              Separators are non-breaking: a plain space at the edge of a flex item
+              is stripped, which ran "AKASH" into "PREBHASH". */}
           <div
             ref={nameRef}
             className="flex items-baseline overflow-hidden whitespace-nowrap font-display text-xl font-extrabold uppercase leading-[0.95] text-white"
           >
             {before && (
-              <span ref={beforeRef} className="font-semibold tracking-wide text-slate-300">{before}{beforeSep}</span>
+              <span ref={beforeRef} className="font-semibold tracking-wide text-slate-300">{before}{beforeSep && '\u00a0'}</span>
             )}
             <span ref={preferredRef} className="text-5xl">{preferred}</span>
             {after && (
-              <span ref={afterRef} className="font-semibold tracking-wide text-slate-300">{afterSep}{after}</span>
+              <span ref={afterRef} className="font-semibold tracking-wide text-slate-300">{afterSep && '\u00a0'}{after}</span>
             )}
           </div>
 
@@ -287,7 +292,7 @@ export function PlayerProfilePage({
           {positions.length > 0 && (
             <div className="mt-1.5 flex gap-1.5">
               {positions.map((pos) => (
-                <span key={pos} className="rounded bg-white/[0.1] px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
+                <span key={pos} className="liga-position-label text-[10px] font-medium text-slate-300">
                   {pos}
                 </span>
               ))}
@@ -297,7 +302,7 @@ export function PlayerProfilePage({
 
         {/* Translucent stat panel */}
         {seasonRow && (
-          <div className="bg-black/50 backdrop-blur-sm px-6 py-3">
+          <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 {seasonLabel}
@@ -310,7 +315,7 @@ export function PlayerProfilePage({
 
         {/* Career stats */}
         {careerRow && (
-          <div className="bg-black/70 backdrop-blur-sm px-6 py-3">
+          <div className="liga-profile-panel bg-black/70 backdrop-blur-sm px-6 py-3">
             <div className="mb-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 Career
@@ -322,14 +327,14 @@ export function PlayerProfilePage({
 
         {/* No stats */}
         {!seasonRow && !careerRow && (
-          <div className="bg-black/50 backdrop-blur-sm px-6 py-4">
+          <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-4">
             <p className="text-center text-sm text-slate-500">No stats recorded yet.</p>
           </div>
         )}
 
         {/* Account / invite panel — admin view only */}
         {accountStatus && (
-          <div className="bg-black/80 backdrop-blur-sm px-6 py-3">
+          <div className="liga-profile-panel bg-black/80 backdrop-blur-sm px-6 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
@@ -343,7 +348,7 @@ export function PlayerProfilePage({
               <button
                 onClick={handleGenerateLink}
                 disabled={linkLoading}
-                className="bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+                className="liga-button liga-button-primary bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
               >
                 {linkLoading
                   ? 'Creating…'
@@ -355,60 +360,138 @@ export function PlayerProfilePage({
               </button>
             </div>
             {linkError && (
-              <p className="mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-300">{linkError}</p>
+              <p className="liga-alert liga-alert-error mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-300">{linkError}</p>
             )}
           </div>
         )}
       </div>
+    </>
+  )
 
-      {/* Invite link modal */}
-      {link && (
-        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setLink(null)} />
-          <div className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-surface-card border border-surface-border px-6 pt-6 pb-8 shadow-xl">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-700 sm:hidden" />
-            <h2 className="text-lg font-bold text-white mb-1">
-              {link.kind === 'invite' ? 'Invite link ready' : 'Reset link ready'}
-            </h2>
-            <p className="text-sm text-slate-400 mb-4">
-              Send this private link to {preferredName(player)} — they&apos;ll set their own
-              password. It expires in {link.expiresIn}; generate a new one any time.
-            </p>
+  // Invite / reset link — opens over either layout
+  const linkModal = link && (
+        <Modal onClose={() => setLink(null)} layer="top">
+          <h2 className="text-lg font-bold text-white mb-1">
+            {link.kind === 'invite' ? 'Invite link ready' : 'Reset link ready'}
+          </h2>
+          <p className="text-sm text-slate-400 mb-4">
+            Send this private link to {preferredName(player)} — they&apos;ll set their own
+            password. It expires in {link.expiresIn}; generate a new one any time.
+          </p>
 
-            <input
-              readOnly
-              value={link.url}
-              onFocus={(e) => e.currentTarget.select()}
-              className="mb-3 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-xs text-slate-300 focus:border-brand focus:outline-none"
-            />
+          <input
+            readOnly
+            value={link.url}
+            onFocus={(e) => e.currentTarget.select()}
+            className="liga-field mb-3 w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-xs text-slate-300 focus:border-brand focus:outline-none"
+          />
 
-            <div className="flex gap-3">
-              <button
-                onClick={handleCopy}
-                className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
-              >
-                {copied ? 'Copied ✓' : 'Copy link'}
-              </button>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 rounded-lg border border-surface-border py-2.5 text-center text-sm font-medium text-slate-200 transition hover:bg-slate-700"
-              >
-                WhatsApp
-              </a>
-            </div>
-
+          <div className="flex gap-3">
             <button
-              onClick={() => setLink(null)}
-              className="mt-3 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+              onClick={handleCopy}
+              className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
             >
-              Close
+              {copied ? 'Copied ✓' : 'Copy link'}
             </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-center text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+            >
+              WhatsApp
+            </a>
           </div>
+
+          <button
+            onClick={() => setLink(null)}
+            className="liga-button liga-button-secondary mt-3 w-full rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+          >
+            Close
+          </button>
+        </Modal>
+  )
+
+  // Opened from the Squad list, which stays mounted underneath. Closing goes back
+  // in history, which drops the intercepted /team/[id] URL.
+  if (presentation !== 'page') {
+    const fullScreen = presentation === 'fullScreen'
+    return (
+      <Modal onClose={() => router.back()} size="md" bare fullScreen={fullScreen}>
+        <div
+          className={`liga-profile-screen relative overflow-hidden bg-gradient-to-b from-brand/25 via-surface-card to-surface-card ${
+            fullScreen ? 'h-full' : 'h-[min(85vh,680px)]'
+          }`}
+        >
+          <h2 className="sr-only">{player.full_name}</h2>
+          {body}
+          {/* Phones keep the familiar back arrow; the desktop dialog gets a close X */}
+          <button
+            onClick={() => router.back()}
+            className={`liga-icon-button absolute z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50 ${
+              fullScreen ? 'left-4 top-4' : 'right-3 top-3'
+            }`}
+            aria-label={fullScreen ? 'Back' : 'Close'}
+          >
+            {fullScreen ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            )}
+          </button>
         </div>
-      )}
+        {linkModal}
+      </Modal>
+    )
+  }
+
+  // The page itself is only reached by a direct link, refresh or bookmark (clicks
+  // from Squad open the overlay), so Back goes to Squad rather than history.
+  // Touch layouts: full screen below the header. Desktop (lg+): the same card as
+  // the dialog, centred in the page — done in CSS so there's no layout flash.
+  return (
+    <>
+    {/* Background layer — extends behind header to avoid seam */}
+    <div className="liga-profile-backdrop fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card lg:hidden" />
+
+    <div className="liga-profile-screen fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide lg:relative lg:inset-auto lg:z-auto lg:mx-auto lg:my-6 lg:h-[min(85vh,680px)] lg:max-w-lg lg:rounded-2xl lg:border lg:border-surface-border lg:bg-gradient-to-b lg:from-brand/25 lg:via-surface-card lg:to-surface-card lg:shadow-xl">
+      <h1 className="sr-only">{player.full_name}</h1>
+      {body}
+
+      {/* Back to Squad — top left */}
+      <button
+        onClick={() => {
+          startNavigationProgress()
+          router.push(squadPath)
+        }}
+        className="liga-icon-button fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50 lg:absolute lg:top-4 lg:z-10"
+        aria-label="Back to Squad"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+
+      {linkModal}
     </div>
     </>
   )
+}
+
+/**
+ * Profile opened from a Squad list (intercepted `/team/[id]` route): a dialog
+ * over the list on desktop, a full-page modal on touch layouts. Both are real
+ * modals so nothing of the list underneath can show through.
+ */
+export function PlayerProfileOverlay(props: PlayerProfileProps) {
+  const pathname = usePathname()
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  // A parallel-route slot keeps its last page across soft navigations within
+  // /team (e.g. clicking "Squad" in the nav), so only render on the profile URL.
+  if (!pathname.endsWith(`/team/${props.player.id}`)) return null
+  return <PlayerProfilePage {...props} presentation={isDesktop ? 'dialog' : 'fullScreen'} />
 }

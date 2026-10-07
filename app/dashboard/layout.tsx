@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
+import { startNavigationProgress } from '@/components/NavigationProgress'
 import { type NavItem } from '@/components/BottomNav'
 import { HomeIcon, UsersIcon, CalendarIcon, PollIcon } from '@/components/icons'
 
@@ -28,13 +29,14 @@ export default function DashboardLayout({
 
   function returnToAdmin() {
     document.cookie = 'ora-view=; path=/; max-age=0'
+    startNavigationProgress()
     router.push('/admin/dashboard')
   }
 
   const adminViewButton = isAdminPreview ? (
     <button
       onClick={returnToAdmin}
-      className="rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light transition hover:bg-brand/20"
+      className="liga-compact-button liga-button-secondary ml-1 border border-brand/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-light transition hover:text-white"
     >
       Admin view
     </button>
