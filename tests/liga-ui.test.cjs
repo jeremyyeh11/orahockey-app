@@ -163,6 +163,11 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
   const modal = read('components/Modal.tsx')
   assert.match(modal, /fullScreen \? 'h-full' : `rounded-t-2xl/, 'full-screen panel fills the viewport with no sheet styling')
   assert.match(modal, /fullScreen \? '' : 'sm:items-center sm:p-4'/, 'full-screen modal never insets')
+  // Direct visits: full screen below the header on phones, a centred card at lg+ (CSS only, no flash)
+  assert.match(profile, /liga-profile-screen fixed inset-0 top-\[3\.5rem\][^"]*lg:relative lg:inset-auto[^"]*lg:h-\[min\(85vh,680px\)\] lg:max-w-lg/)
+  assert.match(profile, /liga-profile-backdrop [^"]*lg:hidden/)
+  assert.match(profile, /onClick=\{\(\) => router\.push\(squadPath\)\}/, 'page Back goes to Squad, not out of the app')
+  assert.match(profile, /useModalScrollLock\(presentation === 'page' && !isDesktop\)/, 'desktop page scrolls normally')
   // Top Scorers / Top Assists sit side by side on phones too
   for (const area of ['admin', 'dashboard']) {
     assert.match(read(`app/${area}/team/SquadClient.tsx`), /<aside className="[^"]*\bgrid grid-cols-2\b[^"]*xl:grid-cols-1/)

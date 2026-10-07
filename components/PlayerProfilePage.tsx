@@ -206,7 +206,12 @@ export function PlayerProfilePage({
     return () => window.removeEventListener('resize', fit)
   }, [before, beforeSep, preferred, afterSep, after])
 
-  useModalScrollLock()
+  // Only the touch page view is a fixed overlay that needs the page frozen behind
+  // it; overlays get their lock from Modal, and the desktop page is a normal page.
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  useModalScrollLock(presentation === 'page' && !isDesktop)
+  const pathname = usePathname()
+  const squadPath = pathname.replace(/\/[^/]+$/, '') // /admin/team/123 → /admin/team
 
   // Photo, name and stat panels — shared by the full-screen and dialog layouts
   const body = (
@@ -443,19 +448,24 @@ export function PlayerProfilePage({
     )
   }
 
+  // The page itself is only reached by a direct link, refresh or bookmark (clicks
+  // from Squad open the overlay), so Back goes to Squad rather than history.
+  // Touch layouts: full screen below the header. Desktop (lg+): the same card as
+  // the dialog, centred in the page — done in CSS so there's no layout flash.
   return (
     <>
     {/* Background layer — extends behind header to avoid seam */}
-    <div className="liga-profile-backdrop fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card" />
+    <div className="liga-profile-backdrop fixed inset-0 z-[29] bg-gradient-to-b from-brand/25 via-surface-card to-surface-card lg:hidden" />
 
-    <div className="liga-profile-screen fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide">
+    <div className="liga-profile-screen fixed inset-0 top-[3.5rem] z-[60] overflow-hidden scrollbar-hide lg:relative lg:inset-auto lg:z-auto lg:mx-auto lg:my-6 lg:h-[min(85vh,680px)] lg:max-w-lg lg:rounded-2xl lg:border lg:border-surface-border lg:bg-gradient-to-b lg:from-brand/25 lg:via-surface-card lg:to-surface-card lg:shadow-xl">
+      <h1 className="sr-only">{player.full_name}</h1>
       {body}
 
-      {/* Back button — top left */}
+      {/* Back to Squad — top left */}
       <button
-        onClick={() => router.back()}
-        className="liga-icon-button fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50"
-        aria-label="Back"
+        onClick={() => router.push(squadPath)}
+        className="liga-icon-button fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50 lg:absolute lg:top-4 lg:z-10"
+        aria-label="Back to Squad"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="m15 18-6-6 6-6" />
