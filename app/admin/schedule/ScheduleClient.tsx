@@ -346,7 +346,7 @@ export default function ScheduleClient({
 
         </div>
 
-        <aside className="liga-schedule-detail hidden lg:sticky lg:top-20 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+        <aside className="liga-schedule-detail hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
           {isDesktop && detail}
         </aside>
       </div>

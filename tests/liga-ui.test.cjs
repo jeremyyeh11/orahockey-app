@@ -202,10 +202,60 @@ test('admins and players share one Home dashboard', () => {
   assert.ok(!/href="\/(dashboard|admin)\//.test(home), 'links follow the caller section')
   assert.ok(home.includes('href={`${basePath}/schedule`}'))
   assert.ok(home.includes('href={`${basePath}/polls`}'))
-  assert.ok(read('app/admin/layout.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
+  assert.ok(read('app/admin/AdminShell.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
   // Desktop: season + your stats beside next up / last game / polls; phones stay one column
   assert.ok(home.includes('liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6'))
-  assert.ok(home.includes('<h2 className="liga-section-title mt-6 lg:mt-0">Next up</h2>'), 'right column starts flush with the hero')
+  assert.ok(home.includes(`<h2 className="liga-section-title mt-6 lg:mt-0">{season.locked ? 'Season' : 'Next up'}</h2>`), 'right column starts flush with the hero')
+})
+
+test('Home leads with the selected season and keeps all-time stats below it', () => {
+  const home = read('components/HomeView.tsx')
+  assert.match(home, /getSelectedSeason\(\)/, 'the season comes from the app-wide switcher')
+  assert.ok(home.indexOf('Your {season.label} season') < home.indexOf('All time'), 'season stats come before all time')
+  // All time: collapsed on touch layouts, always open on desktop
+  assert.match(home, /<details className="liga-all-time group mt-6 lg:hidden">/)
+  assert.match(home, /<div className="liga-all-time mt-6 hidden lg:block">/)
+})
+
+test('season switcher: header dropdown on desktop, pinned tabs on touch layouts, hidden where not season-scoped', () => {
+  const shell = read('components/AppShell.tsx')
+  assert.match(shell, /NOT_SEASON_SCOPED = \/\\\/\(polls\|profile\)/, 'Polls and Profile are not season-scoped')
+  assert.match(shell, /\{seasons && <SeasonMenu \{\.\.\.seasons\} \/>\}/, 'desktop dropdown sits in the header row')
+  assert.match(shell, /<SeasonTabs \{\.\.\.seasons\} \/>\s*<LockedSeasonStrip \{\.\.\.seasons\} \/>[\s\S]*<\/header>/, 'tabs + locked strip are inside the sticky header')
+  const switcher = read('components/SeasonSwitcher.tsx')
+  assert.match(switcher, /liga-season-menu relative hidden items-center lg:flex/, 'dropdown is desktop-only')
+  assert.match(switcher, /liga-season-bar border-t border-white\/10 lg:hidden/, 'tabs are touch-only')
+  assert.match(switcher, /liga-locked-strip hidden border-t border-white\/10 lg:block/, 'locked strip is desktop-only')
+  assert.match(switcher, /min-h-\[44px\][^"]*snap-start/, 'tabs keep a 44px hit target')
+  assert.match(switcher, /document\.cookie = `\$\{SEASON_COOKIE\}=\$\{encodeURIComponent\(season\.label\)\}; path=\/; samesite=lax`/, 'session cookie — fresh visits open the current season')
+  assert.match(switcher, /startTransition\(\(\) => router\.refresh\(\)\)/, 'server pages re-render for the new season')
+  for (const area of ['admin', 'dashboard']) {
+    assert.match(read(`app/${area}/layout.tsx`), /seasonNav=\{await getSeasonNav\(\)\}/, `${area} layout loads seasons on the server`)
+  }
+})
+
+test('locked seasons are read-only in the app, admins included', () => {
+  const detail = read('components/EventDetailModal.tsx')
+  assert.match(detail, /const isAdmin = isAdminUser && !readOnly/, 'admin controls switch off in a locked season')
+  assert.match(detail, /isGame && !editMode && !readOnly \?/, 'no result entry')
+  for (const area of ['admin', 'dashboard']) {
+    const schedule = read(`app/${area}/schedule/ScheduleClient.tsx`)
+    assert.match(schedule, /const readOnly = season\.locked/)
+    assert.match(schedule, /readOnly=\{readOnly\}/, `${area} schedule passes read-only to event details`)
+    assert.match(schedule, /\{!readOnly && \(\s*<div className="liga-event-actions/, `${area} schedule hides RSVP buttons`)
+  }
+  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /\{!readOnly && \(\s*<div className="flex items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('training'\)\}/, 'no add buttons')
+  for (const fn of ['addGame', 'addTraining']) {
+    assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export async function ${fn}[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
+  }
+  assert.match(read('app/admin/team/actions.ts'), /export async function addPlayer[\s\S]*?requireOpenSeason\(\)/)
+  // The database is the real guard
+  const migration = read('supabase/migrations/011_seasons.sql')
+  assert.match(migration, /\) not in \('anon', 'authenticated'\)/, 'only app requests are blocked; backend writes pass')
+  for (const table of ['games', 'training_sessions', 'season_players', 'attendance', 'match_goals', 'match_cards', 'match_team_lists', 'player_stats', 'potm']) {
+    assert.ok(migration.includes(`'${table}'`), `${table} is lock-guarded`)
+  }
+  assert.doesNotMatch(migration, /create policy[^;]*on public\.seasons\s+for (insert|update|delete|all)/i, 'seasons have no app write policies')
 })
 
 test('navigation progress bar starts on link clicks and programmatic pushes', () => {
@@ -215,7 +265,7 @@ test('navigation progress bar starts on link clicks and programmatic pushes', ()
   assert.match(bar, /s === 'loading' \? 'done' : s/, 'finishes when the pathname changes')
   assert.match(bar, /10_000/, 'never spins forever')
   assert.match(read('components/AppShell.tsx'), /<NavigationProgress \/>/)
-  for (const f of ['app/admin/team/SquadClient.tsx', 'app/dashboard/team/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/layout.tsx', 'components/AdminControlPanel.tsx']) {
+  for (const f of ['app/admin/team/SquadClient.tsx', 'app/dashboard/team/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/DashboardShell.tsx', 'components/AdminControlPanel.tsx']) {
     assert.match(read(f), /startNavigationProgress\(\)\s+router\.push\(/, `${f} starts the bar before router.push`)
   }
 })

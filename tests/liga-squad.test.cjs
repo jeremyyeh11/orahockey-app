@@ -186,18 +186,78 @@ test('season-derived roster stats wrap as 12px tabular value-label pairs while k
   assert.doesNotMatch(html, /FG  PC  PS/, 'inline labels do not need a duplicate table-style header')
 })
 
-test('season selection has an accessible name and a 44px hit target without changing its values or callback', () => {
-  const { SeasonSelect } = load('components/SeasonStats.tsx')
-  const changes = []
-  const props = { seasons: ['2026', '2025'], value: '2025', onChange: (value) => changes.push(value) }
-  const html = render(SeasonSelect, props)
-  assert.match(html, /<select[^>]*aria-label="Season"/)
-  assert.match(classesOf(html), /\bliga-season-select\b/)
-  assert.ok(classesOf(html).split(/\s+/).includes('min-h-[44px]'))
-  assert.match(html, /<option value="2026">MHL1 2026<\/option>/)
-  assert.match(html, /<option value="2025" selected="">MHL1 2025<\/option>/)
-  SeasonSelect(props).props.onChange({ target: { value: '2026' } })
-  assert.deepEqual(changes, ['2026'])
+const SEASONS = [
+  { id: 's2027', label: '2027', starts_on: '2027-01-01', ends_on: '2027-12-31', is_current: true, locked: false },
+  { id: 's2026', label: '2026', starts_on: '2026-01-01', ends_on: '2026-12-31', is_current: false, locked: true },
+]
+
+test('season switcher: accessible dropdown (desktop) and 44px tabs (touch), locked seasons marked', () => {
+  const switcherLoad = createTsLoader({ 'next/navigation': { useRouter: () => ({ refresh() {} }) } })
+  const { SeasonMenu, SeasonTabs, LockedSeasonStrip } = switcherLoad('components/SeasonSwitcher.tsx')
+
+  const menu = render(SeasonMenu, { seasons: SEASONS, selectedId: 's2026' })
+  assert.match(menu, /<select[^>]*aria-label="Season"/)
+  assert.ok(classesOf(menu.slice(menu.indexOf('<select'))).split(/\s+/).includes('min-h-[44px]'))
+  assert.match(menu, /<option value="s2027">MHL1 2027 · Current<\/option>/)
+  assert.match(menu, /<option value="s2026" selected="">MHL1 2026 · Locked<\/option>/)
+  assert.match(menu, /<svg[^>]*aria-hidden/, 'lock icon beside a locked selection')
+
+  const tabs = render(SeasonTabs, { seasons: SEASONS, selectedId: 's2026' })
+  assert.match(tabs, /role="group" aria-label="Season"/)
+  const buttons = buttonsOf(tabs)
+  assert.deepEqual(buttons.map(textOf), ['MHL1 2027', 'MHL1 2026'])
+  assert.match(buttons[1], /aria-pressed="true"/)
+  assert.match(buttons[0], /aria-pressed="false"/)
+  for (const b of buttons) assert.ok(classesOf(b).split(/\s+/).includes('min-h-[44px]'))
+  assert.match(textOf(tabs), /Read-only$/, 'locked season shows a Read-only tag')
+  assert.doesNotMatch(textOf(render(SeasonTabs, { seasons: SEASONS, selectedId: 's2027' })), /Read-only/)
+
+  assert.match(textOf(render(LockedSeasonStrip, { seasons: SEASONS, selectedId: 's2026' })), /MHL1 2026 is a past season — read-only\./)
+  assert.equal(render(LockedSeasonStrip, { seasons: SEASONS, selectedId: 's2027' }), '')
+})
+
+test('season stats follow season_id; legacy cards follow their year; career spans every season', () => {
+  const { computeSeason } = load('lib/stats.ts')
+  const players = [player('p', 'Some Player')]
+  const base = {
+    players,
+    games: [
+      // Dated in 2026 but belongs to the 2027 season (e.g. a December pre-season game)
+      { id: 'g27', game_date: '2026-12-20T12:00:00Z', result: 'win', goals_against: 1, season_id: 's2027' },
+      { id: 'g26', game_date: '2026-05-01T12:00:00Z', result: 'loss', goals_against: 2, season_id: 's2026' },
+    ],
+    stats: [
+      { player_id: 'p', game_id: 'g27', goals_fg: 2, goals_pc: 0, goals_ps: 0, assists: 0 },
+      { player_id: 'p', game_id: 'g26', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 1 },
+    ],
+    potm: [],
+    attendance: [{ player_id: 'p', session_id: 'g27' }, { player_id: 'p', session_id: 'g26' }],
+    cards: [{ player_id: 'p', game_id: null, card_type: 'green', created_at: '2026-07-01T00:00:00Z' }],
+  }
+  const s27 = computeSeason({ ...base, season: '2027', seasonId: 's2027' }).leaderboard[0]
+  assert.equal(s27.goals, 2)
+  assert.equal(s27.caps, 1)
+  assert.equal(s27.cards.green, 0)
+  const s26 = computeSeason({ ...base, season: '2026', seasonId: 's2026' }).leaderboard[0]
+  assert.deepEqual([s26.goals, s26.assists, s26.caps, s26.cards.green], [1, 1, 1, 1])
+  const career = computeSeason({ ...base, season: 'all' }).leaderboard[0]
+  assert.deepEqual([career.goals, career.caps, career.cards.green], [3, 2, 1])
+})
+
+test('schedule roster is the season squad: everyone for a past season, active players for an open one', () => {
+  const { seasonRoster } = createTsLoader({
+    // react's `cache` ships in Next's bundled React only
+    react: { ...React, cache: (fn) => fn },
+    'next/headers': { cookies: () => ({ get: () => undefined }) },
+    '@/lib/supabase/server': { createClient() { assert.fail('pure helper must not query') } },
+  })('lib/season-server.ts')
+  const squad = [
+    player('b', 'Bravo', ['MID'], { jersey_number: 9 }),
+    player('a', 'Alpha', ['GK'], { jersey_number: 1, is_active: false }),
+  ]
+  assert.deepEqual(seasonRoster(squad, true).map((p) => p.id), ['a', 'b'], 'locked: whole squad, by name')
+  assert.deepEqual(seasonRoster(squad, false).map((p) => p.id), ['b'], 'open: active players only')
+  assert.deepEqual(Object.keys(seasonRoster(squad, true)[0]).sort(), ['full_name', 'id', 'jersey_number', 'position', 'preferred_name'])
 })
 
 test('season summaries render quiet ranked divider rows with complete tied names and unchanged totals', () => {
@@ -257,17 +317,18 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
     player('veteran', 'Former Player', ['GK'], { email: 'former@example.test', role: 'player', auth_user_id: null, is_active: false }),
     player('absent', 'No History', ['MID'], { email: 'absent@example.test', role: 'player', auth_user_id: null, is_active: false }),
   ]
-  const propsForYear = (year) => ({
-    players, myPlayerId: 'me', whitelist: [], cards: [],
-    games: [{ id: 'game', opponent: 'Opponent', game_date: `${year}-05-01T12:00:00Z`, result: 'win', goals_for: 1, goals_against: 0 }],
+  // `players` is the season's squad (season_players) as the page loads it
+  const propsForSeason = (season) => ({
+    season, players, myPlayerId: 'me', whitelist: [], cards: [],
+    games: [{ id: 'game', opponent: 'Opponent', game_date: `${season.label}-05-01T12:00:00Z`, result: 'win', goals_for: 1, goals_against: 0, season_id: season.id }],
     stats: [{ player_id: 'me', game_id: 'game', goals_fg: 1, goals_pc: 0, goals_ps: 0, assists: 0 }],
     potm: [{ player_id: 'me', game_id: 'game', place: 1 }],
     attendance: [{ player_id: 'me', session_id: 'game' }, { player_id: 'veteran', session_id: 'game' }],
   })
-  const year = new Date().getFullYear()
+  const [open, locked] = SEASONS
   for (const section of ['dashboard', 'admin']) {
     const Component = boundaryLoad(`app/${section}/team/SquadClient.tsx`).default
-    const { html, tree } = captureRender(Component, propsForYear(year))
+    const { html, tree } = captureRender(Component, propsForSeason(open))
     assert.match(classesOf(html), /\bliga-page\b/)
     assert.match(classesOf(openingWithClass(html, 'liga-page-header')), /\bflex-wrap\b/)
     assert.match(openingWithClass(html, 'liga-page-title'), /^<h1\b/)
@@ -289,12 +350,16 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
       assert.match(html, /Top Scorers/)
       assert.doesNotMatch(html, /POTS Race/, 'POTS race is hidden on the admin Squad page')
     } else {
-      assert.match(html, /<p class="[^"]*liga-meta[^"]*">1 players<\/p>/)
+      assert.match(html, /<p class="[^"]*liga-meta[^"]*">MHL1 2027 · 1 players<\/p>/)
       assert.doesNotMatch(html, /Add Player|Show inactive|POTS Race/)
-      const historical = captureRender(Component, propsForYear(year - 1))
-      const pastRoster = findElement(historical.tree, (node) => node.type === boundaryLoad('components/RosterList.tsx').default)
-      assert.deepEqual(pastRoster.props.players.map((p) => p.id), ['me', 'veteran'])
     }
+
+    // A locked (past) season lists its whole squad and offers no edits, admins included
+    const historical = captureRender(Component, propsForSeason(locked))
+    const pastRoster = findElement(historical.tree, (node) => node.type === boundaryLoad('components/RosterList.tsx').default)
+    assert.deepEqual(pastRoster.props.players.map((p) => p.id), ['me', 'veteran', 'absent'])
+    assert.match(historical.html, /MHL1 2026 · 3 players/)
+    assert.doesNotMatch(historical.html, /Add Player|Show inactive/)
   }
 
   // Keep mutations behind their original handlers; this presentation test never imports real actions.
