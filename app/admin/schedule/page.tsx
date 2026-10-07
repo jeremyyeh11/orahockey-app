@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
-import type { AttendanceRow, RosterPlayer, TeamListSelection } from '@/app/dashboard/schedule/page'
+import { getSeasonSquad, getSelectedSeason, seasonRoster } from '@/lib/season-server'
+import type { AttendanceRow, TeamListSelection } from '@/app/dashboard/schedule/page'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 
 export const metadata: Metadata = { title: 'Schedule' }
@@ -20,32 +21,28 @@ function groupByGame<T extends { game_id: string | null }>(rows: T[]): Record<st
 export default async function AdminSchedulePage() {
   const supabase = createClient()
 
-  const user = await getRequestUser()
+  const [user, season] = await Promise.all([getRequestUser(), getSelectedSeason()])
 
   const [
     { data: games, error: gamesError },
     { data: trainings, error: trainingsError },
     { data: att },
     { data: me },
-    { data: roster },
+    squad,
     { data: teamListRaw },
     { data: goalRows },
     { data: cardRows },
     { data: potmRows },
   ] = await Promise.all([
-    supabase.from('games').select('*').order('game_date', { ascending: false }),
-    supabase.from('training_sessions').select('*').order('session_date', { ascending: false }),
+    supabase.from('games').select('*').eq('season_id', season.id).order('game_date', { ascending: false }),
+    supabase.from('training_sessions').select('*').eq('season_id', season.id).order('session_date', { ascending: false }),
     supabase.from('attendance').select('player_id, session_id, status, player:players(full_name, preferred_name)'),
     supabase
       .from('players')
       .select('id, attendance(session_id, status)')
       .eq('auth_user_id', user?.id ?? '')
       .single(),
-    supabase
-      .from('players')
-      .select('id, full_name, preferred_name, position, jersey_number')
-      .eq('is_active', true)
-      .order('full_name', { ascending: true }),
+    getSeasonSquad(season.id),
     supabase
       .from('match_team_lists')
       .select('game_id, player_id, selected'),
@@ -97,12 +94,13 @@ export default async function AdminSchedulePage() {
 
   return (
     <ScheduleClient
+      season={season}
       games={games ?? []}
       trainings={trainings ?? []}
       attending={attending}
       myStatus={myStatus}
       now={getNow().toISOString()}
-      roster={(roster ?? []) as RosterPlayer[]}
+      roster={seasonRoster(squad, season.locked)}
       attendanceBySession={attendanceBySession}
       myPlayerId={me?.id ?? ''}
       isAdmin={true}

@@ -10,7 +10,6 @@ import { defaultPreferredName } from '@/components/RosterList'
 import Modal from '@/components/Modal'
 import {
   useSeasonStats,
-  SeasonSelect,
   TopScorersCard,
   TopAssistsCard,
   type PlayerLite,
@@ -21,6 +20,8 @@ import {
   type MatchCardRow,
 } from '@/components/SeasonStats'
 import type { RosterPlayer, AccountStatus } from '@/components/RosterList'
+import { LEAGUE } from '@/lib/constants'
+import type { Season } from '@/lib/season'
 
 type Player = RosterPlayer & PlayerLite & {
   email: string
@@ -37,6 +38,7 @@ type Game = {
   goals_for: number | null
   goals_against: number | null
   result: string | null
+  season_id: string
 }
 
 type FormData = {
@@ -51,6 +53,7 @@ type FormData = {
 const POSITIONS = ['FWD', 'MID', 'DEF', 'GK'] as const
 
 export default function SquadClient({
+  season,
   players,
   games,
   stats,
@@ -60,6 +63,8 @@ export default function SquadClient({
   myPlayerId,
   whitelist,
 }: {
+  season: Season
+  /** The season's squad (season_players), with that season's jersey/position */
   players: Player[]
   games: Game[]
   stats: SeasonStat[]
@@ -76,8 +81,8 @@ export default function SquadClient({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  // Season stats state
-  const { seasons, season, setSeason, topScorerGroups, topAssistGroups, statsMap } = useSeasonStats({
+  const { topScorerGroups, topAssistGroups, statsMap } = useSeasonStats({
+    season,
     players,
     games: games as unknown as GameLite[],
     stats,
@@ -97,7 +102,8 @@ export default function SquadClient({
     })
   )
 
-  const visible = showInactive ? players : players.filter((p) => p.is_active)
+  // A past (locked) season shows its whole squad, read-only
+  const visible = season.locked || showInactive ? players : players.filter((p) => p.is_active)
   const rosterProps = {
     players: visible,
     myPlayerId,
@@ -161,18 +167,24 @@ export default function SquadClient({
 
   return (
     <div className="liga-page p-4">
-      {/* Header + season selector + add player */}
+      {/* Header + add player (open seasons only) */}
       <div className="liga-page-header mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="liga-page-title text-white">Squad</h1>
-        <div className="liga-squad-actions flex min-w-0 flex-wrap items-center gap-2">
-          <button
-            onClick={openAdd}
-            className="liga-button liga-button-primary min-h-[44px] bg-accent rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-white transition hover:brightness-110 focus:outline-none focus:ring-1 focus:ring-brand"
-          >
-            + Add Player
-          </button>
-          <SeasonSelect seasons={seasons} value={season} onChange={setSeason} />
+        <div className="min-w-0">
+          <h1 className="liga-page-title text-white">Squad</h1>
+          <p className="liga-meta text-xs text-slate-400">
+            {LEAGUE} {season.label} · {visible.length} players
+          </p>
         </div>
+        {!season.locked && (
+          <div className="liga-squad-actions flex min-w-0 flex-wrap items-center gap-2">
+            <button
+              onClick={openAdd}
+              className="liga-button liga-button-primary min-h-[44px] bg-accent rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-white transition hover:brightness-110 focus:outline-none focus:ring-1 focus:ring-brand"
+            >
+              + Add Player
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Top Scorers + Top Assists: side by side, stacked in a sticky side column next to the roster table at xl+ */}
@@ -183,7 +195,7 @@ export default function SquadClient({
         </aside>
 
         <div className="min-w-0">
-          {players.some((p) => !p.is_active) && (
+          {!season.locked && players.some((p) => !p.is_active) && (
             <label className="liga-inactive-toggle liga-meta flex min-h-[44px] items-center gap-2 text-xs text-slate-400 mb-4 cursor-pointer w-fit">
               <input
                 type="checkbox"

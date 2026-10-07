@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireOpenSeason } from '@/lib/season-server'
 import { revalidatePath } from 'next/cache'
 
 export type GameInput = {
@@ -32,8 +33,13 @@ function revalidate() {
   revalidatePath('/dashboard/schedule')
 }
 
+// Edits and deletes of a locked season's events are rejected by the database
+// (season_lock trigger) with a readable message; adds go into the season being
+// viewed, which must be open.
+
 export async function addGame(data: GameInput) {
   const supabase = createClient()
+  const season = await requireOpenSeason()
 
   const { data: team } = await supabase.from('teams').select('id').limit(1).single()
 
@@ -41,6 +47,7 @@ export async function addGame(data: GameInput) {
     ...data,
     result: deriveResult(data.goals_for, data.goals_against),
     team_id: team?.id ?? null,
+    season_id: season.id,
   })
 
   if (error) throw new Error(error.message)
@@ -70,12 +77,14 @@ export async function deleteGame(id: string) {
 
 export async function addTraining(data: TrainingInput) {
   const supabase = createClient()
+  const season = await requireOpenSeason()
 
   const { data: team } = await supabase.from('teams').select('id').limit(1).single()
 
   const { error } = await supabase.from('training_sessions').insert({
     ...data,
     team_id: team?.id ?? null,
+    season_id: season.id,
   })
 
   if (error) throw new Error(error.message)

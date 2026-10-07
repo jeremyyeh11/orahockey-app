@@ -4,23 +4,43 @@ import { getRequestUser } from '@/lib/supabase/request-user'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { LEAGUE } from '@/lib/constants'
-import { seasonsOf } from '@/lib/stats'
+import { getSelectedSeason } from '@/lib/season-server'
 
 function firstName(full: string) {
   const f = full.split(/\s+/)[0] ?? ''
   return f.charAt(0).toUpperCase() + f.slice(1).toLowerCase()
 }
 
+type HomeGame = {
+  id: string
+  opponent: string
+  game_date: string
+  goals_for: number | null
+  goals_against: number | null
+  result: string | null
+  game_type: string
+  season_id: string
+}
+
+function recordOf(games: HomeGame[]) {
+  return {
+    w: games.filter((g) => g.result === 'win' || g.result === 'ot_win').length,
+    d: games.filter((g) => g.result === 'tie').length,
+    l: games.filter((g) => g.result === 'loss' || g.result === 'ot_loss').length,
+  }
+}
+
 /**
  * Home dashboard — the same for players and admins (admins are players too):
- * greeting, season record, your goals/assists/attendance, next event, last
- * result and an active-polls prompt. `basePath` points its links at the
- * caller's own section (/dashboard/schedule vs /admin/schedule).
+ * greeting, the selected season's record and your stats in it, then your
+ * all-time stats, next event, last result and an active-polls prompt.
+ * `basePath` points its links at the caller's own section
+ * (/dashboard/schedule vs /admin/schedule).
  */
 export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin' }) {
   const supabase = createClient()
 
-  const user = await getRequestUser()
+  const [user, season] = await Promise.all([getRequestUser(), getSelectedSeason()])
 
   const { data: me } = await supabase
     .from('players')
@@ -31,47 +51,77 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const nowDate = getNow()
   const now = nowDate.toISOString()
 
-  const [{ data: games }, { data: nextGame }, { data: nextTraining }, { data: myStats }, { data: myAtt }, { count: activePolls }] =
-    await Promise.all([
-      supabase
-        .from('games')
-        .select('id, opponent, game_date, goals_for, goals_against, result, game_type')
-        .order('game_date', { ascending: false }),
-      supabase.from('games').select('opponent, game_date, location').gte('game_date', now).order('game_date').limit(1).maybeSingle(),
-      supabase.from('training_sessions').select('session_date, location').gte('session_date', now).order('session_date').limit(1).maybeSingle(),
-      supabase.from('player_stats').select('game_id, goals, assists').eq('player_id', me?.id ?? ''),
-      supabase
-        .from('attendance')
-        .select('session_id, status')
-        .eq('player_id', me?.id ?? '')
-        .eq('session_type', 'game')
-        .eq('status', 'attending'),
+  const [
+    { data: games },
+    { data: nextGame },
+    { data: nextTraining },
+    { data: myStats },
+    { data: myAtt },
+    { data: mySeason },
+    { count: activePolls },
+  ] = await Promise.all([
+    supabase
+      .from('games')
+      .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id')
+      .order('game_date', { ascending: false }),
+    supabase
+      .from('games')
+      .select('opponent, game_date, location')
+      .eq('season_id', season.id)
+      .gte('game_date', now)
+      .order('game_date')
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('training_sessions')
+      .select('session_date, location')
+      .eq('season_id', season.id)
+      .gte('session_date', now)
+      .order('session_date')
+      .limit(1)
+      .maybeSingle(),
+    supabase.from('player_stats').select('game_id, goals, assists').eq('player_id', me?.id ?? ''),
+    supabase
+      .from('attendance')
+      .select('session_id, status')
+      .eq('player_id', me?.id ?? '')
+      .eq('session_type', 'game')
+      .eq('status', 'attending'),
+    // Jersey number for the season being viewed
+    supabase
+      .from('season_players')
+      .select('jersey_number')
+      .eq('season_id', season.id)
+      .eq('player_id', me?.id ?? '')
+      .maybeSingle(),
     supabase.from('polls').select('*', { count: 'exact', head: true }).eq('is_active', true),
-    ])
+  ])
 
-  const season = seasonsOf(games ?? [])[0] ?? String(nowDate.getFullYear())
-
-  // Only completed games in the latest season on or before "now" — keeps date preview consistent
-  const played = (games ?? []).filter(
-    (g) =>
-      g.result !== null &&
-      String(new Date(g.game_date).getFullYear()) === season &&
-      new Date(g.game_date).getTime() <= nowDate.getTime()
+  // Completed games on or before "now" — keeps date preview consistent
+  const playedAll = ((games ?? []) as HomeGame[]).filter(
+    (g) => g.result !== null && new Date(g.game_date).getTime() <= nowDate.getTime()
   )
-  const record = {
-    w: played.filter((g) => g.result === 'win' || g.result === 'ot_win').length,
-    d: played.filter((g) => g.result === 'tie').length,
-    l: played.filter((g) => g.result === 'loss' || g.result === 'ot_loss').length,
-  }
+  const played = playedAll.filter((g) => g.season_id === season.id)
+
+  const record = recordOf(played)
   const goalsFor = played.reduce((s, g) => s + (g.goals_for ?? 0), 0)
   const goalsAgainst = played.reduce((s, g) => s + (g.goals_against ?? 0), 0)
 
-  const playedIds = new Set(played.map((g) => g.id))
-  const myPlayedStats = (myStats ?? []).filter((r) => playedIds.has(r.game_id))
-  const myGoals = myPlayedStats.reduce((s, r) => s + r.goals, 0)
-  const myAssists = myPlayedStats.reduce((s, r) => s + r.assists, 0)
-  const attendedGames = (myAtt ?? []).filter((a) => playedIds.has(a.session_id)).length
-  const attendancePct = played.length > 0 ? Math.round((attendedGames / played.length) * 100) : 0
+  /** Your goals / assists / games attended across a set of played games */
+  function myTotals(gamesPlayed: HomeGame[]) {
+    const ids = new Set(gamesPlayed.map((g) => g.id))
+    const rows = (myStats ?? []).filter((r) => ids.has(r.game_id))
+    return {
+      goals: rows.reduce((s, r) => s + r.goals, 0),
+      assists: rows.reduce((s, r) => s + r.assists, 0),
+      apps: (myAtt ?? []).filter((a) => ids.has(a.session_id)).length,
+    }
+  }
+  const mine = myTotals(played)
+  const attendancePct = played.length > 0 ? Math.round((mine.apps / played.length) * 100) : 0
+  const allTime = myTotals(playedAll)
+  const allTimeRecord = recordOf(playedAll)
+  const jersey = mySeason?.jersey_number ?? me?.jersey_number ?? null
 
   const lastGame = played[0]
 
@@ -96,16 +146,17 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             {me ? `Hi, ${me.preferred_name?.trim() || firstName(me.full_name)}` : 'Home'}
           </h1>
         </div>
-        {me?.jersey_number != null && <span className="liga-meta shrink-0 pb-1 text-slate-500">#{me.jersey_number}</span>}
+        {jersey != null && <span className="liga-meta shrink-0 pb-1 text-slate-500">#{jersey}</span>}
       </div>
 
-      {/* Desktop (lg+): season + your stats on the left, what's next / last / polls on the right */}
+      {/* Desktop (lg+): season + your stats + all time on the left, what's next / last / polls on the right */}
       <div className="liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
         <div className="min-w-0">
           {/* Season record hero */}
           <div className="liga-hero bg-accent relative overflow-hidden rounded-[1.5rem] p-5">
             <div className="liga-meta text-white/70">
-              Season {season} · {LEAGUE}
+              Season {season.label} · {LEAGUE}
+              {season.locked ? ' · Final' : ''}
             </div>
             <div className="mt-2 flex items-end gap-3">
               <span className="font-display text-4xl font-extrabold leading-none text-white">
@@ -117,18 +168,39 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             </div>
           </div>
 
-          {/* My stats tiles */}
-          <div className="liga-stat-grid mt-4 grid grid-cols-3 gap-3">
-            <Tile value={myGoals} label="Goals" />
-            <Tile value={myAssists} label="Assists" />
+          {/* My stats tiles — this season */}
+          <h2 className="liga-section-title mt-6">Your {season.label} season</h2>
+          <div className="liga-stat-grid mt-2 grid grid-cols-3 gap-3">
+            <Tile value={mine.goals} label="Goals" />
+            <Tile value={mine.assists} label="Assists" />
             <Tile value={`${attendancePct}%`} label="Attendance" />
+          </div>
+
+          {/* All time — below the season: open on desktop, collapsed on touch layouts */}
+          <details className="liga-all-time group mt-6 lg:hidden">
+            <summary className="liga-section-title flex min-h-[44px] cursor-pointer list-none items-center justify-between">
+              All time
+              <span aria-hidden className="text-slate-500 transition group-open:rotate-180">▾</span>
+            </summary>
+            <AllTime totals={allTime} record={allTimeRecord} games={playedAll.length} />
+          </details>
+          <div className="liga-all-time mt-6 hidden lg:block">
+            <h2 className="liga-section-title">All time</h2>
+            <AllTime totals={allTime} record={allTimeRecord} games={playedAll.length} />
           </div>
         </div>
 
         <div className="min-w-0">
           {/* Next up / season complete */}
-          <h2 className="liga-section-title mt-6 lg:mt-0">Next up</h2>
-          {next ? (
+          <h2 className="liga-section-title mt-6 lg:mt-0">{season.locked ? 'Season' : 'Next up'}</h2>
+          {season.locked ? (
+            <div className="liga-link-row card mt-2 p-4">
+              <div className="liga-link-title text-sm font-semibold text-white">Season finished</div>
+              <div className="liga-meta mt-0.5 text-slate-400">
+                {LEAGUE} {season.label} is a past season. Switch season to see what&apos;s next.
+              </div>
+            </div>
+          ) : next ? (
             <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
               <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
               <div className="liga-meta mt-0.5 text-slate-400">
@@ -136,10 +208,17 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
                 {next.place ? ` · ${next.place}` : ''}
               </div>
             </Link>
-          ) : (
+          ) : played.length > 0 ? (
             <div className="liga-link-row card mt-2 p-4">
               <div className="liga-link-title text-sm font-semibold text-white">Season complete</div>
               <div className="liga-meta mt-0.5 text-slate-400">Nothing scheduled — enjoy the off-season.</div>
+            </div>
+          ) : (
+            <div className="liga-link-row card mt-2 p-4">
+              <div className="liga-link-title text-sm font-semibold text-white">Nothing scheduled yet</div>
+              <div className="liga-meta mt-0.5 text-slate-400">
+                {LEAGUE} {season.label} fixtures and trainings will show here.
+              </div>
             </div>
           )}
 
@@ -188,6 +267,39 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+/** All-time numbers — quieter than the season tiles so the season leads. */
+function AllTime({
+  totals,
+  record,
+  games,
+}: {
+  totals: { goals: number; assists: number; apps: number }
+  record: { w: number; d: number; l: number }
+  games: number
+}) {
+  return (
+    <div className="card mt-2 p-4">
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <MiniStat value={totals.apps} label="Apps" />
+        <MiniStat value={totals.goals} label="Goals" />
+        <MiniStat value={totals.assists} label="Assists" />
+      </div>
+      <div className="liga-meta mt-3 border-t border-white/10 pt-3 text-center text-slate-400">
+        Team · {games} games · {record.w}W · {record.d}D · {record.l}L
+      </div>
+    </div>
+  )
+}
+
+function MiniStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <div className="text-lg font-semibold leading-none text-slate-200">{value}</div>
+      <div className="text-[11px] text-slate-500">{label}</div>
     </div>
   )
 }

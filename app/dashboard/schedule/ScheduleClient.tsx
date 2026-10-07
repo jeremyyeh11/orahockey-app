@@ -9,9 +9,10 @@ import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
 import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { updateGame, updateTraining, deleteGame, deleteTraining } from '@/app/admin/schedule/actions'
-import { seasonsOf } from '@/lib/stats'
+import type { Season } from '@/lib/season'
 
 export default function ScheduleClient({
+  season,
   games,
   trainings,
   myStatus,
@@ -25,6 +26,8 @@ export default function ScheduleClient({
   cardsByGame,
   potmByGame,
 }: {
+  /** The season being shown; a locked season is read-only */
+  season: Season
   games: Game[]
   trainings: Training[]
   myStatus: Record<string, MyStatus>
@@ -57,7 +60,7 @@ export default function ScheduleClient({
     .filter((i) => new Date(i.date).getTime() < nowMs)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   const { isDesktop, selected: selectedItem, select: setSelectedItem, isSelected } = useEventSelection(upcoming, past)
-  const season = seasonsOf(games)[0] ?? String(new Date(now).getFullYear())
+  const readOnly = season.locked
 
   function respond(item: EventItem, status: MyStatus) {
     const id = item.kind === 'game' ? item.game.id : item.training.id
@@ -115,6 +118,7 @@ export default function ScheduleClient({
       inline={isDesktop}
       item={selectedItem}
       isAdmin={isAdmin}
+      readOnly={readOnly}
       teamListByGame={teamListByGame}
       myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
       attendanceBySession={attendanceBySession}
@@ -185,6 +189,7 @@ export default function ScheduleClient({
                       >
                         <EventRow item={item} />
                       </div>
+                      {!readOnly && (
                       <div className="liga-event-actions mt-2 flex gap-2">
                         {(
                           [
@@ -211,6 +216,7 @@ export default function ScheduleClient({
                           </button>
                         ))}
                       </div>
+                      )}
                     </div>
                   )
                 })}
@@ -220,11 +226,13 @@ export default function ScheduleClient({
 
           {/* Past — read-only with my status */}
           <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
-            {upcoming.length > 0 ? 'Past' : `Season ${season}`}
+            {upcoming.length > 0 ? 'Past' : `Season ${season.label}`}
           </h2>
           <div className="liga-event-list">
             {past.length === 0 && upcoming.length === 0 && (
-              <p className="py-4 text-center text-sm text-slate-500">Nothing scheduled yet.</p>
+              <p className="py-4 text-center text-sm text-slate-500">
+                {readOnly ? 'No events in this season.' : 'Nothing scheduled yet.'}
+              </p>
             )}
             {past.map((item) => {
               const id = item.kind === 'game' ? item.game.id : item.training.id

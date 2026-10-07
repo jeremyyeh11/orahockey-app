@@ -18,7 +18,7 @@ import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
-import { seasonsOf } from '@/lib/stats'
+import type { Season } from '@/lib/season'
 import Modal from '@/components/Modal'
 
 const inputCls =
@@ -27,6 +27,7 @@ const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 export default function ScheduleClient({
+  season,
   games,
   trainings,
   attending,
@@ -41,6 +42,8 @@ export default function ScheduleClient({
   cardsByGame,
   potmByGame,
 }: {
+  /** The season being shown; a locked season is read-only, admins included */
+  season: Season
   games: Game[]
   trainings: Training[]
   attending: Record<string, number>
@@ -77,10 +80,8 @@ export default function ScheduleClient({
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   const { isDesktop, selected: selectedItem, select: setSelectedItem, isSelected } = useEventSelection(upcoming, past)
 
-  const season = seasonsOf(games)[0] ?? String(new Date(now).getFullYear())
-  const played = games.filter(
-    (g) => g.result && String(new Date(g.game_date).getFullYear()) === season
-  )
+  const readOnly = season.locked
+  const played = games.filter((g) => g.result)
   const record = {
     w: played.filter((g) => g.result === 'win' || g.result === 'ot_win').length,
     d: played.filter((g) => g.result === 'tie').length,
@@ -187,6 +188,7 @@ export default function ScheduleClient({
       inline={isDesktop}
       item={selectedItem}
       isAdmin={isAdmin}
+      readOnly={readOnly}
       teamListByGame={teamListByGame}
       myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
       attendanceBySession={attendanceBySession}
@@ -209,20 +211,22 @@ export default function ScheduleClient({
       {/* Header */}
       <div className="liga-page-header mb-4 flex items-center justify-between gap-3">
         <h1 className="liga-page-title text-xl text-white">Schedule</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAddModal('training')}
-            className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-          >
-            + Training
-          </button>
-          <button
-            onClick={() => setAddModal('game')}
-            className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
-          >
-            + Game
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAddModal('training')}
+              className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+            >
+              + Training
+            </button>
+            <button
+              onClick={() => setAddModal('game')}
+              className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
+            >
+              + Game
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Season record */}
@@ -284,6 +288,7 @@ export default function ScheduleClient({
                       >
                         <EventRow item={item} attending={attending} />
                       </div>
+                      {!readOnly && (
                       <div className="liga-event-actions mt-2 flex gap-2">
                         {(
                           [
@@ -310,6 +315,7 @@ export default function ScheduleClient({
                           </button>
                         ))}
                       </div>
+                      )}
                     </div>
                   )
                 })}
@@ -319,12 +325,12 @@ export default function ScheduleClient({
 
           {/* Past */}
           <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
-            {upcoming.length > 0 ? 'Past' : `Season ${season}`}
+            {upcoming.length > 0 ? 'Past' : `Season ${season.label}`}
           </h2>
           <div className="liga-event-list">
             {past.length === 0 && upcoming.length === 0 && (
               <p className="py-4 text-center text-sm text-slate-500">
-                Nothing scheduled yet. Add a game or training above.
+                {readOnly ? 'No events in this season.' : 'Nothing scheduled yet. Add a game or training above.'}
               </p>
             )}
             {past.map((item) => (

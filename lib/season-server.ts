@@ -57,6 +57,18 @@ export type SquadMember = {
 }
 
 /**
+ * The schedule's roster (attendance breakdown, team lists, scorers): the
+ * season's squad by name — everyone for a past season, active players for an
+ * open one.
+ */
+export function seasonRoster(squad: SquadMember[], locked: boolean) {
+  return squad
+    .filter((p) => locked || p.is_active)
+    .map(({ id, full_name, preferred_name, position, jersey_number }) => ({ id, full_name, preferred_name, position, jersey_number }))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name))
+}
+
+/**
  * A season's squad: its season_players rows joined to players, with that
  * season's jersey number and position. `fields` adds extra players columns.
  * Sorted by jersey number, then name.

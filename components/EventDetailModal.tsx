@@ -109,7 +109,8 @@ function buildBreakdown(
 
 export function EventDetailModal({
   item,
-  isAdmin,
+  isAdmin: isAdminUser,
+  readOnly = false,
   teamListByGame,
   myStatus,
   attendanceBySession,
@@ -128,6 +129,8 @@ export function EventDetailModal({
 }: {
   item: EventItem | null
   isAdmin: boolean
+  /** Locked (past) season: view only — no edit, delete, result entry, team list or RSVP, admins included */
+  readOnly?: boolean
   teamListByGame: Record<string, Record<string, boolean>>
   myStatus: MyStatus | undefined
   attendanceBySession: Record<string, AttendanceRow[]>
@@ -145,6 +148,8 @@ export function EventDetailModal({
   /** Desktop master–detail: render as the Schedule page's side panel instead of a modal */
   inline?: boolean
 }) {
+  // Admin controls only apply while the event's season is open
+  const isAdmin = isAdminUser && !readOnly
   const [editMode, setEditMode] = useState(false)
   const [respondingId, setRespondingId] = useState<string | null>(null)
   const [showTeamList, setShowTeamList] = useState(false)
@@ -306,7 +311,7 @@ export function EventDetailModal({
     <ReadEditModal
       title={title}
       titleAction={
-        isGame && !editMode ? (
+        isGame && !editMode && !readOnly ? (
           <button
             type="button"
             onClick={() => setShowResult(true)}
@@ -401,7 +406,7 @@ export function EventDetailModal({
                 </button>
               ) : (
                 /* Player: not published yet */
-                <p className="text-xs text-slate-500">To be announced</p>
+                <p className="text-xs text-slate-500">{readOnly ? 'No team list published' : 'To be announced'}</p>
               )}
             </CollapsibleSection>
           )}
@@ -413,6 +418,7 @@ export function EventDetailModal({
             defaultOpen={attendanceDefaultOpen}
             summary={`${attendingCount} in`}
           >
+            {!readOnly && (
             <div className="mb-4">
               <div className="mb-2 text-[11px] font-medium text-slate-500">Your response</div>
               <div className="flex gap-2">
@@ -440,6 +446,7 @@ export function EventDetailModal({
                 ))}
               </div>
             </div>
+            )}
 
             {breakdown.length > 0 && (
               <div className="space-y-2">

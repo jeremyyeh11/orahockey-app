@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
+import { getSeasonSquad, getSelectedSeason } from '@/lib/season-server'
 import SquadClient from './SquadClient'
 import type { MatchCardRow } from '@/lib/stats'
 
@@ -9,11 +10,11 @@ export const metadata: Metadata = { title: 'Squad' }
 export default async function PlayerSquadPage() {
   const supabase = createClient()
 
-  const user = await getRequestUser()
+  const [user, season] = await Promise.all([getRequestUser(), getSelectedSeason()])
 
   const [
     { data: me },
-    { data: players, error },
+    players,
     { data: stats },
     { data: games },
     { data: potm },
@@ -21,17 +22,14 @@ export default async function PlayerSquadPage() {
     { data: cards },
   ] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
-    supabase
-      .from('players')
-      .select('id, full_name, jersey_number, position, is_active, preferred_name')
-      .order('jersey_number', { ascending: true, nullsFirst: false })
-      .order('full_name', { ascending: true }),
+    getSeasonSquad(season.id).catch((e: Error) => e),
     supabase
       .from('player_stats')
       .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
     supabase
       .from('games')
-      .select('id, game_date, result, goals_against')
+      .select('id, game_date, result, goals_against, season_id')
+      .eq('season_id', season.id)
       .order('game_date', { ascending: false }),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase
@@ -42,17 +40,18 @@ export default async function PlayerSquadPage() {
     supabase.from('match_cards').select('player_id, game_id, card_type, created_at'),
   ])
 
-  if (error) {
+  if (players instanceof Error) {
     return (
       <div className="p-4">
-        <p className="text-sm text-red-400">Error loading squad: {error.message}</p>
+        <p className="text-sm text-red-400">{players.message}</p>
       </div>
     )
   }
 
   return (
     <SquadClient
-      players={players ?? []}
+      season={season}
+      players={players}
       games={games ?? []}
       stats={stats ?? []}
       potm={potm ?? []}

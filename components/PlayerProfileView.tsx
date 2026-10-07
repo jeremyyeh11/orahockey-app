@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus } from '@/components/PlayerProfilePage'
-import { computeSeason, seasonsOf, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
+import { computeSeason, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
-import { getNow } from '@/lib/preview'
+import { getSelectedSeason } from '@/lib/season-server'
 import { LEAGUE } from '@/lib/constants'
 
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
@@ -38,9 +38,11 @@ export async function PlayerProfileView({
   overlay?: boolean
 }) {
   const supabase = createClient()
+  const season = await getSelectedSeason()
 
   const [
     { data: player, error: playerErr },
+    { data: seasonEntry },
     { data: games },
     { data: stats },
     { data: potm },
@@ -52,7 +54,14 @@ export async function PlayerProfileView({
       .select(includeContact ? ADMIN_FIELDS : BASE_FIELDS)
       .eq('id', playerId)
       .single(),
-    supabase.from('games').select('id, game_date, result, goals_against').order('game_date', { ascending: false }),
+    // Jersey number and position for the season being viewed
+    supabase
+      .from('season_players')
+      .select('jersey_number, position')
+      .eq('season_id', season.id)
+      .eq('player_id', playerId)
+      .maybeSingle(),
+    supabase.from('games').select('id, game_date, result, goals_against, season_id').order('game_date', { ascending: false }),
     supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
     supabase.from('potm').select('game_id, player_id, place'),
     supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending'),
@@ -63,7 +72,8 @@ export async function PlayerProfileView({
     return <div className="liga-page liga-error-state p-4 text-sm text-red-400">Player not found.</div>
   }
 
-  const profile = player as unknown as ProfilePlayer
+  // Not in this season's squad → keep their latest jersey/position from players
+  const profile = { ...(player as unknown as ProfilePlayer), ...(seasonEntry ?? {}) } as ProfilePlayer
 
   // Account status for the admin invite panel
   let accountStatus: AccountStatus | undefined
@@ -76,10 +86,8 @@ export async function PlayerProfileView({
       .maybeSingle()
     accountStatus = p.auth_user_id ? 'active' : wl?.invited_at ? 'invited' : 'none'
   }
-  const players: (PlayerLite & RosterPlayer)[] = [player as unknown as PlayerLite & RosterPlayer]
+  const players: (PlayerLite & RosterPlayer)[] = [profile as unknown as PlayerLite & RosterPlayer]
   const cards = (cardRows ?? []) as MatchCardRow[]
-  const seasons = seasonsOf(games ?? [])
-  const currentSeason = seasons[0] ?? String(getNow().getFullYear())
 
   let seasonRow: LeaderboardRow | undefined
   let careerRow: LeaderboardRow | undefined
@@ -92,7 +100,8 @@ export async function PlayerProfileView({
       potm: potm ?? [],
       attendance: att ?? [],
       cards,
-      season: currentSeason,
+      season: season.label,
+      seasonId: season.id,
     })
     const { leaderboard: careerLb } = computeSeason({
       players,
@@ -115,7 +124,7 @@ export async function PlayerProfileView({
       player={profile}
       seasonRow={seasonRow}
       careerRow={careerRow}
-      seasonLabel={`${LEAGUE} ${currentSeason}`}
+      seasonLabel={`${LEAGUE} ${season.label}`}
       accountStatus={accountStatus}
     />
   )

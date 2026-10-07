@@ -300,8 +300,8 @@ export function PlayerProfilePage({
           )}
         </div>
 
-        {/* Translucent stat panel */}
-        {seasonRow && (
+        {/* Translucent stat panel — the selected season first, career below */}
+        {seasonRow ? (
           <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
@@ -311,7 +311,14 @@ export function PlayerProfilePage({
             </div>
             <StatLine row={seasonRow} positions={player.position} />
           </div>
-        )}
+        ) : careerRow ? (
+          <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              {seasonLabel}
+            </span>
+            <p className="mt-0.5 text-[11px] text-slate-500">No stats this season yet.</p>
+          </div>
+        ) : null}
 
         {/* Career stats */}
         {careerRow && (
