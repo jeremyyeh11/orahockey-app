@@ -32,6 +32,50 @@ Player photos are still not driven by live data (flagged during the July 2026 ha
 
 Must reference only UI-visible elements (player profile photo and admin edit mode).
 
+## 8. Reason field for attendance
+
+When a player votes attendance on an event (event detail modal on the Schedule tab), let them
+add a short optional reason — e.g. "injured", "away for work", "late, arriving 2nd half".
+Show the reason next to the player's name in the attendance breakdown list.
+
+Open questions to resolve at build time:
+- Optional for every status, or only offered/required for **Maybe** and **Not attending**?
+- Free text, preset chips (Injured / Work / Away / Sick), or both? Max length?
+- Who sees reasons — everyone on the team, or admins only?
+- Can a player edit the reason later without changing their status?
+
+Needs a nullable `reason` column on `attendance` (new migration).
+
+## 9. Timestamps on attendance votes and poll votes
+
+Show **when** each person responded, for every event type (matches, trainings, team events)
+and for polls. In the event detail modal's attendance breakdown, each name gets a small
+relative time ("2h ago" / "Mon 14:05"); in the Polls tab, the voted/"Yet to vote" area shows
+when each voter submitted.
+
+Data already exists: `attendance.responded_at` and `potm_ballots.created_at`. Mostly UI work.
+
+Open questions to resolve at build time:
+- Does changing a vote (e.g. Attending → Not attending) update the timestamp? Check whether
+  the attendance upsert currently refreshes `responded_at` — it defaults to `now()` on insert
+  only, so changed votes may show the original time.
+- Seeded 2026 attendance rows carry seed-time timestamps — hide timestamps for those, or show them?
+- Relative ("2h ago") vs absolute ("Mon 14:05")? Sort names by response time?
+
+## 10. Copy "Hasn't responded" names
+
+In the event detail modal's attendance breakdown, add an icon-only copy button beside the
+**Hasn't responded** heading. Tapping it copies those players' names to the clipboard so an
+admin can paste them into a separate group chat to chase replies. Show brief "Copied" feedback
+(icon swap or toast).
+
+Open questions to resolve at build time:
+- Format: one name per line, comma-separated, or with a header line
+  (e.g. "Still need replies for Sat vs X: …")?
+- Preferred names or full names? (WhatsApp @-mentions won't resolve from pasted text either way.)
+- Admin-only, or visible to every player?
+- Same button on the Polls tab "Yet to vote" list?
+
 ---
 
 ## Archived
