@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
+import { startNavigationProgress } from '@/components/NavigationProgress'
 import { type NavItem } from '@/components/BottomNav'
 import { HomeIcon, UsersIcon, CalendarIcon, PollIcon } from '@/components/icons'
 
@@ -28,6 +29,7 @@ export default function DashboardLayout({
 
   function returnToAdmin() {
     document.cookie = 'ora-view=; path=/; max-age=0'
+    startNavigationProgress()
     router.push('/admin/dashboard')
   }
 

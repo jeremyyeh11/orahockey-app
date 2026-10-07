@@ -7,6 +7,7 @@ import { CLUB_NAME } from '@/lib/constants'
 import BottomNav, { type NavItem } from '@/components/BottomNav'
 import TopNav from '@/components/TopNav'
 import PullToRefresh from '@/components/PullToRefresh'
+import NavigationProgress from '@/components/NavigationProgress'
 
 /**
  * Shared app chrome for the admin and player areas: sticky top bar (crest +
@@ -69,6 +70,8 @@ export default function AppShell({
 
       {/* Floating pill nav */}
       <BottomNav items={nav} />
+
+      <NavigationProgress />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { addPlayer, togglePlayerActive } from './actions'
 import RosterList from '@/components/RosterList'
 import RosterTable from '@/components/RosterTable'
+import { startNavigationProgress } from '@/components/NavigationProgress'
 import { defaultPreferredName } from '@/components/RosterList'
 import Modal from '@/components/Modal'
 import {
@@ -100,7 +101,10 @@ export default function SquadClient({
   const rosterProps = {
     players: visible,
     myPlayerId,
-    onSelect: (p: Player) => router.push(`/admin/team/${p.id}`, { scroll: false }),
+    onSelect: (p: Player) => {
+      startNavigationProgress()
+      router.push(`/admin/team/${p.id}`, { scroll: false })
+    },
     statsMap,
     accountMap,
   }

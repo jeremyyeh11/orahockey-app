@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import RosterList from '@/components/RosterList'
 import RosterTable from '@/components/RosterTable'
+import { startNavigationProgress } from '@/components/NavigationProgress'
 import {
   useSeasonStats,
   SeasonSelect,
@@ -72,7 +73,10 @@ export default function SquadClient({
   const rosterProps = {
     players: visible,
     myPlayerId,
-    onSelect: (p: Player) => router.push(`/dashboard/team/${p.id}`, { scroll: false }),
+    onSelect: (p: Player) => {
+      startNavigationProgress()
+      router.push(`/dashboard/team/${p.id}`, { scroll: false })
+    },
     statsMap,
   }
 

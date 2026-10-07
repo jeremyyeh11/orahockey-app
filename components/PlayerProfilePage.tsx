@@ -7,6 +7,7 @@ import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
 import Modal from './Modal'
+import { startNavigationProgress } from './NavigationProgress'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
 
 export type AccountStatus = 'none' | 'invited' | 'active'
@@ -463,7 +464,10 @@ export function PlayerProfilePage({
 
       {/* Back to Squad — top left */}
       <button
-        onClick={() => router.push(squadPath)}
+        onClick={() => {
+          startNavigationProgress()
+          router.push(squadPath)
+        }}
         className="liga-icon-button fixed left-4 top-[4.5rem] z-[70] flex h-9 w-9 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition hover:bg-black/50 lg:absolute lg:top-4 lg:z-10"
         aria-label="Back to Squad"
       >

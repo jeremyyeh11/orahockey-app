@@ -166,7 +166,7 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
   // Direct visits: full screen below the header on phones, a centred card at lg+ (CSS only, no flash)
   assert.match(profile, /liga-profile-screen fixed inset-0 top-\[3\.5rem\][^"]*lg:relative lg:inset-auto[^"]*lg:h-\[min\(85vh,680px\)\] lg:max-w-lg/)
   assert.match(profile, /liga-profile-backdrop [^"]*lg:hidden/)
-  assert.match(profile, /onClick=\{\(\) => router\.push\(squadPath\)\}/, 'page Back goes to Squad, not out of the app')
+  assert.match(profile, /startNavigationProgress\(\)\s+router\.push\(squadPath\)/, 'page Back goes to Squad (with progress), not out of the app')
   assert.match(profile, /useModalScrollLock\(presentation === 'page' && !isDesktop\)/, 'desktop page scrolls normally')
   // Top Scorers / Top Assists sit side by side on phones too
   for (const area of ['admin', 'dashboard']) {
@@ -206,6 +206,18 @@ test('admins and players share one Home dashboard', () => {
   // Desktop: season + your stats beside next up / last game / polls; phones stay one column
   assert.ok(home.includes('liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6'))
   assert.ok(home.includes('<h2 className="liga-section-title mt-6 lg:mt-0">Next up</h2>'), 'right column starts flush with the hero')
+})
+
+test('navigation progress bar starts on link clicks and programmatic pushes', () => {
+  const bar = read('components/NavigationProgress.tsx')
+  assert.match(bar, /document\.addEventListener\('click', onClick, true\)/, 'link clicks start it (capture phase, before next/link handles them)')
+  assert.match(bar, /url\.origin !== window\.location\.origin \|\| url\.pathname === window\.location\.pathname/, 'external and same-page links are ignored')
+  assert.match(bar, /s === 'loading' \? 'done' : s/, 'finishes when the pathname changes')
+  assert.match(bar, /10_000/, 'never spins forever')
+  assert.match(read('components/AppShell.tsx'), /<NavigationProgress \/>/)
+  for (const f of ['app/admin/team/SquadClient.tsx', 'app/dashboard/team/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/layout.tsx', 'components/AdminControlPanel.tsx']) {
+    assert.match(read(f), /startNavigationProgress\(\)\s+router\.push\(/, `${f} starts the bar before router.push`)
+  }
 })
 
 test('Liga surfaces are opt-in and preserve the existing palette', () => {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
+import { startNavigationProgress } from '@/components/NavigationProgress'
 
 const PREVIEW_COOKIE = 'ora-preview-date'
 const VIEW_COOKIE = 'ora-view'
@@ -52,6 +53,7 @@ export default function AdminBadge() {
   function switchToPlayerView() {
     setCookie(VIEW_COOKIE, 'player')
     setOpen(false)
+    startNavigationProgress()
     router.push('/dashboard')
   }
 
