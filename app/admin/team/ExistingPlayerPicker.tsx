@@ -13,6 +13,8 @@ export type OutsidePlayer = {
   preferred_name: string | null
   jersey_number: number | null
   is_active: boolean
+  /** null = pending (no email yet) */
+  email: string | null
 }
 
 /**
@@ -94,6 +96,7 @@ export default function ExistingPlayerPicker({
                     {p.full_name}
                     {p.jersey_number != null ? ` · #${p.jersey_number}` : ''}
                     {!p.is_active ? ' · inactive' : ''}
+                    {!p.email ? ' · pending' : ''}
                   </span>
                 </span>
               </label>

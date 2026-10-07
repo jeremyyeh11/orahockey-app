@@ -366,7 +366,7 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
   const adminSource = fs.readFileSync(path.join(root, 'app/admin/team/SquadClient.tsx'), 'utf8')
   for (const contract of [
     'onClick={openAdd}', 'setShowAddModal(true)', '<Modal onClose={() => { setShowAddModal(false); setError(null) }}>',
-    'onSubmit={handleAddSubmit}', 'await addPlayer(data)', 'disabled={isPending}',
+    'onSubmit={handleAddSubmit}', 'await addPlayer(data, joinSeason)', 'disabled={isPending}',
     'await togglePlayerActive(player.id, !player.is_active)',
     'onChange={(e) => setShowInactive(e.target.checked)}',
   ]) assert.ok(adminSource.includes(contract), `preserve admin interaction: ${contract}`)
@@ -522,4 +522,48 @@ test('squad membership is admin-only and open-season-only', () => {
   assert.doesNotMatch(read('app/dashboard/team/SquadClient.tsx'), /Existing Player|ExistingPlayerPicker/)
   assert.match(read('app/admin/team/SquadClient.tsx'), /\{!season\.locked && \([\s\S]*?\+ Existing Player/, 'picker button only for open seasons')
   assert.match(read('supabase/migrations/011_seasons.sql'), /"Admins manage season_players" on public\.season_players\s+for all using \(is_admin\(\)\) with check \(is_admin\(\)\)/, 'RLS: only admins write season_players')
+})
+
+test('pending players: added without an email, shown as pending, invited only once an email is saved', () => {
+  const { accountStatusOf, ACCOUNT_DOT } = load('components/RosterList.tsx')
+  assert.equal(accountStatusOf({ email: null, auth_user_id: null }, null), 'pending')
+  assert.equal(accountStatusOf({ email: 'a@b.co', auth_user_id: null }, null), 'none')
+  assert.equal(accountStatusOf({ email: 'a@b.co', auth_user_id: null }, '2026-10-01'), 'invited')
+  assert.equal(accountStatusOf({ email: 'a@b.co', auth_user_id: 'u' }, null), 'active')
+  assert.match(ACCOUNT_DOT.pending.title, /Pending/)
+
+  const stubs = {
+    addPlayersToSeason: async () => {}, removePlayerFromSeason: async () => {}, togglePlayerActive: async () => {},
+    setPlayerEmail: async () => assert.fail('render must not save'),
+  }
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
+    '@/app/admin/team/actions': stubs,
+    '@/app/admin/team/inviteActions': { generateSetupLink: async () => assert.fail('not called') },
+  })
+  const { PlayerProfilePage } = boundaryLoad('components/PlayerProfilePage.tsx')
+  const profile = (accountStatus) => render(PlayerProfilePage, {
+    player: { id: 'p', full_name: 'Some Player', preferred_name: null, jersey_number: null, position: null, is_active: true },
+    seasonRow: undefined, careerRow: undefined, seasonLabel: 'MHL1 2027', accountStatus,
+  })
+  const pending = profile('pending')
+  assert.match(textOf(pending), /Pending — no email yet/)
+  assert.match(pending, /<input[^>]*type="email"[^>]*aria-label="Player email"|<input[^>]*aria-label="Player email"[^>]*type="email"/)
+  assert.match(textOf(pending), /Save email/)
+  assert.doesNotMatch(textOf(pending), /Invite link/, 'no invite until there is an email')
+  assert.match(textOf(profile('none')), /Invite link/)
+  assert.doesNotMatch(profile('none'), /aria-label="Player email"/)
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const squad = read('app/admin/team/SquadClient.tsx')
+  assert.doesNotMatch(squad, /name="email" type="email" required/, 'email is optional on Add Player')
+  assert.match(squad, /checked=\{joinSeason\}/, 'Add Player can skip the season (past players)')
+  const actions = read('app/admin/team/actions.ts')
+  assert.match(actions, /is_active: joinSeason/, 'players added outside the season are inactive (no auto-join)')
+  assert.match(actions, /export async function setPlayerEmail[\s\S]*?requireAdmin\(supabase\)[\s\S]*?if \(player\.auth_user_id\) throw/, 'only admins; never rewrites an existing login')
+  assert.match(read('app/admin/team/inviteActions.ts'), /if \(!player\.email\) throw/)
+  const migration = read('supabase/migrations/012_pending_players.sql')
+  assert.match(migration, /alter column email drop not null/)
+  assert.match(migration, /check \(email is null or btrim\(email\) <> ''\)/)
+  assert.match(migration, /if not new\.is_active then\s+return new;/)
 })

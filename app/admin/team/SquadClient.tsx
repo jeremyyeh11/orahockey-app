@@ -20,12 +20,13 @@ import {
   type AttendanceRow,
   type MatchCardRow,
 } from '@/components/SeasonStats'
-import type { RosterPlayer, AccountStatus } from '@/components/RosterList'
+import { accountStatusOf, type RosterPlayer, type AccountStatus } from '@/components/RosterList'
 import { LEAGUE } from '@/lib/constants'
 import type { Season } from '@/lib/season'
 
 type Player = RosterPlayer & PlayerLite & {
-  email: string
+  /** null = pending: added before onboarding, no email yet */
+  email: string | null
   role: 'player' | 'admin'
   auth_user_id: string | null
 }
@@ -45,7 +46,7 @@ type Game = {
 type FormData = {
   full_name: string
   preferred_name: string | null
-  email: string
+  email: string | null
   jersey_number: number | null
   position: string[] | null
   role: 'player' | 'admin'
@@ -81,6 +82,8 @@ export default function SquadClient({
   const router = useRouter()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showExisting, setShowExisting] = useState(false)
+  // Add Player: join this season's squad (default) or add a past player, inactive and in no season
+  const [joinSeason, setJoinSeason] = useState(true)
   const [selectedPositions, setSelectedPositions] = useState<string[]>([])
   const [showInactive, setShowInactive] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -97,14 +100,10 @@ export default function SquadClient({
   })
 
   // Account status per player: green = signed in before, amber = invited
-  // but not claimed, grey = no account yet
+  // but not claimed, grey = no account yet, hollow = pending (no email yet)
   const wlByEmail = new Map(whitelist.map((w) => [w.email, w]))
   const accountMap = new Map<string, AccountStatus>(
-    players.map((p) => {
-      const wl = wlByEmail.get(p.email)
-      const status: AccountStatus = p.auth_user_id ? 'active' : wl?.invited_at ? 'invited' : 'none'
-      return [p.id, status]
-    })
+    players.map((p) => [p.id, accountStatusOf(p, p.email ? wlByEmail.get(p.email)?.invited_at : null)])
   )
 
   // A past (locked) season shows its whole squad, read-only
@@ -122,6 +121,7 @@ export default function SquadClient({
 
   function openAdd() {
     setSelectedPositions([])
+    setJoinSeason(true)
     setError(null)
     setShowAddModal(true)
   }
@@ -139,7 +139,7 @@ export default function SquadClient({
     return {
       full_name: fd.get('full_name') as string,
       preferred_name: preferredRaw ? preferredRaw.toUpperCase() : null,
-      email: fd.get('email') as string,
+      email: ((fd.get('email') as string) ?? '').trim() || null,
       jersey_number: jerseyRaw ? Number(jerseyRaw) : null,
       position: selectedPositions.length > 0 ? selectedPositions : null,
       role: fd.get('role') as 'player' | 'admin',
@@ -152,7 +152,7 @@ export default function SquadClient({
     setError(null)
     startTransition(async () => {
       try {
-        await addPlayer(data)
+        await addPlayer(data, joinSeason)
         setShowAddModal(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -255,8 +255,11 @@ export default function SquadClient({
               <input name="preferred_name" type="text" className={inputCls} placeholder="Auto (first name)" />
             </div>
             <div>
-              <label className={labelCls}>Email *</label>
-              <input name="email" type="email" required className={inputCls} placeholder="player@example.com" />
+              <label className={labelCls}>Email</label>
+              <input name="email" type="email" className={inputCls} placeholder="player@example.com" />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Optional — leave blank if you don&apos;t have it yet. It&apos;s their login, so it&apos;s needed before you can send an invite link.
+              </p>
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
@@ -290,6 +293,20 @@ export default function SquadClient({
                 <option value="admin">Admin</option>
               </select>
             </div>
+            <label className="liga-join-season flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-surface-border px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={joinSeason}
+                onChange={(e) => setJoinSeason(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded accent-brand"
+              />
+              <span className="text-sm text-white">
+                Add to the {LEAGUE} {season.label} squad
+                <span className="block text-[11px] text-slate-500">
+                  Untick for a past player: they&apos;re added as inactive and in no season.
+                </span>
+              </span>
+            </label>
             {error && (
               <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
             )}

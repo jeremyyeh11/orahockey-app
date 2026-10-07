@@ -9,9 +9,10 @@ import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
 import Modal from './Modal'
 import { startNavigationProgress } from './NavigationProgress'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
-import { addPlayersToSeason, removePlayerFromSeason, togglePlayerActive } from '@/app/admin/team/actions'
+import { addPlayersToSeason, removePlayerFromSeason, setPlayerEmail, togglePlayerActive } from '@/app/admin/team/actions'
+import type { AccountStatus } from './RosterList'
 
-export type AccountStatus = 'none' | 'invited' | 'active'
+export type { AccountStatus }
 
 /** Admin view, open season only: the player's place in the selected season's squad */
 export type SquadStatus = {
@@ -114,6 +115,7 @@ function CardBadges({ row }: { row: LeaderboardRow }) {
 }
 
 const ACCOUNT_LABEL: Record<AccountStatus, { text: string; dot: string }> = {
+  pending: { text: 'Pending — no email yet', dot: 'border border-slate-400 bg-transparent' },
   none: { text: 'No account yet', dot: 'bg-slate-500' },
   invited: { text: 'Invited — not claimed', dot: 'bg-amber-400' },
   active: { text: 'Active', dot: 'bg-green-400' },
@@ -175,6 +177,25 @@ export function PlayerProfilePage({
       setTimeout(() => setCopied(false), 2000)
     } catch {
       // Clipboard API unavailable — the link is selectable in the input
+    }
+  }
+
+  // Pending players: add the email that unlocks their invite link (admin view only)
+  const [emailDraft, setEmailDraft] = useState('')
+  const [emailSaving, setEmailSaving] = useState(false)
+
+  async function handleSaveEmail(e: React.FormEvent) {
+    e.preventDefault()
+    setEmailSaving(true)
+    setLinkError(null)
+    try {
+      await setPlayerEmail(player.id, emailDraft)
+      setEmailDraft('')
+      router.refresh()
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setEmailSaving(false)
     }
   }
 
@@ -444,20 +465,43 @@ export function PlayerProfilePage({
                   <span className="truncate">{ACCOUNT_LABEL[accountStatus].text}</span>
                 </div>
               </div>
-              <button
-                onClick={handleGenerateLink}
-                disabled={linkLoading}
-                className="liga-button liga-button-primary bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-              >
-                {linkLoading
-                  ? 'Creating…'
-                  : accountStatus === 'active'
-                    ? 'Password reset link'
-                    : accountStatus === 'invited'
-                      ? 'New invite link'
-                      : 'Invite link'}
-              </button>
+              {accountStatus !== 'pending' && (
+                <button
+                  onClick={handleGenerateLink}
+                  disabled={linkLoading}
+                  className="liga-button liga-button-primary bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+                >
+                  {linkLoading
+                    ? 'Creating…'
+                    : accountStatus === 'active'
+                      ? 'Password reset link'
+                      : accountStatus === 'invited'
+                        ? 'New invite link'
+                        : 'Invite link'}
+                </button>
+              )}
             </div>
+            {/* Pending: add their email first — it's their login and unlocks the invite link */}
+            {accountStatus === 'pending' && (
+              <form onSubmit={handleSaveEmail} className="liga-add-email mt-2 flex gap-2">
+                <input
+                  type="email"
+                  required
+                  value={emailDraft}
+                  onChange={(e) => setEmailDraft(e.target.value)}
+                  placeholder="Their email"
+                  aria-label="Player email"
+                  className="liga-field min-h-[44px] min-w-0 flex-1 rounded-lg border border-surface-border bg-surface px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                />
+                <button
+                  type="submit"
+                  disabled={emailSaving || !emailDraft.trim()}
+                  className="liga-button liga-button-primary bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
+                >
+                  {emailSaving ? 'Saving…' : 'Save email'}
+                </button>
+              </form>
+            )}
             {linkError && (
               <p className="liga-alert liga-alert-error mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-300">{linkError}</p>
             )}

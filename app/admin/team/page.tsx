@@ -7,7 +7,7 @@ import type { MatchCardRow } from '@/lib/stats'
 
 export const metadata: Metadata = { title: 'Squad' }
 
-type AdminSquadMember = SquadMember & { email: string; role: 'player' | 'admin'; auth_user_id: string | null }
+type AdminSquadMember = SquadMember & { email: string | null; role: 'player' | 'admin'; auth_user_id: string | null }
 
 export default async function AdminSquadPage() {
   const supabase = createClient()
@@ -46,7 +46,7 @@ export default async function AdminSquadPage() {
     // For "+ Existing Player": everyone on the books, minus this season's squad below
     supabase
       .from('players')
-      .select('id, full_name, preferred_name, jersey_number, is_active')
+      .select('id, full_name, preferred_name, jersey_number, is_active, email')
       .order('full_name', { ascending: true }),
   ])
 

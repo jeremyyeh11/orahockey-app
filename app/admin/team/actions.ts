@@ -23,13 +23,35 @@ function revalidateSquad() {
 type PlayerInput = {
   full_name: string
   preferred_name: string | null
-  email: string
+  /** Optional: a player can be added pending onboarding and get their email later */
+  email: string | null
   jersey_number: number | null
   position: string[] | null
   role: 'player' | 'admin'
 }
 
-export async function addPlayer(data: PlayerInput) {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Trimmed + lowercased; blank → null (pending). Throws on something that isn't an email. */
+function normalizeEmail(email: string | null): string | null {
+  const e = email?.trim().toLowerCase() ?? ''
+  if (!e) return null
+  if (!EMAIL_RE.test(e)) throw new Error(`"${email}" doesn't look like an email address.`)
+  return e
+}
+
+function friendlyPlayerError(message: string, code?: string) {
+  if (code === '23505' && message.includes('email')) return 'Another player already uses that email.'
+  return message
+}
+
+/**
+ * Add a player. `joinSeason` (default) puts them in the selected open season's
+ * squad. Without it they're created inactive and in no season — e.g. a past
+ * player added retroactively (attaching them to an archived season is a
+ * backend job).
+ */
+export async function addPlayer(data: PlayerInput, joinSeason = true) {
   const supabase = createClient()
   await requireAdmin(supabase)
   const season = await requireOpenSeason()
@@ -45,12 +67,19 @@ export async function addPlayer(data: PlayerInput) {
     .from('players')
     .insert({
       ...data,
+      email: normalizeEmail(data.email),
+      // Inactive players don't auto-join the current season (DB trigger)
+      is_active: joinSeason,
       team_id: team?.id ?? null,
     })
     .select('id')
     .single()
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(friendlyPlayerError(error.message, error.code))
+  if (!joinSeason) {
+    revalidateSquad()
+    return
+  }
 
   // A DB trigger adds new players to the current season's squad; also cover an
   // open season that isn't current (no-op when it's the same one).
@@ -72,10 +101,10 @@ export async function updatePlayer(id: string, data: PlayerInput) {
 
   const { error } = await supabase
     .from('players')
-    .update(data)
+    .update({ ...data, email: normalizeEmail(data.email) })
     .eq('id', id)
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(friendlyPlayerError(error.message, error.code))
 
   // Jersey number and position are per season
   const { error: squadError } = await supabase
@@ -195,6 +224,32 @@ export async function removePlayerFromSeason(playerId: string) {
     .eq('season_id', season.id)
     .eq('player_id', playerId)
   if (error) throw new Error(error.message)
+
+  revalidateSquad()
+}
+
+/**
+ * Give a pending player (added without an email) their email, which unlocks the
+ * invite link. Only before they have an account — changing the login email of an
+ * existing account isn't done from here.
+ */
+export async function setPlayerEmail(playerId: string, email: string) {
+  const supabase = createClient()
+  await requireAdmin(supabase)
+
+  const normalized = normalizeEmail(email)
+  if (!normalized) throw new Error('Enter an email address.')
+
+  const { data: player, error: readError } = await supabase
+    .from('players')
+    .select('auth_user_id')
+    .eq('id', playerId)
+    .single()
+  if (readError) throw new Error(readError.message)
+  if (player.auth_user_id) throw new Error('They already have an account — their login email can’t be changed here.')
+
+  const { error } = await supabase.from('players').update({ email: normalized }).eq('id', playerId)
+  if (error) throw new Error(friendlyPlayerError(error.message, error.code))
 
   revalidateSquad()
 }

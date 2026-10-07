@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus, type SquadStatus } from '@/components/PlayerProfilePage'
 import { computeSeason, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
-import type { RosterPlayer } from '@/components/RosterList'
+import { accountStatusOf, type RosterPlayer } from '@/components/RosterList'
 import { getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
 import { LEAGUE } from '@/lib/constants'
 
@@ -79,13 +79,12 @@ export async function PlayerProfileView({
   // Account status for the admin invite panel
   let accountStatus: AccountStatus | undefined
   if (includeAccount) {
-    const p = player as unknown as { email: string; auth_user_id: string | null }
-    const { data: wl } = await supabase
-      .from('player_whitelist')
-      .select('invited_at')
-      .eq('email', p.email)
-      .maybeSingle()
-    accountStatus = p.auth_user_id ? 'active' : wl?.invited_at ? 'invited' : 'none'
+    const p = player as unknown as { email: string | null; auth_user_id: string | null }
+    // Pending players (no email yet) have no whitelist row to look up
+    const { data: wl } = p.email
+      ? await supabase.from('player_whitelist').select('invited_at').eq('email', p.email).maybeSingle()
+      : { data: null }
+    accountStatus = accountStatusOf(p, wl?.invited_at)
   }
 
   // Squad membership controls for the selected season — admin view, open seasons only
