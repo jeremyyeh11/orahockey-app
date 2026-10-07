@@ -18,6 +18,8 @@ export type ReadEditModalProps = {
   onDelete?: () => void
   /** Render the admin Edit trigger in the header (next to titleAction) instead of the footer. */
   editInHeader?: boolean
+  /** Render in place as a page panel (desktop master–detail) instead of a modal. No Close buttons. */
+  inline?: boolean
 }
 
 export function ReadEditModal({
@@ -34,11 +36,12 @@ export function ReadEditModal({
   children,
   onDelete,
   editInHeader = false,
+  inline = false,
 }: ReadEditModalProps) {
   if (!isOpen) return null
 
-  return (
-    <Modal onClose={onClose} scrollable>
+  const content = (
+    <>
       <div className="liga-modal-header mb-5 flex items-center justify-between gap-3">
         <h2 className="min-w-0 truncate text-lg font-bold text-white">{title}</h2>
         <div className="flex shrink-0 items-center gap-2">
@@ -57,16 +60,18 @@ export function ReadEditModal({
 
       {children}
 
-      {/* Action buttons */}
-      {isAdmin && !editMode && (
+      {/* Action buttons — an inline panel has nothing to close */}
+      {isAdmin && !editMode && !(inline && editInHeader) && (
         <div className="liga-actions flex gap-2 pt-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="liga-compact-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-700"
-          >
-            Close
-          </button>
+          {!inline && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="liga-compact-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-1.5 text-[11px] font-medium text-slate-400 transition hover:bg-slate-700"
+            >
+              Close
+            </button>
+          )}
           {!editInHeader && (
             <button
               type="button"
@@ -113,7 +118,7 @@ export function ReadEditModal({
       )}
 
       {/* Non-admin (player) only sees Close */}
-      {!isAdmin && (
+      {!isAdmin && !inline && (
         <div className="liga-actions pt-3">
           <button
             type="button"
@@ -124,6 +129,19 @@ export function ReadEditModal({
           </button>
         </div>
       )}
+    </>
+  )
+
+  if (inline) {
+    return (
+      <section aria-label={title} className="liga-detail-panel card p-5">
+        {content}
+      </section>
+    )
+  }
+  return (
+    <Modal onClose={onClose} scrollable>
+      {content}
     </Modal>
   )
 }

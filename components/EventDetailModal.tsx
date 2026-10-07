@@ -124,6 +124,7 @@ export function EventDetailModal({
   onSaveTraining,
   onDelete,
   isPending,
+  inline = false,
 }: {
   item: EventItem | null
   isAdmin: boolean
@@ -141,6 +142,8 @@ export function EventDetailModal({
   onSaveTraining: (id: string, data: TrainingInput) => void
   onDelete: () => void
   isPending: boolean
+  /** Desktop master–detail: render as the Schedule page's side panel instead of a modal */
+  inline?: boolean
 }) {
   const [editMode, setEditMode] = useState(false)
   const [respondingId, setRespondingId] = useState<string | null>(null)
@@ -318,6 +321,7 @@ export function EventDetailModal({
       onClose={onClose}
       isAdmin={isAdmin}
       editInHeader
+      inline={inline}
       editMode={editMode}
       onEnterEdit={() => setEditMode(true)}
       onSave={() => {

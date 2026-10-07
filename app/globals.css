@@ -471,6 +471,24 @@
   padding-bottom: 0.25rem;
 }
 
+/* Desktop master–detail: rows get room for a highlight (the negative margin keeps
+   text where it was) and the event showing in the details panel is marked. */
+@media (min-width: 1024px) {
+  .liga-ui .liga-event-card.card {
+    margin-inline: -0.75rem;
+    padding-inline: 0.75rem;
+  }
+
+  .liga-ui .liga-event-card.card:hover {
+    background-color: rgba(255, 255, 255, 0.025);
+  }
+
+  .liga-ui .liga-event-card.card[data-selected] {
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 3px 0 0 #5aa971;
+  }
+}
+
 .liga-ui .liga-event-actions {
   border-top: 0;
   justify-content: space-between;

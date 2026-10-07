@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { setAttendance } from './actions'
 import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
 import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
+import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
 import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
@@ -40,7 +41,6 @@ export default function ScheduleClient({
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
   const [isPending, startTransition] = useTransition()
   const [pendingId, setPendingId] = useState<string | null>(null)
-  const [selectedItem, setSelectedItem] = useState<EventItem | null>(null)
 
   const items: EventItem[] = [
     ...(filter !== 'trainings' ? games.map((g) => ({ kind: 'game' as const, date: g.game_date, game: g })) : []),
@@ -56,6 +56,7 @@ export default function ScheduleClient({
   const past = items
     .filter((i) => new Date(i.date).getTime() < nowMs)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  const { isDesktop, selected: selectedItem, select: setSelectedItem, isSelected } = useEventSelection(upcoming, past)
   const season = seasonsOf(games)[0] ?? String(new Date(now).getFullYear())
 
   function respond(item: EventItem, status: MyStatus) {
@@ -74,7 +75,8 @@ export default function ScheduleClient({
     startTransition(async () => {
       try {
         await updateGame(id, data)
-        setSelectedItem(null)
+        // The modal closes after saving; the desktop panel stays on the edited event
+        if (!isDesktop) setSelectedItem(null)
       } catch (err) {
         console.error(err)
       }
@@ -85,7 +87,8 @@ export default function ScheduleClient({
     startTransition(async () => {
       try {
         await updateTraining(id, data)
-        setSelectedItem(null)
+        // The modal closes after saving; the desktop panel stays on the edited event
+        if (!isDesktop) setSelectedItem(null)
       } catch (err) {
         console.error(err)
       }
@@ -106,135 +109,152 @@ export default function ScheduleClient({
     })
   }
 
+  const detail = selectedItem && (
+    <EventDetailModal
+      key={eventKey(selectedItem)}
+      inline={isDesktop}
+      item={selectedItem}
+      isAdmin={isAdmin}
+      teamListByGame={teamListByGame}
+      myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
+      attendanceBySession={attendanceBySession}
+      roster={roster}
+      myPlayerId={myPlayerId}
+      now={now}
+      goalsByGame={goalsByGame}
+      cardsByGame={cardsByGame}
+      potmByGame={potmByGame}
+      onClose={() => setSelectedItem(null)}
+      onSaveGame={handleSaveGame}
+      onSaveTraining={handleSaveTraining}
+      onDelete={handleDelete}
+      isPending={isPending}
+    />
+  )
+
   return (
     <div className="liga-page p-4">
       <div className="liga-page-header mb-4">
         <h1 className="liga-page-title text-xl text-white">Schedule</h1>
       </div>
 
-      {/* Filter chips */}
-      <div className="liga-tabs mb-4 flex gap-1.5">
-        {(
-          [
-            ['all', 'All'],
-            ['games', 'Games'],
-            ['trainings', 'Trainings'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            aria-pressed={filter === key}
-            className={`liga-tab liga-button rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              filter === key
-                ? 'bg-accent text-white ring-1 ring-white/10'
-                : 'border border-surface-border text-slate-400 hover:text-white'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* Desktop (lg+): the event list beside a sticky details panel. Touch layouts open details as a modal. */}
+      <div className="liga-schedule-layout lg:grid lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-6">
+        <div className="min-w-0">
+          {/* Filter chips */}
+          <div className="liga-tabs mb-4 flex gap-1.5">
+            {(
+              [
+                ['all', 'All'],
+                ['games', 'Games'],
+                ['trainings', 'Trainings'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                aria-pressed={filter === key}
+                className={`liga-tab liga-button rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  filter === key
+                    ? 'bg-accent text-white ring-1 ring-white/10'
+                    : 'border border-surface-border text-slate-400 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-      {/* Upcoming — with attendance buttons */}
-      {upcoming.length > 0 && (
-        <>
-          <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">Upcoming</h2>
-          <div className="liga-event-list mb-6">
-            {upcoming.map((item) => {
+          {/* Upcoming — with attendance buttons */}
+          {upcoming.length > 0 && (
+            <>
+              <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">Upcoming</h2>
+              <div className="liga-event-list mb-6">
+                {upcoming.map((item) => {
+                  const id = item.kind === 'game' ? item.game.id : item.training.id
+                  const mine = myStatus[id]
+                  return (
+                    <div key={`${item.kind}-${id}`} data-selected={isSelected(item) || undefined} className="liga-event-card card px-4 py-3">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-current={isSelected(item) || undefined}
+                        onClick={() => setSelectedItem(item)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
+                        className="cursor-pointer"
+                      >
+                        <EventRow item={item} />
+                      </div>
+                      <div className="liga-event-actions mt-2 flex gap-2">
+                        {(
+                          [
+                            ['attending', "I'm in"],
+                            ['maybe', 'Maybe'],
+                            ['not_attending', 'Out'],
+                          ] as const
+                        ).map(([status, label]) => (
+                          <button
+                            key={status}
+                            onClick={() => respond(item, status)}
+                            disabled={isPending && pendingId === id}
+                            className={`liga-button flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
+                              mine === status
+                                ? status === 'attending'
+                                  ? 'bg-accent text-white ring-1 ring-white/10'
+                                  : status === 'maybe'
+                                  ? 'bg-amber-900/60 text-amber-300'
+                                  : 'bg-slate-700 text-slate-300'
+                                : 'liga-event-action-quiet text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Past — read-only with my status */}
+          <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
+            {upcoming.length > 0 ? 'Past' : `Season ${season}`}
+          </h2>
+          <div className="liga-event-list">
+            {past.length === 0 && upcoming.length === 0 && (
+              <p className="py-4 text-center text-sm text-slate-500">Nothing scheduled yet.</p>
+            )}
+            {past.map((item) => {
               const id = item.kind === 'game' ? item.game.id : item.training.id
               const mine = myStatus[id]
               return (
-                <div key={`${item.kind}-${id}`} className="liga-event-card card px-4 py-3">
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedItem(item)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
-                    className="cursor-pointer"
-                  >
-                    <EventRow item={item} />
-                  </div>
-                  <div className="liga-event-actions mt-2 flex gap-2">
-                    {(
-                      [
-                        ['attending', "I'm in"],
-                        ['maybe', 'Maybe'],
-                        ['not_attending', 'Out'],
-                      ] as const
-                    ).map(([status, label]) => (
-                      <button
-                        key={status}
-                        onClick={() => respond(item, status)}
-                        disabled={isPending && pendingId === id}
-                        className={`liga-button flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
-                          mine === status
-                            ? status === 'attending'
-                              ? 'bg-accent text-white ring-1 ring-white/10'
-                              : status === 'maybe'
-                              ? 'bg-amber-900/60 text-amber-300'
-                              : 'bg-slate-700 text-slate-300'
-                            : 'liga-event-action-quiet text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                <div
+                  key={`${item.kind}-${id}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-current={isSelected(item) || undefined}
+                  data-selected={isSelected(item) || undefined}
+                  onClick={() => setSelectedItem(item)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
+                  className="liga-event-card card flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:border-white/15"
+                >
+                  <EventRow item={item} mine={mine} />
                 </div>
               )
             })}
           </div>
-        </>
-      )}
 
-      {/* Past — read-only with my status */}
-      <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
-        {upcoming.length > 0 ? 'Past' : `Season ${season}`}
-      </h2>
-      <div className="liga-event-list">
-        {past.length === 0 && upcoming.length === 0 && (
-          <p className="py-4 text-center text-sm text-slate-500">Nothing scheduled yet.</p>
-        )}
-        {past.map((item) => {
-          const id = item.kind === 'game' ? item.game.id : item.training.id
-          const mine = myStatus[id]
-          return (
-            <div
-              key={`${item.kind}-${id}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedItem(item)}
-              onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
-              className="liga-event-card card flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:border-white/15"
-            >
-              <EventRow item={item} mine={mine} />
-            </div>
-          )
-        })}
+        </div>
+
+        <aside className="liga-schedule-detail hidden lg:sticky lg:top-20 lg:block lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+          {isDesktop && detail}
+        </aside>
       </div>
 
-      {/* Event Detail Modal */}
-      {selectedItem && (
-        <EventDetailModal
-          item={selectedItem}
-          isAdmin={isAdmin}
-          teamListByGame={teamListByGame}
-          myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
-          attendanceBySession={attendanceBySession}
-          roster={roster}
-          myPlayerId={myPlayerId}
-          now={now}
-          goalsByGame={goalsByGame}
-          cardsByGame={cardsByGame}
-          potmByGame={potmByGame}
-          onClose={() => setSelectedItem(null)}
-          onSaveGame={handleSaveGame}
-          onSaveTraining={handleSaveTraining}
-          onDelete={handleDelete}
-          isPending={isPending}
-        />
-      )}
+      {/* Touch layouts: event details as a modal */}
+      {!isDesktop && detail}
     </div>
   )
 }

@@ -374,3 +374,26 @@ test('top scorers and assists: one row per player, ranked 1, 1, 3 …, shown unt
   assert.equal(render(TopAssistsCard, { groups: [] }), '', 'no assists yet: no card')
   assert.equal(assists[0], '1 PLAYER 5')
 })
+
+test('schedule master–detail: inline details panel on desktop, modal on touch layouts', () => {
+  const { ReadEditModal } = load('components/ReadEditModal.tsx')
+  const props = { title: 'vs Opponent', isOpen: true, onClose() {}, editMode: false, onEnterEdit() {}, onSave() {}, onDiscard() {}, isPending: false, editInHeader: true }
+  const inlineAdmin = render(ReadEditModal, { ...props, isAdmin: true, inline: true, children: React.createElement('p', null, 'Details') })
+  assert.match(inlineAdmin, /^<section aria-label="vs Opponent" class="liga-detail-panel card p-5">/, 'renders in place, labelled by the event')
+  assert.match(inlineAdmin, />Edit</, 'admin can still edit in the panel')
+  assert.doesNotMatch(inlineAdmin, />Close</, 'nothing to close in a panel')
+  assert.doesNotMatch(render(ReadEditModal, { ...props, isAdmin: false, inline: true, children: null }), />Close</)
+
+  const selection = fs.readFileSync(path.join(root, 'lib/useEventSelection.ts'), 'utf8')
+  assert.match(selection, /picked \?\? \(isDesktop \? upcoming\[0\] \?\? past\[0\] \?\? null : null\)/, 'desktop defaults to the next event, else the latest')
+  for (const area of ['admin', 'dashboard']) {
+    const src = fs.readFileSync(path.join(root, `app/${area}/schedule/ScheduleClient.tsx`), 'utf8')
+    assert.match(src, /useEventSelection\(upcoming, past\)/)
+    assert.match(src, /key=\{eventKey\(selectedItem\)\}\s+inline=\{isDesktop\}/, 'panel remounts per event so local state never leaks across events')
+    assert.match(src, /\{isDesktop && detail\}/)
+    assert.match(src, /\{!isDesktop && detail\}/)
+    assert.match(src, /lg:grid lg:grid-cols-\[minmax\(0,1fr\)_26rem\]/)
+    assert.match(src, /if \(!isDesktop\) setSelectedItem\(null\)/, 'saving keeps the desktop panel on the edited event')
+    assert.match(src, /data-selected=\{isSelected\(item\) \|\| undefined\}/)
+  }
+})
