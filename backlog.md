@@ -75,6 +75,34 @@ Open questions to resolve at build time:
 - Preferred names or full names? (WhatsApp @-mentions won't resolve from pasted text either way.)
 - Same button on the Polls tab "Yet to vote" list?
 
+## 11. Profile tab for every player (redesign + self-edit + stats by season)
+
+Today only admins have a **Profile** tab in the bottom/top nav (shows name, email, role, jersey,
+position, Sign out). Players have 4 tabs and no profile page. Redesign the Profile tab and give
+it to every player:
+
+- **Edit own personal info:** profile photo, date of birth, preferred name (add others at build
+  time if wanted). Admins keep their existing edit mode on any player's profile in the Squad tab.
+- **Profile photo upload:** players upload their own photo. Shares the Supabase Storage work
+  with #7 (live player photos) — build them together or do #7 first. Keep the silhouette
+  fallback.
+- **Stats by season:** view all their own stats broken down per season (plus career total),
+  reusing the season stats the Squad-tab player profile already computes.
+- Keep **Sign out** on the page.
+
+**Security prerequisite (found Oct 2026, live now):** the `players` RLS policy "Players can
+update their own record" lets a player update *any* column of their own row — including
+`role` (self-promote to admin), `email`, `auth_user_id`, `team_id`, `jersey_number`. No trigger
+or column grant blocks it. Before shipping self-edit, restrict players to the editable columns
+(e.g. a `BEFORE UPDATE` trigger rejecting changes to protected columns unless `is_admin()`, or
+a definer function for self-edits). Prove it with a rollback `DO` block.
+
+Open questions to resolve at build time:
+- Which fields are self-editable beyond photo / DOB / preferred name (jersey? position? phone?)
+- Is DOB visible to teammates, or only to the player and admins?
+- Photo: any moderation/approval by admin, or live immediately? Crop to the trading-card ratio?
+- Does the player's Profile tab replace tapping their own card in Squad, or do both stay?
+
 ---
 
 ## Archived
