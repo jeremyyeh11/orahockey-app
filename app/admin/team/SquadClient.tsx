@@ -21,7 +21,7 @@ import {
   type MatchCardRow,
 } from '@/components/SeasonStats'
 import { accountStatusOf, type RosterPlayer, type AccountStatus } from '@/components/RosterList'
-import { LEAGUE } from '@/lib/constants'
+import { LEAGUE, POSITIONS } from '@/lib/constants'
 import type { Season } from '@/lib/season'
 
 type Player = RosterPlayer & PlayerLite & {
@@ -52,7 +52,6 @@ type FormData = {
   role: 'player' | 'admin'
 }
 
-const POSITIONS = ['FWD', 'MID', 'DEF', 'GK'] as const
 
 export default function SquadClient({
   season,
@@ -67,7 +66,7 @@ export default function SquadClient({
   notInSquad,
 }: {
   season: Season
-  /** The season's squad (season_players), with that season's jersey/position */
+  /** The season's squad (season_players), with that season's jersey numbers */
   players: Player[]
   games: Game[]
   stats: SeasonStat[]

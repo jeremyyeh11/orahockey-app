@@ -6,6 +6,8 @@ import type { RosterPlayer } from '@/components/RosterList'
 // Not from RosterList: that's a client module, and this server component calls it
 import { accountStatusOf } from '@/lib/account'
 import { getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
+import { getRequestUser } from '@/lib/supabase/request-user'
+import type { EditContext } from '@/app/admin/team/PlayerEditModal'
 import { LEAGUE } from '@/lib/constants'
 
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
@@ -41,7 +43,7 @@ export async function PlayerProfileView({
   overlay?: boolean
 }) {
   const supabase = createClient()
-  const season = await getSelectedSeason()
+  const [season, user] = await Promise.all([getSelectedSeason(), includeAccount ? getRequestUser() : null])
 
   const [
     { data: player, error: playerErr },
@@ -57,10 +59,10 @@ export async function PlayerProfileView({
       .select(includeContact ? ADMIN_FIELDS : BASE_FIELDS)
       .eq('id', playerId)
       .single(),
-    // Jersey number and position for the season being viewed
+    // Jersey number for the season being viewed (positions are per player)
     supabase
       .from('season_players')
-      .select('jersey_number, position')
+      .select('jersey_number')
       .eq('season_id', season.id)
       .eq('player_id', playerId)
       .maybeSingle(),
@@ -75,7 +77,7 @@ export async function PlayerProfileView({
     return <div className="liga-page liga-error-state p-4 text-sm text-red-400">Player not found.</div>
   }
 
-  // Not in this season's squad → keep their latest jersey/position from players
+  // Not in this season's squad → keep their latest jersey number from players
   const profile = { ...(player as unknown as ProfilePlayer), ...(seasonEntry ?? {}) } as ProfilePlayer
 
   // Account status for the admin invite panel
@@ -87,6 +89,18 @@ export async function PlayerProfileView({
       ? await supabase.from('player_whitelist').select('invited_at').eq('email', p.email).maybeSingle()
       : { data: null }
     accountStatus = accountStatusOf(p, wl?.invited_at)
+  }
+
+  // Admin view: what the Edit form may change (the jersey number is per season)
+  let editContext: EditContext | undefined
+  if (includeAccount) {
+    const p = player as unknown as { auth_user_id: string | null }
+    editContext = {
+      seasonLabel: season.label,
+      jerseyMode: seasonEntry ? (season.locked ? 'archived' : 'season') : 'default',
+      hasAccount: !!p.auth_user_id,
+      isSelf: !!p.auth_user_id && p.auth_user_id === user?.id,
+    }
   }
 
   // Squad membership controls for the selected season — admin view, open seasons only
@@ -140,6 +154,7 @@ export async function PlayerProfileView({
       seasonLabel={`${LEAGUE} ${season.label}`}
       accountStatus={accountStatus}
       squadStatus={squadStatus}
+      editContext={editContext}
     />
   )
 }

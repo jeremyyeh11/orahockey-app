@@ -3,3 +3,6 @@
 
 export const CLUB_NAME = 'ORA Hockey'
 export const LEAGUE = 'MHL1'
+
+/** Playing positions, in display order */
+export const POSITIONS = ['FWD', 'MID', 'DEF', 'GK'] as const

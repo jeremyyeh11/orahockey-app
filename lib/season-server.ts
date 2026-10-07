@@ -105,27 +105,27 @@ export function seasonRoster(squad: SquadMember[], locked: boolean) {
 
 /**
  * A season's squad: its season_players rows joined to players, with that
- * season's jersey number and position. `fields` adds extra players columns.
+ * season's jersey number (positions are per player). `fields` adds extra
+ * players columns.
  * Sorted by jersey number, then name.
  */
 export async function getSeasonSquad<T extends SquadMember = SquadMember>(
   seasonId: string,
   fields = ''
 ): Promise<T[]> {
-  const base = 'id, full_name, preferred_name, is_active'
+  const base = 'id, full_name, preferred_name, is_active, position'
   const { data, error } = await createClient()
     .from('season_players')
-    .select(`jersey_number, position, player:players!inner(${fields ? `${base}, ${fields}` : base})`)
+    .select(`jersey_number, player:players!inner(${fields ? `${base}, ${fields}` : base})`)
     .eq('season_id', seasonId)
   if (error) throw new Error(`Error loading squad: ${error.message}`)
 
   const rows = (data ?? []) as unknown as {
     jersey_number: number | null
-    position: string[] | null
     player: Record<string, unknown>
   }[]
   return rows
-    .map((r) => ({ ...r.player, jersey_number: r.jersey_number, position: r.position }) as unknown as T)
+    .map((r) => ({ ...r.player, jersey_number: r.jersey_number }) as unknown as T)
     .sort(
       (a, b) =>
         (a.jersey_number ?? Infinity) - (b.jersey_number ?? Infinity) ||

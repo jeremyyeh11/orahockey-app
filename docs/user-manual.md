@@ -23,7 +23,7 @@ Past seasons are **archived** (marked with a lock icon) and **read-only** - you 
 Your landing screen. Shows the season record (W - D - L), your own stats for that season (Goals, Assists, Attendance %), the next scheduled game or training, the last result, and a prompt if there are active polls awaiting your vote. Below your season stats is **All time** - your appearances, goals and assists across every season (tap to expand on a phone). On a computer, the season and your stats sit on the left and what's coming up on the right.
 
 ### Squad
-The season's squad with each player's stats for that season: goals by type (**FG** field goal, **PC** penalty corner, **PS** penalty stroke), assists (**A**), clean sheets for keepers (**CS**), Player of the Match wins (**POTM**) and appearances (**APP**). On a phone each player is a card; on a computer the roster is a table - click any column heading to sort by it. Jersey numbers and positions are the ones from that season.
+The season's squad with each player's stats for that season: goals by type (**FG** field goal, **PC** penalty corner, **PS** penalty stroke), assists (**A**), clean sheets for keepers (**CS**), Player of the Match wins (**POTM**) and appearances (**APP**). On a phone each player is a card; on a computer the roster is a table - click any column heading to sort by it. Jersey numbers are the ones from that season.
 
 **Top Scorers** and **Top Assists** sit at the top (in a side column on wide screens). Each player gets their own row; players level on the same total share a rank (1, 1, 3 …), and the list carries on until it reaches 5th place.
 

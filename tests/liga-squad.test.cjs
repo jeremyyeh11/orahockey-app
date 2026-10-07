@@ -539,6 +539,7 @@ test('pending players: added without an email, shown as pending, invited only on
   const boundaryLoad = createTsLoader({
     'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
     '@/app/admin/team/actions': stubs,
+    './actions': { ...stubs, updatePlayer: async () => assert.fail('render must not save') },
     '@/app/admin/team/inviteActions': { generateSetupLink: async () => assert.fail('not called') },
   })
   const { PlayerProfilePage } = boundaryLoad('components/PlayerProfilePage.tsx')
@@ -566,4 +567,44 @@ test('pending players: added without an email, shown as pending, invited only on
   assert.match(migration, /alter column email drop not null/)
   assert.match(migration, /check \(email is null or btrim\(email\) <> ''\)/)
   assert.match(migration, /if not new\.is_active then\s+return new;/)
+})
+
+test('admin player edit: prefilled form, season-aware jersey, locked email/role where they must not change', () => {
+  const saved = []
+  const boundaryLoad = createTsLoader({
+    'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
+    './actions': { updatePlayer: async (...args) => saved.push(args) },
+  })
+  const { default: PlayerEditModal } = boundaryLoad('app/admin/team/PlayerEditModal.tsx')
+  const player = {
+    id: 'p', full_name: 'SOME PLAYER', preferred_name: 'SOMEY', email: 'some@x.co', role: 'admin',
+    position: ['MID', 'GK'], date_of_birth: '1999-04-05', joined_year: 2016, is_active: true, jersey_number: 22,
+  }
+  const html = (context) => render(PlayerEditModal, { player, context, onClose() {} })
+  const open = html({ seasonLabel: '2027', jerseyMode: 'season', hasAccount: false, isSelf: false })
+  assert.match(open, /value="SOME PLAYER"/)
+  assert.match(open, /value="1999-04-05"/)
+  assert.match(textOf(open), /Jersey # \(MHL1 2027\)/)
+  assert.match(open, /aria-pressed="true"[^>]*>MID</)
+  assert.match(open, /aria-pressed="true"[^>]*>GK</)
+  assert.match(open, /aria-pressed="false"[^>]*>FWD</)
+  assert.doesNotMatch(open, /<input[^>]*name="email"[^>]*disabled=""/)
+
+  const self = html({ seasonLabel: '2026', jerseyMode: 'archived', hasAccount: true, isSelf: true })
+  assert.match(self, /<input[^>]*name="email"[^>]*disabled=""/, 'login email is fixed once they have an account')
+  assert.match(self, /<select[^>]*name="role"[^>]*disabled=""/, 'own role is fixed')
+  assert.match(self, /<input[^>]*name="jersey_number"[^>]*disabled=""/, 'archived season number is read-only')
+  assert.match(textOf(self), /Archived season — read-only/)
+  assert.match(textOf(html({ seasonLabel: '2027', jerseyMode: 'default', hasAccount: false, isSelf: false })), /Jersey # \(default for new seasons\)/)
+  assert.deepEqual(saved, [], 'rendering never saves')
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const actions = read('app/admin/team/actions.ts')
+  assert.match(actions, /export async function updatePlayer\(id: string, data: PlayerDetailsInput\) \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/)
+  assert.match(actions, /if \(current\.auth_user_id && email !== current\.email\)\s*\{\s*throw/, 'server refuses login-email changes')
+  assert.match(actions, /current\.auth_user_id === user\?\.id && data\.role !== current\.role\)\s*\{\s*throw/, 'server refuses self role change')
+  assert.match(actions, /if \(entry && !season\.locked\)/, 'season jersey only written for open seasons')
+  const view = read('components/PlayerProfileView.tsx')
+  assert.match(view, /let editContext: EditContext \| undefined\s+if \(includeAccount\) \{/, 'edit only on the admin route')
+  assert.doesNotMatch(read('supabase/migrations/013_universal_positions.sql'), /insert into season_players \(season_id, player_id, jersey_number, position\)/)
 })

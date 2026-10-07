@@ -32,7 +32,7 @@ export default function SquadClient({
   myPlayerId,
 }: {
   season: Season
-  /** The season's squad (season_players), with that season's jersey/position */
+  /** The season's squad (season_players), with that season's jersey numbers */
   players: Player[]
   games: GameLite[]
   stats: SeasonStat[]

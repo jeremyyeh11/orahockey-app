@@ -11,6 +11,8 @@ import { startNavigationProgress } from './NavigationProgress'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
 import { addPlayersToSeason, removePlayerFromSeason, setPlayerEmail, togglePlayerActive } from '@/app/admin/team/actions'
 import type { AccountStatus } from './RosterList'
+import { PencilIcon } from './icons'
+import PlayerEditModal, { type EditContext } from '@/app/admin/team/PlayerEditModal'
 
 export type { AccountStatus }
 
@@ -130,6 +132,8 @@ type PlayerProfileProps = {
   accountStatus?: AccountStatus
   /** Admin view, open season only — enables the squad (add / remove / inactive) panel */
   squadStatus?: SquadStatus
+  /** Admin view only — enables the Edit button and form */
+  editContext?: EditContext
 }
 
 export function PlayerProfilePage({
@@ -139,6 +143,7 @@ export function PlayerProfilePage({
   seasonLabel,
   accountStatus,
   squadStatus,
+  editContext,
   presentation = 'page',
 }: PlayerProfileProps & {
   /**
@@ -198,6 +203,22 @@ export function PlayerProfilePage({
       setEmailSaving(false)
     }
   }
+
+  // Edit player details (admin view only)
+  const [showEdit, setShowEdit] = useState(false)
+  const editButton = (position: string) =>
+    editContext ? (
+      <button
+        onClick={() => setShowEdit(true)}
+        className={`liga-icon-button flex h-9 w-9 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50 ${position}`}
+        aria-label="Edit player"
+      >
+        <PencilIcon className="h-[18px] w-[18px]" strokeWidth={2.25} />
+      </button>
+    ) : null
+  const editModal = editContext && showEdit && (
+    <PlayerEditModal player={player} context={editContext} onClose={() => setShowEdit(false)} />
+  )
 
   // Squad membership (admin view only)
   const [squadPending, setSquadPending] = useState(false)
@@ -586,8 +607,11 @@ export function PlayerProfilePage({
               </svg>
             )}
           </button>
+          {/* Edit sits opposite the back arrow on phones, beside the close X in the dialog */}
+          {editButton(`absolute z-10 ${fullScreen ? 'right-4 top-4' : 'right-14 top-3'}`)}
         </div>
         {linkModal}
+        {editModal}
       </Modal>
     )
   }
@@ -619,7 +643,10 @@ export function PlayerProfilePage({
         </svg>
       </button>
 
+      {editButton('fixed right-4 top-[4.5rem] z-[70] lg:absolute lg:top-4 lg:z-10')}
+
       {linkModal}
+      {editModal}
     </div>
     </>
   )

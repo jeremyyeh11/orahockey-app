@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { hasSeasonRecord, requireOpenSeason } from '@/lib/season-server'
+import { getSelectedSeason, hasSeasonRecord, requireOpenSeason } from '@/lib/season-server'
+import { getRequestUser } from '@/lib/supabase/request-user'
 import { getNow } from '@/lib/preview'
 import { revalidatePath } from 'next/cache'
 
@@ -67,6 +68,7 @@ export async function addPlayer(data: PlayerInput, joinSeason = true) {
     .from('players')
     .insert({
       ...data,
+      full_name: data.full_name.trim().toUpperCase(),
       email: normalizeEmail(data.email),
       // Inactive players don't auto-join the current season (DB trigger)
       is_active: joinSeason,
@@ -86,7 +88,7 @@ export async function addPlayer(data: PlayerInput, joinSeason = true) {
   const { error: squadError } = await supabase
     .from('season_players')
     .upsert(
-      { season_id: season.id, player_id: player.id, jersey_number: data.jersey_number, position: data.position },
+      { season_id: season.id, player_id: player.id, jersey_number: data.jersey_number },
       { onConflict: 'season_id,player_id', ignoreDuplicates: true }
     )
   if (squadError) throw new Error(squadError.message)
@@ -94,25 +96,91 @@ export async function addPlayer(data: PlayerInput, joinSeason = true) {
   revalidateSquad()
 }
 
-export async function updatePlayer(id: string, data: PlayerInput) {
+export type PlayerDetailsInput = {
+  full_name: string
+  preferred_name: string | null
+  /** Only changeable before they have an account (it's their login) */
+  email: string | null
+  role: 'player' | 'admin'
+  /** Every position they play — per player, across seasons */
+  position: string[] | null
+  date_of_birth: string | null
+  joined_year: number | null
+  is_active: boolean
+  /** The selected season's number if they're in its squad, else their default for new seasons */
+  jersey_number: number | null
+}
+
+/**
+ * Admin edit of a player's details (profile → Edit). Identity fields live on
+ * `players`, so they can be corrected whichever season is selected. The jersey
+ * number is per season: in the selected season's squad it's that season's number
+ * (read-only once the season is archived); otherwise it's the default they take
+ * into the next season they join.
+ */
+export async function updatePlayer(id: string, data: PlayerDetailsInput) {
   const supabase = createClient()
   await requireAdmin(supabase)
-  const season = await requireOpenSeason()
 
-  const { error } = await supabase
-    .from('players')
-    .update({ ...data, email: normalizeEmail(data.email) })
-    .eq('id', id)
+  const fullName = data.full_name.trim().toUpperCase()
+  if (!fullName) throw new Error('Full name is required.')
+  if (data.jersey_number != null && (!Number.isInteger(data.jersey_number) || data.jersey_number < 0 || data.jersey_number > 99)) {
+    throw new Error('Jersey number must be 0–99.')
+  }
+  if (data.joined_year != null && (!Number.isInteger(data.joined_year) || data.joined_year < 1950 || data.joined_year > 2100)) {
+    throw new Error('Year joined looks wrong.')
+  }
 
-  if (error) throw new Error(friendlyPlayerError(error.message, error.code))
+  const [{ data: current, error: readError }, user, season] = await Promise.all([
+    supabase.from('players').select('email, role, auth_user_id').eq('id', id).single(),
+    getRequestUser(),
+    getSelectedSeason(),
+  ])
+  if (readError) throw new Error(readError.message)
 
-  // Jersey number and position are per season
-  const { error: squadError } = await supabase
+  const email = normalizeEmail(data.email)
+  if (current.auth_user_id && email !== current.email) {
+    throw new Error('They already have an account — their login email can’t be changed here.')
+  }
+  if (current.auth_user_id && current.auth_user_id === user?.id && data.role !== current.role) {
+    throw new Error('You can’t change your own role.')
+  }
+
+  const { data: entry, error: entryError } = await supabase
     .from('season_players')
-    .update({ jersey_number: data.jersey_number, position: data.position })
+    .select('player_id')
     .eq('season_id', season.id)
     .eq('player_id', id)
-  if (squadError) throw new Error(squadError.message)
+    .maybeSingle()
+  if (entryError) throw new Error(entryError.message)
+
+  // players.jersey_number is the default carried into new seasons: set it when
+  // they're not in the selected season, or when editing the current season.
+  const setDefaultJersey = !entry || (!season.locked && season.is_current)
+  const { error } = await supabase
+    .from('players')
+    .update({
+      full_name: fullName,
+      preferred_name: data.preferred_name?.trim().toUpperCase() || null,
+      email,
+      role: data.role,
+      position: data.position && data.position.length > 0 ? data.position : null,
+      date_of_birth: data.date_of_birth || null,
+      joined_year: data.joined_year,
+      is_active: data.is_active,
+      ...(setDefaultJersey ? { jersey_number: data.jersey_number } : {}),
+    })
+    .eq('id', id)
+  if (error) throw new Error(friendlyPlayerError(error.message, error.code))
+
+  if (entry && !season.locked) {
+    const { error: squadError } = await supabase
+      .from('season_players')
+      .update({ jersey_number: data.jersey_number })
+      .eq('season_id', season.id)
+      .eq('player_id', id)
+    if (squadError) throw new Error(squadError.message)
+  }
 
   revalidateSquad()
 }
@@ -161,7 +229,7 @@ export async function togglePlayerActive(id: string, is_active: boolean) {
 
 /**
  * Add existing players (e.g. returning after a season out) to the selected open
- * season's squad, with their latest jersey number and position, and make sure
+ * season's squad, with their latest jersey number, and make sure
  * they're active so they show in the squad.
  */
 export async function addPlayersToSeason(playerIds: string[]) {
@@ -172,7 +240,7 @@ export async function addPlayersToSeason(playerIds: string[]) {
 
   const { data: players, error } = await supabase
     .from('players')
-    .select('id, jersey_number, position')
+    .select('id, jersey_number')
     .in('id', playerIds)
   if (error) throw new Error(error.message)
 
@@ -181,7 +249,6 @@ export async function addPlayersToSeason(playerIds: string[]) {
       season_id: season.id,
       player_id: p.id,
       jersey_number: p.jersey_number,
-      position: p.position,
     })),
     { onConflict: 'season_id,player_id', ignoreDuplicates: true }
   )
