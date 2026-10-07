@@ -719,3 +719,63 @@ test('close season: admin-only Danger zone with three confirmations', () => {
   assert.match(migration, /update seasons set is_current = false, locked = true where id = cur\.id/)
   assert.match(migration, /revoke execute on function public\.close_current_season\(\) from public, anon;/)
 })
+
+test('schedule events: titled entries with their own tag, filter, form and season lock', () => {
+  const { EventRow, eventId, eventTitle } = load('components/EventRow.tsx')
+  const { eventKey } = createTsLoader({ 'next/navigation': {} })('lib/useEventSelection.ts')
+  const event = { id: 'e1', title: 'Team dinner', event_date: '2026-11-14T11:00:00Z', location: 'Hawker centre', notes: null }
+  const item = { kind: 'event', date: event.event_date, event }
+  assert.equal(eventId(item), 'e1')
+  assert.equal(eventTitle(item), 'Team dinner')
+  assert.equal(eventKey(item), 'event-e1')
+  const row = textOf(render(EventRow, { item }))
+  assert.match(row, /Team dinner/)
+  assert.match(row, /Event/)
+  assert.match(row, /Hawker centre/)
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const admin = read('app/admin/schedule/ScheduleClient.tsx')
+  assert.match(admin, /onClick=\{\(\) => setAddModal\('event'\)\}[\s\S]*?\+ Event/, '+ Event next to + Training / + Game')
+  assert.match(admin, /<FormModal title="Add Event"[\s\S]*?name="title" type="text" required/, 'events need a title')
+  for (const area of ['admin', 'dashboard']) {
+    assert.match(read(`app/${area}/schedule/ScheduleClient.tsx`), /\['events', 'Events'\]/, `${area}: Events filter`)
+    assert.match(read(`app/${area}/schedule/page.tsx`), /inSeason\(supabase\.from\('team_events'\)/, `${area}: events are season-scoped`)
+  }
+  const actions = read('app/admin/schedule/actions.ts')
+  assert.match(actions, /export async function addEvent[\s\S]*?requireOpenSeason\(\)[\s\S]*?season_id: season\.id/)
+  assert.match(actions, /if \(!title\) throw new Error\('Give the event a title\.'\)/)
+  assert.match(read('app/dashboard/schedule/actions.ts'), /sessionType: 'game' \| 'training' \| 'event'/, 'players RSVP to events')
+  const migration = read('supabase/migrations/015_team_events.sql')
+  assert.match(migration, /title\s+text not null check \(btrim\(title\) <> ''\)/)
+  assert.match(migration, /create trigger season_lock before insert or update or delete on public\.team_events/)
+  assert.match(migration, /elsif p_row->>'session_type' = 'event' then\s+select season_id into sid from team_events/)
+})
+
+test('games: League / Friendly switch replaces the type dropdown', () => {
+  const { GameTypeSwitch } = load('components/GameTypeSwitch.tsx')
+  const league = render(GameTypeSwitch, {})
+  assert.match(league, /role="group" aria-label="Game type"/)
+  assert.match(league, /aria-pressed="true"[^>]*>League</)
+  assert.match(league, /aria-pressed="false"[^>]*>Friendly</)
+  assert.match(league, /<input type="hidden" name="game_type" value="regular"\/>/)
+  const friendly = render(GameTypeSwitch, { defaultValue: 'exhibition' })
+  assert.match(friendly, /aria-pressed="true"[^>]*>Friendly</)
+  assert.match(friendly, /value="exhibition"/)
+  const playoff = render(GameTypeSwitch, { defaultValue: 'playoff' })
+  assert.match(playoff, /aria-pressed="true"[^>]*>League</, 'an old playoff game reads as League')
+  assert.match(playoff, /value="playoff"/, '…and keeps its type unless switched')
+
+  const { EventRow } = load('components/EventRow.tsx')
+  const game = (game_type) => ({ kind: 'game', date: '2027-04-12T02:00:00Z', game: {
+    id: 'g', opponent: 'Tornados', game_date: '2027-04-12T02:00:00Z', location: null, home_away: null, game_type,
+    goals_for: null, goals_against: null, result: null, notes: null, team_list_status: null,
+  } })
+  assert.match(textOf(render(EventRow, { item: game('exhibition') })), /Friendly/)
+  assert.doesNotMatch(textOf(render(EventRow, { item: game('regular') })), /League|Regular/, 'league games stay untagged')
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  for (const f of ['app/admin/schedule/ScheduleClient.tsx', 'components/EventDetailModal.tsx']) {
+    assert.doesNotMatch(read(f), /<option value="exhibition">/, `${f}: no old Regular/Playoff/Exhibition dropdown`)
+    assert.match(read(f), /<GameTypeSwitch/)
+  }
+})

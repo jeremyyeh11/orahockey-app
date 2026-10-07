@@ -248,7 +248,7 @@ test('locked seasons are read-only in the app, admins included', () => {
     assert.match(schedule, /readOnly=\{readOnly\}/, `${area} schedule passes read-only to event details`)
     assert.match(schedule, /\{!readOnly && \(\s*<div className="liga-event-actions/, `${area} schedule hides RSVP buttons`)
   }
-  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /\{!readOnly && \(\s*<div className="flex items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('training'\)\}/, 'no add buttons')
+  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /\{!readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('training'\)\}/, 'no add buttons')
   for (const fn of ['addGame', 'addTraining']) {
     assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export async function ${fn}[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
   }

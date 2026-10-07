@@ -21,6 +21,20 @@ export type TrainingInput = {
   notes: string | null
 }
 
+/** A titled team event — gathering, meeting, social… */
+export type EventInput = {
+  title: string
+  event_date: string
+  location: string | null
+  notes: string | null
+}
+
+function cleanEvent(data: EventInput): EventInput {
+  const title = data.title.trim()
+  if (!title) throw new Error('Give the event a title.')
+  return { ...data, title }
+}
+
 function deriveResult(gf: number | null, ga: number | null) {
   if (gf == null || ga == null) return null
   return gf > ga ? 'win' : gf < ga ? 'loss' : 'tie'
@@ -104,6 +118,44 @@ export async function deleteTraining(id: string) {
   const supabase = createClient()
 
   const { error } = await supabase.from('training_sessions').delete().eq('id', id)
+
+  if (error) throw new Error(error.message)
+  revalidate()
+}
+
+export async function addEvent(data: EventInput) {
+  const supabase = createClient()
+  const season = await requireOpenSeason()
+
+  const { data: team } = await supabase.from('teams').select('id').limit(1).single()
+
+  const { error } = await supabase.from('team_events').insert({
+    ...cleanEvent(data),
+    team_id: team?.id ?? null,
+    season_id: season.id,
+  })
+
+  if (error) throw new Error(error.message)
+  revalidate()
+}
+
+export async function updateEvent(id: string, data: EventInput) {
+  const supabase = createClient()
+
+  const { error } = await supabase.from('team_events').update(cleanEvent(data)).eq('id', id)
+
+  if (error) throw new Error(error.message)
+  revalidate()
+}
+
+export async function deleteEvent(id: string) {
+  const supabase = createClient()
+
+  // RSVPs point at the event without a foreign key — clear them first
+  const { error: rsvpError } = await supabase.from('attendance').delete().eq('session_id', id).eq('session_type', 'event')
+  if (rsvpError) throw new Error(rsvpError.message)
+
+  const { error } = await supabase.from('team_events').delete().eq('id', id)
 
   if (error) throw new Error(error.message)
   revalidate()

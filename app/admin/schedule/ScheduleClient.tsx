@@ -8,18 +8,23 @@ import {
   addTraining,
   updateTraining,
   deleteTraining,
+  addEvent,
+  updateEvent,
+  deleteEvent,
+  type EventInput,
   type GameInput,
   type TrainingInput,
 } from './actions'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fromDatetimeLocal } from '@/lib/format'
-import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
-import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
+import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
+import { EventRow, eventId, type EventItem, type MyStatus } from '@/components/EventRow'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 import type { Season } from '@/lib/season'
 import Modal from '@/components/Modal'
+import { GameTypeSwitch } from '@/components/GameTypeSwitch'
 
 const inputCls =
   'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -30,6 +35,7 @@ export default function ScheduleClient({
   season,
   games,
   trainings,
+  events,
   attending,
   myStatus,
   now,
@@ -46,6 +52,8 @@ export default function ScheduleClient({
   season: Season
   games: Game[]
   trainings: Training[]
+  /** Titled team events — gatherings, meetings… */
+  events: TeamEvent[]
   attending: Record<string, number>
   myStatus: Record<string, MyStatus>
   now: string
@@ -58,16 +66,19 @@ export default function ScheduleClient({
   cardsByGame: Record<string, CardRow[]>
   potmByGame: Record<string, PotmPlacing[]>
 }) {
-  const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
-  const [addModal, setAddModal] = useState<'game' | 'training' | null>(null)
+  const [filter, setFilter] = useState<'all' | 'games' | 'trainings' | 'events'>('all')
+  const [addModal, setAddModal] = useState<'game' | 'training' | 'event' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [respondingId, setRespondingId] = useState<string | null>(null)
 
   const items: EventItem[] = [
-    ...(filter !== 'trainings' ? games.map((g) => ({ kind: 'game' as const, date: g.game_date, game: g })) : []),
-    ...(filter !== 'games'
+    ...(filter === 'all' || filter === 'games' ? games.map((g) => ({ kind: 'game' as const, date: g.game_date, game: g })) : []),
+    ...(filter === 'all' || filter === 'trainings'
       ? trainings.map((t) => ({ kind: 'training' as const, date: t.session_date, training: t }))
+      : []),
+    ...(filter === 'all' || filter === 'events'
+      ? events.map((e) => ({ kind: 'event' as const, date: e.event_date, event: e }))
       : []),
   ]
 
@@ -89,7 +100,7 @@ export default function ScheduleClient({
   }
 
   function respond(item: EventItem, status: MyStatus) {
-    const id = item.kind === 'game' ? item.game.id : item.training.id
+    const id = eventId(item)
     setRespondingId(id)
     startTransition(async () => {
       try {
@@ -124,6 +135,18 @@ export default function ScheduleClient({
     })
   }
 
+  function handleSaveEvent(id: string, data: EventInput) {
+    startTransition(async () => {
+      try {
+        await updateEvent(id, data)
+        // The modal closes after saving; the desktop panel stays on the edited event
+        if (!isDesktop) setSelectedItem(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
+  }
+
   function handleDelete() {
     if (!selectedItem) return
     if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
@@ -131,6 +154,7 @@ export default function ScheduleClient({
       try {
         if (selectedItem.kind === 'game') await deleteGame(selectedItem.game.id)
         if (selectedItem.kind === 'training') await deleteTraining(selectedItem.training.id)
+        if (selectedItem.kind === 'event') await deleteEvent(selectedItem.event.id)
         setSelectedItem(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -182,6 +206,26 @@ export default function ScheduleClient({
     })
   }
 
+  function submitAddEvent(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const data: EventInput = {
+      title: fd.get('title') as string,
+      event_date: fromDatetimeLocal(fd.get('event_date') as string),
+      location: (fd.get('location') as string) || null,
+      notes: (fd.get('notes') as string) || null,
+    }
+    setError(null)
+    startTransition(async () => {
+      try {
+        await addEvent(data)
+        setAddModal(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
+  }
+
   const detail = selectedItem && (
     <EventDetailModal
       key={eventKey(selectedItem)}
@@ -190,7 +234,7 @@ export default function ScheduleClient({
       isAdmin={isAdmin}
       readOnly={readOnly}
       teamListByGame={teamListByGame}
-      myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
+      myStatus={myStatus[eventId(selectedItem)]}
       attendanceBySession={attendanceBySession}
       roster={roster}
       myPlayerId={myPlayerId}
@@ -201,6 +245,7 @@ export default function ScheduleClient({
       onClose={() => { setSelectedItem(null); setError(null) }}
       onSaveGame={handleSaveGame}
       onSaveTraining={handleSaveTraining}
+      onSaveEvent={handleSaveEvent}
       onDelete={handleDelete}
       isPending={isPending}
     />
@@ -209,10 +254,10 @@ export default function ScheduleClient({
   return (
     <div className="liga-page p-4">
       {/* Header */}
-      <div className="liga-page-header mb-4 flex items-center justify-between gap-3">
+      <div className="liga-page-header mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="liga-page-title text-xl text-white">Schedule</h1>
         {!readOnly && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setAddModal('training')}
               className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
@@ -224,6 +269,12 @@ export default function ScheduleClient({
               className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
             >
               + Game
+            </button>
+            <button
+              onClick={() => setAddModal('event')}
+              className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+            >
+              + Event
             </button>
           </div>
         )}
@@ -251,6 +302,7 @@ export default function ScheduleClient({
                 ['all', 'All'],
                 ['games', 'Games'],
                 ['trainings', 'Trainings'],
+                ['events', 'Events'],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -274,7 +326,7 @@ export default function ScheduleClient({
               <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">Upcoming</h2>
               <div className="liga-event-list mb-6">
                 {upcoming.map((item) => {
-                  const id = item.kind === 'game' ? item.game.id : item.training.id
+                  const id = eventId(item)
                   const mine = myStatus[id]
                   return (
                     <div key={`${item.kind}-${id}`} data-selected={isSelected(item) || undefined} className="liga-event-card card px-4 py-3">
@@ -335,7 +387,7 @@ export default function ScheduleClient({
             )}
             {past.map((item) => (
               <EventCard
-                key={`${item.kind}-${item.kind === 'game' ? item.game.id : item.training.id}`}
+                key={`${item.kind}-${eventId(item)}`}
                 item={item}
                 attending={attending}
                 selected={isSelected(item)}
@@ -362,6 +414,7 @@ export default function ScheduleClient({
               <label className={labelCls}>Opponent *</label>
               <input name="opponent" type="text" required className={inputCls} placeholder="Tornados" />
             </div>
+            <GameTypeSwitch />
             <div>
               <label className={labelCls}>Date &amp; time *</label>
               <input name="game_date" type="datetime-local" required className={dateInputCls} />
@@ -377,14 +430,6 @@ export default function ScheduleClient({
                   <option value="">—</option>
                   <option value="home">Home</option>
                   <option value="away">Away</option>
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className={labelCls}>Type</label>
-                <select name="game_type" className={inputCls} defaultValue="regular">
-                  <option value="regular">Regular</option>
-                  <option value="playoff">Playoff</option>
-                  <option value="exhibition">Exhibition</option>
                 </select>
               </div>
             </div>
@@ -409,6 +454,32 @@ export default function ScheduleClient({
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium — Pitch 2" />
+            </div>
+            <div>
+              <label className={labelCls}>Notes</label>
+              <input name="notes" type="text" className={inputCls} placeholder="Optional" />
+            </div>
+            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+            <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
+          </form>
+        </FormModal>
+      )}
+
+      {/* Add Event Modal — gatherings, meetings, socials… */}
+      {addModal === 'event' && (
+        <FormModal title="Add Event" onClose={() => { setAddModal(null); setError(null) }}>
+          <form onSubmit={submitAddEvent} className="space-y-4">
+            <div>
+              <label className={labelCls}>Title *</label>
+              <input name="title" type="text" required className={inputCls} placeholder="Team dinner, AGM, gathering…" />
+            </div>
+            <div>
+              <label className={labelCls}>Date &amp; time *</label>
+              <input name="event_date" type="datetime-local" required className={dateInputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Location</label>
+              <input name="location" type="text" className={inputCls} placeholder="Optional" />
             </div>
             <div>
               <label className={labelCls}>Notes</label>

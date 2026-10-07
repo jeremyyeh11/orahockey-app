@@ -56,6 +56,7 @@ export default async function PlayerSchedulePage() {
   const [
     { data: games, error: gamesError },
     { data: trainings, error: trainingsError },
+    { data: events, error: eventsError },
     { data: myAtt },
     { data: allAtt },
     squad,
@@ -72,6 +73,8 @@ export default async function PlayerSchedulePage() {
     ).order('game_date', { ascending: false }),
     inSeason(supabase.from('training_sessions').select('id, session_date, location, notes'), season)
       .order('session_date', { ascending: false }),
+    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes'), season)
+      .order('event_date', { ascending: false }),
     supabase.from('attendance').select('session_id, status').eq('player_id', me?.id ?? ''),
     supabase
       .from('attendance')
@@ -92,7 +95,7 @@ export default async function PlayerSchedulePage() {
     supabase.from('potm').select('game_id, player_id, place'),
   ])
 
-  const error = gamesError ?? trainingsError
+  const error = gamesError ?? trainingsError ?? eventsError
   if (error) {
     return (
       <div className="p-4">
@@ -125,6 +128,7 @@ export default async function PlayerSchedulePage() {
       season={season}
       games={games ?? []}
       trainings={trainings ?? []}
+      events={events ?? []}
       myStatus={myStatus}
       now={getNow().toISOString()}
       roster={seasonRoster(squad, season.locked)}

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { fmtDateTime } from '@/lib/format'
 import { getNow } from '@/lib/preview'
-import { LEAGUE } from '@/lib/constants'
+import { GAME_TYPE_LABEL, LEAGUE } from '@/lib/constants'
 import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season-server'
 import { PHASE_LABEL, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
@@ -57,6 +57,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     { data: games },
     { data: nextGame },
     { data: nextTraining },
+    { data: nextEvent },
     { data: myStats },
     { data: myAtt },
     { data: mySeason },
@@ -75,6 +76,11 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     inSeason(supabase.from('training_sessions').select('session_date, location'), season)
       .gte('session_date', now)
       .order('session_date')
+      .limit(1)
+      .maybeSingle(),
+    inSeason(supabase.from('team_events').select('title, event_date, location'), season)
+      .gte('event_date', now)
+      .order('event_date')
       .limit(1)
       .maybeSingle(),
     supabase.from('player_stats').select('game_id, goals, assists').eq('player_id', me?.id ?? ''),
@@ -134,14 +140,15 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
 
   const lastGame = played[0]
 
-  const nextGameTime = nextGame ? new Date(nextGame.game_date).getTime() : Infinity
-  const nextTrainTime = nextTraining ? new Date(nextTraining.session_date).getTime() : Infinity
+  // Soonest of the next game, training and team event
   const next =
-    nextGameTime === Infinity && nextTrainTime === Infinity
-      ? null
-      : nextGameTime <= nextTrainTime
-      ? { kind: 'Game', title: `vs ${nextGame!.opponent}`, when: nextGame!.game_date, place: nextGame!.location }
-      : { kind: 'Training', title: 'Team training', when: nextTraining!.session_date, place: nextTraining!.location }
+    [
+      nextGame && { kind: 'Game', title: `vs ${nextGame.opponent}`, when: nextGame.game_date, place: nextGame.location },
+      nextTraining && { kind: 'Training', title: 'Team training', when: nextTraining.session_date, place: nextTraining.location },
+      nextEvent && { kind: 'Event', title: nextEvent.title, when: nextEvent.event_date, place: nextEvent.location },
+    ]
+      .filter((x): x is { kind: string; title: string; when: string; place: string | null } => !!x)
+      .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime())[0] ?? null
 
   // Next up / season complete — shown under the hero on phones, top right on desktop
   const nextUpTitle = season.locked && !season.allTime ? 'Season' : 'Next up'
@@ -261,7 +268,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
                   <div className="liga-link-title break-words text-sm font-semibold text-white">vs {lastGame.opponent}</div>
                   <div className="liga-meta mt-0.5 text-slate-400">
                     {RESULT_LABEL[lastGame.result ?? ''] ?? ''}
-                    {lastGame.game_type !== 'regular' ? ` · ${lastGame.game_type}` : ''} ·{' '}
+                    {lastGame.game_type !== 'regular' ? ` · ${GAME_TYPE_LABEL[lastGame.game_type] ?? lastGame.game_type}` : ''} ·{' '}
                     {fmtDateTime(lastGame.game_date)}
                   </div>
                 </div>

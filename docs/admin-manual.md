@@ -60,7 +60,7 @@ Manage the roster.
 - You can't change your own role (so you can't lock yourself out of admin).
 
 ### Schedule
-- **+ Game** / **+ Training** adds an event (opponent, date/time, venue, home/away, type, notes for a game; date/time, venue, notes for a training).
+- **+ Game** / **+ Training** / **+ Event** add to the season's schedule. A game has an opponent, date/time, venue, home/away, notes and a **League / Friendly** switch. A training has date/time, venue and notes. An **event** is anything else - a gathering, meeting, social - and needs a **title** plus date/time; venue and notes are optional. Players can RSVP to all three.
 - **Tap any event** to open the detail view (on a computer it opens in the panel beside the list). As an admin you get an **Edit** button that turns the fields into editable inputs; **Save** writes the change and **Discard changes** cancels. You can also **delete** the event (this also removes its attendance and stats).
 - For games, **Update result** (available once the match has started) records the score, scorers, assists, and cards - the W/D/L result is worked out from the score - and **Team list** picks and publishes the match squad.
 

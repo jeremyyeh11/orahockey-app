@@ -4,7 +4,10 @@ import { useState } from 'react'
 import { ReadEditModal } from './ReadEditModal'
 import { preferredName } from './RosterList'
 import { fmtDateTime, dateBlock, toDatetimeLocal, fromDatetimeLocal } from '@/lib/format'
-import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
+import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
+import { eventId, eventLocation, eventNotes, eventTitle, type EventItem } from './EventRow'
+import { GameTypeSwitch } from './GameTypeSwitch'
+import { GAME_TYPE_LABEL } from '@/lib/constants'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { TeamListModal } from './TeamListModal'
 import {
@@ -39,6 +42,15 @@ export type Training = {
   notes: string | null
 }
 
+/** A titled team event — gathering, meeting, social… */
+export type TeamEvent = {
+  id: string
+  title: string
+  event_date: string
+  location: string | null
+  notes: string | null
+}
+
 export type PlayerLite = {
   id: string
   full_name: string
@@ -53,10 +65,6 @@ export type AttendanceRow = {
   status: 'attending' | 'not_attending' | 'maybe'
   player: { full_name: string; preferred_name: string | null }
 }
-
-type EventItem =
-  | { kind: 'game'; date: string; game: Game }
-  | { kind: 'training'; date: string; training: Training }
 
 type MyStatus = 'attending' | 'not_attending' | 'maybe'
 
@@ -123,6 +131,7 @@ export function EventDetailModal({
   onClose,
   onSaveGame,
   onSaveTraining,
+  onSaveEvent,
   onDelete,
   isPending,
   inline = false,
@@ -143,6 +152,7 @@ export function EventDetailModal({
   onClose: () => void
   onSaveGame: (id: string, data: GameInput) => void
   onSaveTraining: (id: string, data: TrainingInput) => void
+  onSaveEvent: (id: string, data: EventInput) => void
   onDelete: () => void
   isPending: boolean
   /** Desktop master–detail: render as the Schedule page's side panel instead of a modal */
@@ -169,12 +179,12 @@ export function EventDetailModal({
   const currentItem = item
   const kind = currentItem.kind
   const isGame = kind === 'game'
-  const sessionId = isGame ? currentItem.game.id : currentItem.training.id
-  const dateStr = isGame ? currentItem.game.game_date : currentItem.training.session_date
-  const location = isGame ? currentItem.game.location : currentItem.training.location
-  const notes = isGame ? currentItem.game.notes : currentItem.training.notes
+  const sessionId = eventId(currentItem)
+  const dateStr = currentItem.date
+  const location = eventLocation(currentItem)
+  const notes = eventNotes(currentItem)
 
-  const title = isGame ? `vs ${currentItem.game.opponent}` : 'Training'
+  const title = eventTitle(currentItem)
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
 
   // Update result — matches only, enabled once the match date/time has passed
@@ -256,6 +266,14 @@ export function EventDetailModal({
         notes: (fd.get('notes') as string) || null,
       }
       onSaveGame(sessionId, data)
+    } else if (kind === 'event') {
+      const data: EventInput = {
+        title: fd.get('title') as string,
+        event_date: fromDatetimeLocal(fd.get('event_date') as string),
+        location: (fd.get('location') as string) || null,
+        notes: (fd.get('notes') as string) || null,
+      }
+      onSaveEvent(sessionId, data)
     } else {
       const data: TrainingInput = {
         session_date: fromDatetimeLocal(fd.get('session_date') as string),
@@ -347,7 +365,7 @@ export function EventDetailModal({
               <>
                 <DetailRow label="Opponent" value={currentItem.game.opponent} />
                 <DetailRow label="Home / Away" value={currentItem.game.home_away ? (currentItem.game.home_away === 'home' ? 'Home' : 'Away') : '—'} />
-                <DetailRow label="Type" value={currentItem.game.game_type.charAt(0).toUpperCase() + currentItem.game.game_type.slice(1)} />
+                <DetailRow label="Type" value={GAME_TYPE_LABEL[currentItem.game.game_type] ?? currentItem.game.game_type} />
               </>
             )}
             <DetailRow label="Venue" value={location || 'TBD'} />
@@ -504,15 +522,8 @@ export function EventDetailModal({
                     <option value="away">Away</option>
                   </select>
                 </div>
-                <div className="flex-1">
-                  <label className={labelCls}>Type</label>
-                  <select name="game_type" defaultValue={currentItem.game.game_type} className={inputCls}>
-                    <option value="regular">Regular</option>
-                    <option value="playoff">Playoff</option>
-                    <option value="exhibition">Exhibition</option>
-                  </select>
-                </div>
               </div>
+              <GameTypeSwitch defaultValue={currentItem.game.game_type} />
               <div>
                 <label className={labelCls}>Score (leave blank if not played yet)</label>
                 <div className="flex items-center gap-3">
@@ -524,6 +535,26 @@ export function EventDetailModal({
               <div>
                 <label className={labelCls}>Notes</label>
                 <input name="notes" type="text" defaultValue={currentItem.game.notes ?? ''} className={inputCls} placeholder="Optional" />
+              </div>
+            </>
+          )}
+          {currentItem.kind === 'event' && (
+            <>
+              <div>
+                <label className={labelCls}>Title *</label>
+                <input name="title" type="text" required defaultValue={currentItem.event.title} className={inputCls} placeholder="Team dinner" />
+              </div>
+              <div>
+                <label className={labelCls}>Date &amp; time *</label>
+                <input name="event_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.event.event_date)} className={dateInputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Location</label>
+                <input name="location" type="text" defaultValue={currentItem.event.location ?? ''} className={inputCls} placeholder="Optional" />
+              </div>
+              <div>
+                <label className={labelCls}>Notes</label>
+                <input name="notes" type="text" defaultValue={currentItem.event.notes ?? ''} className={inputCls} placeholder="Optional" />
               </div>
             </>
           )}

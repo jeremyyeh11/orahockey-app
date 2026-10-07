@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 export async function setAttendance(
   sessionId: string,
-  sessionType: 'game' | 'training',
+  sessionType: 'game' | 'training' | 'event',
   status: 'attending' | 'not_attending' | 'maybe'
 ) {
   const supabase = createClient()

@@ -2,19 +2,20 @@
 
 import { useState, useTransition } from 'react'
 import { setAttendance } from './actions'
-import { EventDetailModal, type Game, type Training, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
-import { EventRow, type EventItem, type MyStatus } from '@/components/EventRow'
+import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
+import { EventRow, eventId, type EventItem, type MyStatus } from '@/components/EventRow'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
-import type { GameInput, TrainingInput } from '@/app/admin/schedule/actions'
-import { updateGame, updateTraining, deleteGame, deleteTraining } from '@/app/admin/schedule/actions'
+import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
+import { updateGame, updateTraining, updateEvent, deleteGame, deleteTraining, deleteEvent } from '@/app/admin/schedule/actions'
 import type { Season } from '@/lib/season'
 
 export default function ScheduleClient({
   season,
   games,
   trainings,
+  events,
   myStatus,
   now,
   roster,
@@ -30,6 +31,8 @@ export default function ScheduleClient({
   season: Season
   games: Game[]
   trainings: Training[]
+  /** Titled team events — gatherings, meetings… */
+  events: TeamEvent[]
   myStatus: Record<string, MyStatus>
   now: string
   roster: PlayerLite[]
@@ -41,14 +44,17 @@ export default function ScheduleClient({
   cardsByGame: Record<string, CardRow[]>
   potmByGame: Record<string, PotmPlacing[]>
 }) {
-  const [filter, setFilter] = useState<'all' | 'games' | 'trainings'>('all')
+  const [filter, setFilter] = useState<'all' | 'games' | 'trainings' | 'events'>('all')
   const [isPending, startTransition] = useTransition()
   const [pendingId, setPendingId] = useState<string | null>(null)
 
   const items: EventItem[] = [
-    ...(filter !== 'trainings' ? games.map((g) => ({ kind: 'game' as const, date: g.game_date, game: g })) : []),
-    ...(filter !== 'games'
+    ...(filter === 'all' || filter === 'games' ? games.map((g) => ({ kind: 'game' as const, date: g.game_date, game: g })) : []),
+    ...(filter === 'all' || filter === 'trainings'
       ? trainings.map((t) => ({ kind: 'training' as const, date: t.session_date, training: t }))
+      : []),
+    ...(filter === 'all' || filter === 'events'
+      ? events.map((e) => ({ kind: 'event' as const, date: e.event_date, event: e }))
       : []),
   ]
 
@@ -63,7 +69,7 @@ export default function ScheduleClient({
   const readOnly = season.locked
 
   function respond(item: EventItem, status: MyStatus) {
-    const id = item.kind === 'game' ? item.game.id : item.training.id
+    const id = eventId(item)
     setPendingId(id)
     startTransition(async () => {
       try {
@@ -98,6 +104,18 @@ export default function ScheduleClient({
     })
   }
 
+  function handleSaveEvent(id: string, data: EventInput) {
+    startTransition(async () => {
+      try {
+        await updateEvent(id, data)
+        // The modal closes after saving; the desktop panel stays on the edited event
+        if (!isDesktop) setSelectedItem(null)
+      } catch (err) {
+        console.error(err)
+      }
+    })
+  }
+
   function handleDelete() {
     if (!selectedItem) return
     if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
@@ -105,6 +123,7 @@ export default function ScheduleClient({
       try {
         if (selectedItem.kind === 'game') await deleteGame(selectedItem.game.id)
         if (selectedItem.kind === 'training') await deleteTraining(selectedItem.training.id)
+        if (selectedItem.kind === 'event') await deleteEvent(selectedItem.event.id)
         setSelectedItem(null)
       } catch (err) {
         console.error(err)
@@ -120,7 +139,7 @@ export default function ScheduleClient({
       isAdmin={isAdmin}
       readOnly={readOnly}
       teamListByGame={teamListByGame}
-      myStatus={myStatus[selectedItem.kind === 'game' ? selectedItem.game.id : selectedItem.training.id]}
+      myStatus={myStatus[eventId(selectedItem)]}
       attendanceBySession={attendanceBySession}
       roster={roster}
       myPlayerId={myPlayerId}
@@ -131,6 +150,7 @@ export default function ScheduleClient({
       onClose={() => setSelectedItem(null)}
       onSaveGame={handleSaveGame}
       onSaveTraining={handleSaveTraining}
+      onSaveEvent={handleSaveEvent}
       onDelete={handleDelete}
       isPending={isPending}
     />
@@ -152,6 +172,7 @@ export default function ScheduleClient({
                 ['all', 'All'],
                 ['games', 'Games'],
                 ['trainings', 'Trainings'],
+                ['events', 'Events'],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -175,7 +196,7 @@ export default function ScheduleClient({
               <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">Upcoming</h2>
               <div className="liga-event-list mb-6">
                 {upcoming.map((item) => {
-                  const id = item.kind === 'game' ? item.game.id : item.training.id
+                  const id = eventId(item)
                   const mine = myStatus[id]
                   return (
                     <div key={`${item.kind}-${id}`} data-selected={isSelected(item) || undefined} className="liga-event-card card px-4 py-3">
@@ -235,7 +256,7 @@ export default function ScheduleClient({
               </p>
             )}
             {past.map((item) => {
-              const id = item.kind === 'game' ? item.game.id : item.training.id
+              const id = eventId(item)
               const mine = myStatus[id]
               return (
                 <div
