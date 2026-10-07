@@ -31,7 +31,15 @@ supabase/migrations/
 ```
 
 ## Database tables
-`teams`, `players`, `player_whitelist`, `games`, `training_sessions`, `attendance`, `polls`, `poll_options`, `poll_votes`, `player_stats`, `potm`, `match_team_lists`, `match_goals`, `match_cards`
+`teams`, `players`, `player_whitelist`, `seasons`, `season_players`, `games`, `training_sessions`, `attendance`, `polls`, `poll_options`, `poll_votes`, `player_stats`, `potm`, `match_team_lists`, `match_goals`, `match_cards`
+
+Seasons (`011_seasons.sql`): `seasons` (label, dates, one `is_current`, `locked`) scopes
+`games`/`training_sessions` via `season_id`; `season_players` is each season's squad with that
+season's jersey/position. The selected season is the `ora-season` session cookie, read by
+`lib/season-server.ts:getSelectedSeason()` (falls back to current); pages filter by it and the
+header switcher (`components/SeasonSwitcher.tsx`) sets it. A `season_lock` BEFORE trigger on every
+season-scoped table rejects app (JWT anon/authenticated) writes to a locked season — admins
+included; SQL editor / service-role writes pass. `seasons` has no app write policies.
 
 Match results (goals/cards) are per-event rows: `match_goals` (scorer + assist slot `pc`/`ps`/player,
 chronological via `goal_number`) and `match_cards` (green/yellow/red; `game_id NULL` = legacy card with
