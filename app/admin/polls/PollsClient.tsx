@@ -283,25 +283,29 @@ function PollCard({
       {/* Results, and your own vote — tap an option (admins are players too) */}
       <PollOptions poll={poll} myPlayerId={myPlayerId} open={open} alwaysShowResults mutedBarClass="bg-brand-light/80" />
 
-      <PollVoters votes={poll.poll_votes} roster={roster} fined={fined} />
-
-      {/* Actions */}
-      <div className="liga-actions mt-4 flex gap-2 border-t border-white/5 pt-3">
-        <button
-          onClick={onToggle}
-          disabled={isPending}
-          className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
-        >
-          {poll.is_active ? 'Close poll' : 'Reopen'}
-        </button>
-        <button
-          onClick={onDelete}
-          disabled={isPending}
-          className="liga-button liga-button-danger rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-40"
-        >
-          Delete
-        </button>
-      </div>
+      <PollVoters
+        votes={poll.poll_votes}
+        roster={roster}
+        fined={fined}
+        actions={
+          <>
+            <button
+              onClick={onToggle}
+              disabled={isPending}
+              className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
+            >
+              {poll.is_active ? 'Close poll' : 'Reopen'}
+            </button>
+            <button
+              onClick={onDelete}
+              disabled={isPending}
+              className="liga-button liga-button-danger rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-40"
+            >
+              Delete
+            </button>
+          </>
+        }
+      />
     </div>
   )
 }

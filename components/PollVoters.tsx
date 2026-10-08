@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { fmtDateTime } from '@/lib/format'
 import type { FineReason } from '@/lib/fines'
 import { preferredName } from '@/components/RosterList'
@@ -12,17 +12,21 @@ type Person = { id: string; full_name: string; preferred_name: string | null }
  * anonymous. Voters are listed in the order they voted, with when; anyone fined
  * for the poll (unwaived — a late or missing vote) is in red. Collapsed behind a
  * right-aligned summary ("12 voted · 18 haven't · 2 late") — tap it to open.
+ * `actions` (admin Close poll / Delete) sit on the left of that row.
  */
 export function PollVoters({
   votes,
   roster,
   fined,
+  actions,
 }: {
   votes: { player_id: string; voted_at?: string }[]
   /** The squad expected to vote (active players) — everyone not in `votes` hasn't */
   roster: Person[]
   /** This poll's unwaived fines by player */
   fined?: Record<string, FineReason[]>
+  /** Buttons on the left of the summary row */
+  actions?: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const byId = new Map(roster.map((p) => [p.id, p]))
@@ -61,22 +65,25 @@ export function PollVoters({
 
   return (
     <div className="liga-poll-voters liga-divider mt-4 border-t border-white/5 pt-3">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex min-h-[32px] w-full items-center justify-end gap-3 text-right"
-      >
-        <span className="flex items-center gap-2">
-          <span className="liga-meta text-slate-400">
-            {voted.length} voted · {notVoted.length} haven&apos;t
-            {late > 0 && <span className="text-red-400"> · {late} late</span>}
+      <div className="flex items-center justify-between gap-3">
+        {actions && <div className="liga-actions flex shrink-0 gap-2">{actions}</div>}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="flex min-h-[32px] flex-1 items-center justify-end gap-3 text-right"
+        >
+          <span className="flex items-center gap-2">
+            <span className="liga-meta text-slate-400">
+              {voted.length} voted · {notVoted.length} haven&apos;t
+              {late > 0 && <span className="text-red-400"> · {late} late</span>}
+            </span>
+            <span aria-hidden="true" className={`text-xs text-slate-500 transition ${open ? 'rotate-180' : ''}`}>
+              ▾
+            </span>
           </span>
-          <span aria-hidden="true" className={`text-xs text-slate-500 transition ${open ? 'rotate-180' : ''}`}>
-            ▾
-          </span>
-        </span>
-      </button>
+        </button>
+      </div>
       {open && (
         <div className="mt-2 space-y-2">
           {voted.length > 0 && (
