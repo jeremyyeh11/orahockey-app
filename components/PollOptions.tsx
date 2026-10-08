@@ -77,8 +77,8 @@ export function PollOptions({
             const body = (
               <>
                 <div className="mb-1 flex items-center justify-between gap-3 text-xs">
-                  <span className={`flex min-w-0 items-center gap-1.5 ${isMine ? 'font-semibold text-brand-light' : 'text-slate-300'}`}>
-                    {isMine && <CheckIcon aria-label="Your vote" className="h-3.5 w-3.5 shrink-0" strokeWidth={3} />}
+                  <span className={`flex min-w-0 items-center gap-2 ${isMine ? 'font-semibold text-brand-light' : 'text-slate-300'}`}>
+                    <Mark on={isMine} multi={multi} />
                     <span className="break-words">{opt.label}</span>
                   </span>
                   <span className="shrink-0 text-slate-500">
@@ -120,7 +120,7 @@ export function PollOptions({
               disabled={!canVote}
               className="liga-poll-option liga-button flex w-full items-center gap-3 rounded-lg border border-surface-border px-3 py-2.5 text-left text-sm text-slate-300 transition hover:border-slate-500 disabled:opacity-60"
             >
-              <span className={`h-4 w-4 shrink-0 border border-slate-600 ${multi ? 'rounded' : 'rounded-full'}`} aria-hidden="true" />
+              <Mark on={false} multi={multi} />
               {opt.label}
             </button>
           ))}
@@ -146,5 +146,19 @@ export function PollOptions({
 
       {error && <p className="liga-alert liga-alert-error mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-400">{error}</p>}
     </div>
+  )
+}
+
+/** Before each option: an empty circle (one answer) or square (multiple answers), filled with a tick once picked */
+function Mark({ on, multi }: { on: boolean; multi: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`liga-poll-mark flex h-4 w-4 shrink-0 items-center justify-center border transition ${multi ? 'rounded' : 'rounded-full'} ${
+        on ? 'border-brand-light bg-brand-light text-surface' : 'border-slate-600'
+      }`}
+    >
+      {on && <CheckIcon className="h-3 w-3" strokeWidth={3.5} />}
+    </span>
   )
 }
