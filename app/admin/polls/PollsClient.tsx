@@ -9,6 +9,7 @@ import { PollResults } from '@/components/PollResults'
 import type { PotmPoll } from '@/lib/potm'
 import type { Poll } from '@/lib/polls'
 import Modal from '@/components/Modal'
+import { FinesFields, readFinesFields } from '@/components/FinesFields'
 
 const inputCls =
   'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -53,7 +54,7 @@ export default function PollsClient({
     setError(null)
     startTransition(async () => {
       try {
-        await createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null)
+        await createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null, readFinesFields(fd))
         setShowModal(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -188,6 +189,8 @@ export default function PollsClient({
               <label className={labelCls}>Closes at (optional)</label>
               <input name="closes_at" type="datetime-local" className={dateInputCls} />
             </div>
+
+            <FinesFields kind="poll" closesName="closes_at" />
 
             {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
 

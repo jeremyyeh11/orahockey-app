@@ -26,6 +26,7 @@ import type { Season } from '@/lib/season'
 import Modal from '@/components/Modal'
 import { GameTypeSwitch } from '@/components/GameTypeSwitch'
 import { ScheduleTimeFields, readTimeFields } from '@/components/ScheduleTimeFields'
+import { FinesFields, readFinesFields } from '@/components/FinesFields'
 import { countsForRecord } from '@/lib/stats'
 
 const inputCls =
@@ -183,6 +184,7 @@ export default function ScheduleClient({
       goals_against: null,
       notes: (fd.get('notes') as string) || null,
       ...readTimeFields(fd, gameDate),
+      ...readFinesFields(fd),
     }
     setError(null)
     startTransition(async () => {
@@ -204,6 +206,7 @@ export default function ScheduleClient({
       location: (fd.get('location') as string) || null,
       notes: (fd.get('notes') as string) || null,
       ...readTimeFields(fd, sessionDate),
+      ...readFinesFields(fd),
     }
     setError(null)
     startTransition(async () => {
@@ -226,6 +229,7 @@ export default function ScheduleClient({
       location: (fd.get('location') as string) || null,
       notes: (fd.get('notes') as string) || null,
       ...readTimeFields(fd, eventDate),
+      ...readFinesFields(fd),
     }
     setError(null)
     startTransition(async () => {
@@ -432,6 +436,7 @@ export default function ScheduleClient({
               <input name="game_date" type="datetime-local" required className={dateInputCls} />
             </div>
             <ScheduleTimeFields />
+            <FinesFields kind="game" startName="game_date" />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium" />
@@ -465,6 +470,7 @@ export default function ScheduleClient({
               <input name="session_date" type="datetime-local" required className={dateInputCls} />
             </div>
             <ScheduleTimeFields />
+            <FinesFields kind="training" startName="session_date" />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium — Pitch 2" />
@@ -492,6 +498,7 @@ export default function ScheduleClient({
               <input name="event_date" type="datetime-local" required className={dateInputCls} />
             </div>
             <ScheduleTimeFields />
+            <FinesFields kind="event" startName="event_date" />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Optional" />

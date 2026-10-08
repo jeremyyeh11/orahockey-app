@@ -10,7 +10,14 @@ function revalidate() {
   revalidatePath('/dashboard')
 }
 
-export async function createPoll(question: string, options: string[], closesAt: string | null) {
+export async function createPoll(
+  question: string,
+  options: string[],
+  closesAt: string | null,
+  fines: { respond_by: string | null; fines_enabled: boolean }
+) {
+  if (fines.respond_by && Number.isNaN(new Date(fines.respond_by).getTime())) throw new Error('Respond by is not a valid date.')
+
   const supabase = createClient()
 
   const {
@@ -30,6 +37,7 @@ export async function createPoll(question: string, options: string[], closesAt: 
       question,
       closes_at: closesAt,
       is_active: true,
+      ...fines,
     })
     .select('id')
     .single()

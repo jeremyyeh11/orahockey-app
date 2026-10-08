@@ -69,12 +69,12 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
     inSeason(
       supabase
         .from('games')
-        .select('id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes, team_list_status, ends_at, report_minutes'),
+        .select('id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes, team_list_status, ends_at, report_minutes, respond_by, fines_enabled'),
       season
     ).order('game_date', { ascending: false }),
-    inSeason(supabase.from('training_sessions').select('id, session_date, location, notes, ends_at, report_minutes'), season)
+    inSeason(supabase.from('training_sessions').select('id, session_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled'), season)
       .order('session_date', { ascending: false }),
-    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes'), season)
+    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled, created_at'), season)
       .order('event_date', { ascending: false }),
     supabase.from('attendance').select('session_id, status').eq('player_id', me?.id ?? ''),
     supabase

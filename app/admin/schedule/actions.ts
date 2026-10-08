@@ -15,6 +15,12 @@ export type GameInput = {
   notes: string | null
   ends_at: string | null
   report_minutes: number | null
+} & FinesInput
+
+/** Reply deadline + whether missing it is fined (lib/fines.ts) */
+export type FinesInput = {
+  respond_by: string | null
+  fines_enabled: boolean
 }
 
 export type TrainingInput = {
@@ -23,7 +29,7 @@ export type TrainingInput = {
   notes: string | null
   ends_at: string | null
   report_minutes: number | null
-}
+} & FinesInput
 
 /** A titled team event — gathering, meeting, social… */
 export type EventInput = {
@@ -33,7 +39,7 @@ export type EventInput = {
   notes: string | null
   ends_at: string | null
   report_minutes: number | null
-}
+} & FinesInput
 
 function cleanEvent(data: EventInput): EventInput {
   const title = data.title.trim()
@@ -42,8 +48,11 @@ function cleanEvent(data: EventInput): EventInput {
   return { ...data, title }
 }
 
-/** End after start; report-early 0–600 whole minutes (the database checks too) */
-function checkTimes(start: string, data: { ends_at: string | null; report_minutes: number | null }) {
+/** End after start; report-early 0–600 whole minutes (the database checks too); a real respond-by */
+function checkTimes(start: string, data: { ends_at: string | null; report_minutes: number | null; respond_by?: string | null }) {
+  if (data.respond_by && Number.isNaN(new Date(data.respond_by).getTime())) {
+    throw new Error('Respond by is not a valid date.')
+  }
   if (data.ends_at && new Date(data.ends_at).getTime() <= new Date(start).getTime()) {
     throw new Error('The end time must be after the start.')
   }

@@ -7,6 +7,7 @@ import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, t
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventId, eventLocation, eventNotes, eventReportMinutes, eventTitle, type EventItem } from './EventRow'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
+import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
 import { competitionLabel } from '@/lib/constants'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
@@ -36,6 +37,8 @@ export type Game = {
   team_list_status: 'draft' | 'published' | null
   ends_at?: string | null
   report_minutes?: number | null
+  respond_by?: string | null
+  fines_enabled?: boolean
 }
 
 export type Training = {
@@ -45,6 +48,8 @@ export type Training = {
   notes: string | null
   ends_at?: string | null
   report_minutes?: number | null
+  respond_by?: string | null
+  fines_enabled?: boolean
 }
 
 /** A titled team event — gathering, meeting, social… */
@@ -56,6 +61,10 @@ export type TeamEvent = {
   notes: string | null
   ends_at?: string | null
   report_minutes?: number | null
+  respond_by?: string | null
+  fines_enabled?: boolean
+  /** When it was posted — team events' default respond-by counts from it */
+  created_at?: string
 }
 
 export type PlayerLite = {
@@ -275,6 +284,7 @@ export function EventDetailModal({
         goals_against: ga === '' ? null : Number(ga),
         notes: (fd.get('notes') as string) || null,
         ...readTimeFields(fd, gameDate),
+        ...readFinesFields(fd),
       }
       onSaveGame(sessionId, data)
     } else if (kind === 'event') {
@@ -285,6 +295,7 @@ export function EventDetailModal({
         location: (fd.get('location') as string) || null,
         notes: (fd.get('notes') as string) || null,
         ...readTimeFields(fd, eventDate),
+        ...readFinesFields(fd),
       }
       onSaveEvent(sessionId, data)
     } else {
@@ -294,6 +305,7 @@ export function EventDetailModal({
         location: (fd.get('location') as string) || null,
         notes: (fd.get('notes') as string) || null,
         ...readTimeFields(fd, sessionDate),
+        ...readFinesFields(fd),
       }
       onSaveTraining(sessionId, data)
     }
@@ -529,6 +541,11 @@ export function EventDetailModal({
                 <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={dateInputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
+              <FinesFields
+                kind="game"
+                startName="game_date"
+                saved={{ respondBy: currentItem.game.respond_by ?? null, finesEnabled: currentItem.game.fines_enabled ?? false }}
+              />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.game.location ?? ''} className={inputCls} placeholder="Sengkang Hockey Stadium" />
@@ -569,6 +586,12 @@ export function EventDetailModal({
                 <input name="event_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.event.event_date)} className={dateInputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
+              <FinesFields
+                kind="event"
+                startName="event_date"
+                postedAt={currentItem.event.created_at}
+                saved={{ respondBy: currentItem.event.respond_by ?? null, finesEnabled: currentItem.event.fines_enabled ?? false }}
+              />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.event.location ?? ''} className={inputCls} placeholder="Optional" />
@@ -586,6 +609,11 @@ export function EventDetailModal({
                 <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={dateInputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
+              <FinesFields
+                kind="training"
+                startName="session_date"
+                saved={{ respondBy: currentItem.training.respond_by ?? null, finesEnabled: currentItem.training.fines_enabled ?? false }}
+              />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.training.location ?? ''} className={inputCls} placeholder="Sengkang Hockey Stadium — Pitch 2" />
