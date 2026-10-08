@@ -12,6 +12,12 @@ import type { GoalRow, CardRow } from './resultActions'
 
 export const metadata: Metadata = { title: 'Schedule' }
 
+/** Adds each game's opponent full name (e.g. SAA → "St Andrew's Alumni") */
+function withOpponentNames<G extends { opponent: string }>(games: G[], opponents: { short_name: string; full_name: string }[]) {
+  const names = new Map(opponents.map((o) => [o.short_name, o.full_name]))
+  return games.map((g) => ({ ...g, opponent_name: names.get(g.opponent) ?? null }))
+}
+
 function groupByGame<T extends { game_id: string | null }>(rows: T[]): Record<string, T[]> {
   const byGame: Record<string, T[]> = {}
   for (const r of rows) {
@@ -70,6 +76,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
     { data: cardRows },
     { data: potmRows },
     { fines },
+    { data: opponents },
   ] = await Promise.all([
     inSeason(
       supabase
@@ -100,6 +107,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
       .not('game_id', 'is', null),
     supabase.from('potm').select('game_id, player_id, place'),
     loadFines(),
+    supabase.from('opponents').select('short_name, full_name'),
   ])
 
   const error = gamesError ?? trainingsError ?? eventsError
@@ -133,7 +141,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
   return (
     <ScheduleClient
       season={season}
-      games={games ?? []}
+      games={withOpponentNames(games ?? [], opponents ?? [])}
       trainings={trainings ?? []}
       events={events ?? []}
       myStatus={myStatus}
