@@ -65,26 +65,31 @@ const STATUS_CHIP: Record<MyStatus, { label: string; cls: string }> = {
 }
 
 /**
- * One event row: date block, title/time/location, an optional sub-line, and the
- * result badge for finished games. Shared by both schedule screens; the sub-line
- * varies — admin passes `attending` (a headcount), players pass `mine` (their own
- * RSVP status). Callers pass at most one.
+ * One event row: date block, title/time/location, and on the right the result
+ * badge for finished games and/or the headcount. Shared by both schedule screens;
+ * admin passes `attending` (headcounts — "10 attending", or "14 attended" when
+ * `past`), players pass `mine` (their own RSVP status, as a sub-line). Callers
+ * pass at most one.
  */
 export function EventRow({
   item,
   attending,
   mine,
+  past = false,
 }: {
   item: EventItem
   attending?: Record<string, number>
   mine?: MyStatus
+  /** Already happened: the headcount reads "attended" */
+  past?: boolean
 }) {
   const isGame = item.kind === 'game'
   const id = eventId(item)
   const location = eventLocation(item)
   const report = fmtReport(item.date, eventReportMinutes(item))
   const block = dateBlock(item.date)
-  const going = attending?.[id]
+  const going = attending ? attending[id] ?? 0 : null
+  const result = isGame ? item.game.result : null
 
   return (
     <div className="liga-event-row flex w-full items-center gap-3">
@@ -95,7 +100,7 @@ export function EventRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="liga-event-title break-words text-sm font-semibold text-white">
+          <span className="liga-event-title break-words text-lg font-semibold leading-snug text-white">
             {eventTitle(item)}
           </span>
           {isGame && item.game.game_type !== 'regular' && (
@@ -116,24 +121,30 @@ export function EventRow({
         </div>
         {/* Report-early time — subtext under the date & time */}
         {report && <div className="liga-event-report mt-0.5 text-[11px] text-slate-500">{report}</div>}
-        {going != null && <div className="mt-0.5 text-[11px] text-slate-500">{going} attending</div>}
         {mine && (
           <div className={`mt-0.5 text-[11px] ${STATUS_CHIP[mine].cls}`}>{STATUS_CHIP[mine].label}</div>
         )}
       </div>
 
-      {isGame && item.game.result && (
-        <div className="liga-event-result flex shrink-0 flex-col items-end gap-1">
-          <span
-            className={`liga-result-badge rounded px-1.5 py-0.5 text-xs font-bold ${
-              RESULT_BADGE[item.game.result]?.cls ?? 'bg-slate-700 text-slate-300'
-            }`}
-          >
-            {RESULT_BADGE[item.game.result]?.label ?? item.game.result}
-          </span>
-          <span className="liga-event-score text-sm font-semibold text-white">
-            {item.game.goals_for}–{item.game.goals_against}
-          </span>
+      {(result || going != null) && (
+        <div className="liga-event-side flex shrink-0 flex-col items-end gap-1 text-right">
+          {isGame && result && (
+            <div className="liga-event-result flex items-center gap-1.5">
+              <span className={`liga-result-badge rounded px-1.5 py-0.5 text-xs font-bold ${RESULT_BADGE[result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
+                {RESULT_BADGE[result]?.label ?? result}
+              </span>
+              <span className="liga-event-score text-sm font-semibold text-white">
+                {item.game.goals_for}–{item.game.goals_against}
+              </span>
+            </div>
+          )}
+          {/* Headcount: a number you can read at a glance, but quieter than the title */}
+          {going != null && (
+            <div className="liga-event-count leading-none">
+              <div className={`liga-event-count-value font-semibold tabular-nums text-slate-200 ${result ? 'text-sm' : 'text-base'}`}>{going}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-500">{past ? 'attended' : 'attending'}</div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -363,7 +363,7 @@ export default function ScheduleClient({
                         <EventRow item={item} attending={attending} />
                       </div>
                       {!readOnly && !mine && (
-                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} className="mt-1.5" />
+                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} className="ml-14 mt-2" />
                       )}
                       {!readOnly && (
                       <div className="liga-event-actions mt-2 flex gap-2">
@@ -544,7 +544,7 @@ function EventCard({
       data-selected={selected || undefined}
       className="liga-event-card card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
     >
-      <EventRow item={item} attending={attending} />
+      <EventRow item={item} attending={attending} past />
     </button>
   )
 }

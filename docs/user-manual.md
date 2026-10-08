@@ -35,7 +35,7 @@ The season's squad with each player's stats for that season: goals by type (**FG
 A list of the season's games, training sessions and team **events** (gatherings, meetings…), split into **Upcoming** and **Past**. Friendly games are tagged **Friendly** and don't count towards records or stats. Times show as a range when there's an end time (e.g. *Sat 10 Oct · 09:00 – 11:00*), with the time to report by underneath when there is one.
 
 - Use the **All / Games / Trainings / Events** filter chips to narrow the list.
-- For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance. Until you reply, the card shows **Reply by …** - amber in the last 24 hours, red once overdue (see **Fines** below).
+- For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance. Until you reply, the card shows a countdown above the buttons (e.g. *1d 5h left to reply*) with the deadline underneath - amber in the last 24 hours, red once overdue (see **Fines** below).
 - **Tap any event** to open its detail view. On a computer the details sit in a panel beside the list instead - it shows the next event to start with; click any event to switch. There you can:
   - see the full details (opponent, date/time, venue, home/away, type, result and score for played games),
   - set or change your attendance,
@@ -44,7 +44,7 @@ A list of the season's games, training sessions and team **events** (gatherings,
   - read the **Additional Information** note (added by coaches).
 
 ### Polls
-Open polls show voting options - pick one and tap **Vote**. Until you vote, the poll shows its **Reply by** deadline. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Closed polls are kept below for reference.
+Open polls show voting options - pick one and tap **Vote**. Until you vote, the poll shows a countdown to its reply deadline. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Closed polls are kept below for reference.
 
 ### Fines
 **$5** a time, collated at the end of each month. The **Fines** tab shows everyone's fines, one month at a time (tap a name to see what each fine was for).

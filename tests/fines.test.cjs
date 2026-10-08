@@ -133,18 +133,28 @@ test('polls: the vote time decides; totals are $5 a fine, most owed first', () =
   assert.equal(FINE_AMOUNT, 5)
 })
 
-test('reply-by line: grey while open, amber in the last 24h, red once overdue; nothing without a deadline', () => {
+test('reply-by: a countdown over the deadline — grey while open, amber in the last 24h, red once overdue; nothing without a deadline', () => {
   const React = require('react')
   const { renderToStaticMarkup } = require('react-dom/server')
-  const { RespondBy } = load('components/RespondBy.tsx')
+  const { RespondBy, fmtCountdown } = load('components/RespondBy.tsx')
   const html = (props) => renderToStaticMarkup(React.createElement(RespondBy, props))
+  const text = (props) => html(props).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
   const due = sg('2026-10-15T23:59:59')
-  const open = html({ respondBy: due, finesEnabled: true, now: sg('2026-10-12T10:00:00') })
-  assert.match(open, /data-state="open"/)
-  assert.match(open, /Reply by Thu 15 Oct · 23:59 · \$5 fine if late/)
-  assert.match(html({ respondBy: due, finesEnabled: false, now: sg('2026-10-15T09:00:00') }), /data-state="soon"[^>]*>Reply by Thu 15 Oct · 23:59</)
-  const overdue = html({ respondBy: due, finesEnabled: true, now: sg('2026-10-16T09:00:00') })
-  assert.match(overdue, /text-red-400/)
-  assert.match(overdue, /Reply overdue — was due Thu 15 Oct · 23:59 · \$5 fine/)
+
+  const H = 60 * 60 * 1000
+  assert.equal(fmtCountdown(20 * 60 * 1000), '20m')
+  assert.equal(fmtCountdown(5 * H + 20 * 60 * 1000), '5h 20m')
+  assert.equal(fmtCountdown(29 * H), '1d 5h')
+  assert.equal(fmtCountdown(9 * 24 * H + 3 * H), '9 days')
+
+  const open = { respondBy: due, finesEnabled: true, now: sg('2026-10-14T18:39:59') }
+  assert.match(html(open), /data-state="open"/)
+  assert.equal(text(open), '1d 5h left to reply Reply by Thu 15 Oct · 23:59 · $5 fine if late')
+  const soon = { respondBy: due, finesEnabled: false, now: sg('2026-10-15T18:39:59') }
+  assert.match(html(soon), /data-state="soon"[\s\S]*text-amber-300/)
+  assert.equal(text(soon), '5h 20m left to reply Reply by Thu 15 Oct · 23:59', 'no fine mentioned when fines are off')
+  const overdue = { respondBy: due, finesEnabled: true, now: sg('2026-10-16T02:59:59') }
+  assert.match(html(overdue), /text-red-400/)
+  assert.equal(text(overdue), 'Reply overdue by 3h 0m Was due Thu 15 Oct · 23:59 · $5 fine')
   assert.equal(html({ respondBy: null, finesEnabled: true, now: due }), '')
 })

@@ -220,7 +220,7 @@ export default function ScheduleClient({
                         <EventRow item={item} />
                       </div>
                       {!readOnly && !mine && (
-                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} className="mt-1.5" />
+                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} className="ml-14 mt-2" />
                       )}
                       {!readOnly && (
                       <div className="liga-event-actions mt-2 flex gap-2">
