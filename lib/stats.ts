@@ -30,6 +30,8 @@ export type SeasonStat = {
   goals_fg: number
   goals_pc: number
   goals_ps: number
+  /** Goals whose type wasn't recorded (2024) — in `goals`, not FG/PC/PS */
+  goals_untyped?: number
   assists: number
 }
 
@@ -127,7 +129,7 @@ export function computeSeason({
     r.fg += s.goals_fg
     r.pc += s.goals_pc
     r.ps += s.goals_ps
-    r.goals += s.goals_fg + s.goals_pc + s.goals_ps
+    r.goals += s.goals_fg + s.goals_pc + s.goals_ps + (s.goals_untyped ?? 0)
     r.assists += s.assists
   }
 

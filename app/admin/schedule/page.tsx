@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { fetchAll } from '@/lib/supabase/fetch-all'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
@@ -49,7 +50,7 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
     inSeason(supabase.from('games').select('*'), season).order('game_date', { ascending: false }),
     inSeason(supabase.from('training_sessions').select('*'), season).order('session_date', { ascending: false }),
     inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled, created_at'), season).order('event_date', { ascending: false }),
-    supabase.from('attendance').select('player_id, session_id, status, responded_at, player:players(full_name, preferred_name)'),
+    fetchAll(() => supabase.from('attendance').select('player_id, session_id, status, responded_at, player:players(full_name, preferred_name)').order('id')),
     supabase
       .from('players')
       .select('id, attendance(session_id, status)')
@@ -59,15 +60,18 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
     supabase
       .from('match_team_lists')
       .select('game_id, player_id, selected'),
-    supabase
-      .from('match_goals')
-      .select('id, game_id, goal_number, scorer_id, assist_kind, assist_player_id')
-      .order('goal_number', { ascending: true }),
+    fetchAll(() =>
+      supabase
+        .from('match_goals')
+        .select('id, game_id, goal_number, scorer_id, assist_kind, assist_player_id')
+        .order('goal_number', { ascending: true })
+        .order('id')
+    ),
     supabase
       .from('match_cards')
       .select('id, game_id, player_id, card_type')
       .not('game_id', 'is', null),
-    supabase.from('potm').select('game_id, player_id, place'),
+    fetchAll(() => supabase.from('potm').select('game_id, player_id, place').order('id')),
     loadFines(),
     supabase.from('opponents').select('short_name, full_name'),
   ])

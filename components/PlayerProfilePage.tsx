@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { nameParts, preferredName, sortPositions } from './RosterList'
+import { nameParts, preferredName, sortPositions, statColumns, statValue } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
@@ -57,26 +57,25 @@ export type ProfilePlayer = PlayerLite & {
   photo_path?: string | null
 }
 
-// Inline stat row — same compact style as squad cards
-function StatLine({ row, positions }: { row: LeaderboardRow; positions: string[] | null }) {
-  const isGK = positions?.includes('GK') ?? false
-  const isOutfield = positions?.some((p) => p !== 'GK') ?? false
-
-  const showGoals = isOutfield
-  const showCS = isGK
-
+// Inline stat row — same compact style as squad cards. Columns follow what the
+// season recorded (`recorded`); career rows pass `withTotal` to add total goals (G).
+function StatLine({
+  row,
+  positions,
+  recorded,
+  withTotal = false,
+}: {
+  row: LeaderboardRow
+  positions: string[] | null
+  recorded?: readonly string[]
+  withTotal?: boolean
+}) {
   const valCls = (v: number) => v > 0 ? 'text-white' : 'text-slate-600'
   const lblCls = 'text-white/50'
 
-  const cols: { label: string; value: number }[] = []
-  if (showGoals) {
-    cols.push({ label: 'FG', value: row.fg })
-    cols.push({ label: 'PC', value: row.pc })
-    cols.push({ label: 'PS', value: row.ps })
-    cols.push({ label: 'A', value: row.assists })
-  }
-  if (showCS) cols.push({ label: 'CS', value: row.cleanSheets })
-  cols.push({ label: 'POTM', value: row.potmWins })
+  const cols = statColumns(positions, recorded, withTotal)
+    .filter((c) => c !== 'APP')
+    .map((c) => ({ label: c === 'G' ? 'Goals' : c, value: statValue(row, c) }))
 
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px]">
@@ -132,8 +131,8 @@ type PlayerProfileProps = {
   seasonLabel: string | null
   /** From their first season played to the current one (null = hasn't played) */
   yearsAtClub?: number | null
-  /** False for an appearances-only season: the season panel shows apps + "stats not recorded" */
-  statsRecorded?: boolean
+  /** What the selected season recorded (undefined = everything); empty = appearances only */
+  recorded?: readonly string[]
   /** Admin view only — enables the account/invite panel */
   accountStatus?: AccountStatus
   /** Admin view, open season only — enables the squad (add / remove / inactive) panel */
@@ -148,7 +147,7 @@ export function PlayerProfilePage({
   careerRow,
   seasonLabel,
   yearsAtClub,
-  statsRecorded = true,
+  recorded,
   accountStatus,
   squadStatus,
   editContext,
@@ -390,7 +389,7 @@ export function PlayerProfilePage({
         </div>
 
         {/* Translucent stat panel — the selected season first, career below */}
-        {seasonLabel === null ? null : seasonRow && !statsRecorded ? (
+        {seasonLabel === null ? null : seasonRow && recorded?.length === 0 ? (
           <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{seasonLabel}</span>
             <p className="mt-0.5 text-[11px] text-slate-300">
@@ -405,7 +404,7 @@ export function PlayerProfilePage({
               </span>
               <CardBadges row={seasonRow} />
             </div>
-            <StatLine row={seasonRow} positions={player.position} />
+            <StatLine row={seasonRow} positions={player.position} recorded={recorded} />
           </div>
         ) : careerRow ? (
           <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
@@ -426,7 +425,7 @@ export function PlayerProfilePage({
               {/* With "All time" selected this is the only panel, so it carries the cards */}
               {seasonLabel === null && <CardBadges row={careerRow} />}
             </div>
-            <StatLine row={careerRow} positions={player.position} />
+            <StatLine row={careerRow} positions={player.position} withTotal={careerRow.goals > careerRow.fg + careerRow.pc + careerRow.ps} />
           </div>
         )}
 

@@ -23,7 +23,15 @@ export type MyProfileData = {
   }
   /** Seasons they've been in the squad for, newest first */
   /** From their first squad season to now; `played` false = not in that season's squad */
-  seasons: { label: string; current: boolean; jersey: number | null; played: boolean; statsRecorded: boolean; row: LeaderboardRow | null }[]
+  seasons: {
+    label: string
+    current: boolean
+    jersey: number | null
+    played: boolean
+    /** Stats the season kept (lib/season recordedStats): goals, goal_types, assists, cards, potm */
+    recorded: string[]
+    row: LeaderboardRow | null
+  }[]
   career: LeaderboardRow | null
   /** First season with a league appearance, e.g. '2026' */
   firstSeason: string | null
@@ -43,7 +51,7 @@ function age(dob: string) {
 const fmtDob = (dob: string) =>
   new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
 
-const goalsOf = (r: LeaderboardRow | null) => (r ? r.fg + r.pc + r.ps : 0)
+const goalsOf = (r: LeaderboardRow | null) => r?.goals ?? 0
 const cardCount = (r: LeaderboardRow | null) => (r ? r.cards.green + r.cards.yellow + r.cards.red : 0)
 
 /**
@@ -62,16 +70,20 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
   const assists = career?.assists ?? 0
   const potm = career?.potmWins ?? 0
 
-  // Rates: the average of each season's rate, over seasons with stats recorded
-  // and at least one appearance — appearances-only seasons (2025 and earlier)
-  // would otherwise dilute them
-  const rated = seasons.filter((s) => s.statsRecorded && (s.row?.caps ?? 0) > 0)
-  const avgRate = (of: (r: LeaderboardRow) => number) =>
-    rated.length ? rated.reduce((sum, s) => sum + of(s.row!) / s.row!.caps, 0) / rated.length : 0
+  // Rates: the average of each season's rate, over the seasons that recorded
+  // that stat and where they played — older seasons that didn't keep it (2025:
+  // nothing; 2024: no assists) would otherwise dilute it
+  const rateOf = (stat: string, of: (r: LeaderboardRow) => number) => {
+    const rated = seasons.filter((s) => s.played && (s.row?.caps ?? 0) > 0 && s.recorded.includes(stat))
+    return {
+      seasons: rated.length,
+      value: rated.length ? rated.reduce((sum, s) => sum + of(s.row!) / s.row!.caps, 0) / rated.length : 0,
+    }
+  }
   const rates = [
-    { label: 'Goals/app', value: avgRate(goalsOf), max: 1 },
-    { label: 'Assists/app', value: avgRate((r) => r.assists), max: 1 },
-    { label: 'POTM %', value: avgRate((r) => r.potmWins), max: 1, pct: true },
+    { label: 'Goals/app', ...rateOf('goals', goalsOf), max: 1, pct: false },
+    { label: 'Assists/app', ...rateOf('assists', (r) => r.assists), max: 1, pct: false },
+    { label: 'POTM %', ...rateOf('potm', (r) => r.potmWins), max: 1, pct: true },
   ]
 
   return (
@@ -166,7 +178,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                   {r.pct ? `${Math.round(r.value * 100)}%` : r.value.toFixed(2)}
                 </div>
                 <div className="liga-meta mt-0.5 text-slate-500">
-                  {rated.length ? `avg of ${rated.length} season${rated.length === 1 ? '' : 's'}` : 'no recorded seasons'}
+                  {r.seasons ? `avg of ${r.seasons} season${r.seasons === 1 ? '' : 's'}` : 'no recorded seasons'}
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div className="h-full rounded-full bg-brand-light" style={{ width: `${Math.min(100, (r.value / r.max) * 100)}%` }} />
@@ -209,6 +221,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                     <tr className="liga-meta text-slate-500">
                       <th className="py-1.5 text-left font-medium">Season</th>
                       <th className="font-medium">Apps</th>
+                      <th className="font-medium" title="Goals (all types)">G</th>
                       <th className="font-medium" title="Field goals">FG</th>
                       <th className="font-medium" title="Penalty corners">PC</th>
                       <th className="font-medium" title="Penalty strokes">PS</th>
@@ -227,21 +240,23 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                         </td>
                         <td>{s.row?.caps ?? 0}</td>
                         {!s.played ? (
-                          <td colSpan={isGK ? 7 : 6} className="liga-meta text-center text-slate-500">
+                          <td colSpan={isGK ? 8 : 7} className="liga-meta text-center text-slate-500">
                             Didn&apos;t play this season
                           </td>
-                        ) : s.statsRecorded ? (
+                        ) : s.recorded.length > 0 ? (
                           <>
-                            <td>{s.row?.fg ?? 0}</td>
-                            <td>{s.row?.pc ?? 0}</td>
-                            <td>{s.row?.ps ?? 0}</td>
-                            <td>{s.row?.assists ?? 0}</td>
+                            {/* — = not recorded that season */}
+                            <td>{s.recorded.includes('goals') ? goalsOf(s.row) : '—'}</td>
+                            <td>{s.recorded.includes('goal_types') ? s.row?.fg ?? 0 : '—'}</td>
+                            <td>{s.recorded.includes('goal_types') ? s.row?.pc ?? 0 : '—'}</td>
+                            <td>{s.recorded.includes('goal_types') ? s.row?.ps ?? 0 : '—'}</td>
+                            <td>{s.recorded.includes('assists') ? s.row?.assists ?? 0 : '—'}</td>
                             {isGK && <td>{s.row?.cleanSheets ?? 0}</td>}
-                            <td>{s.row?.potmWins ?? 0}</td>
-                            <td>{cardCount(s.row)}</td>
+                            <td>{s.recorded.includes('potm') ? s.row?.potmWins ?? 0 : '—'}</td>
+                            <td>{s.recorded.includes('cards') ? cardCount(s.row) : '—'}</td>
                           </>
                         ) : (
-                          <td colSpan={isGK ? 7 : 6} className="liga-meta text-center text-slate-500">
+                          <td colSpan={isGK ? 8 : 7} className="liga-meta text-center text-slate-500">
                             Stats not recorded for this season
                           </td>
                         )}
@@ -250,6 +265,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                     <tr className="border-t-2 border-surface-border font-semibold text-white">
                       <td className="py-2 text-left">Career</td>
                       <td>{apps}</td>
+                      <td>{goals}</td>
                       <td>{career?.fg ?? 0}</td>
                       <td>{career?.pc ?? 0}</td>
                       <td>{career?.ps ?? 0}</td>
@@ -263,7 +279,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
               </div>
             )}
             <p className="liga-meta mt-2 text-slate-500">
-              League games only — friendlies don&apos;t count. Seasons up to 2025 only recorded appearances; rates average the seasons with full stats.
+              League games only — friendlies don&apos;t count. Older seasons kept fewer stats (— = not recorded; 2025 only appearances, 2024 goals and MOTM); rates average the seasons that recorded each stat.
             </p>
           </section>
         </div>

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { getSeasons } from '@/lib/season-server'
-import { statsRecorded } from '@/lib/season'
+import { recordedStats } from '@/lib/season'
 import { computeSeason, yearsAtClub, type LeaderboardRow, type MatchCardRow, type PlayerLite } from '@/lib/stats'
 import { playerPhotoUrl } from '@/lib/photos'
 import MyProfile, { type MyProfileData } from '@/components/MyProfile'
@@ -30,7 +30,7 @@ export async function MyProfileView() {
     getSeasons(),
     supabase.from('season_players').select('season_id, jersey_number').eq('player_id', player.id),
     supabase.from('games').select('id, game_date, result, goals_against, season_id, game_type'),
-    supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists').eq('player_id', player.id),
+    supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, goals_untyped, assists').eq('player_id', player.id),
     supabase.from('potm').select('game_id, player_id, place').eq('player_id', player.id),
     supabase.from('attendance').select('player_id, session_id').eq('player_id', player.id).eq('session_type', 'game').eq('status', 'attending'),
     supabase.from('match_cards').select('player_id, game_id, card_type, created_at').eq('player_id', player.id),
@@ -63,7 +63,7 @@ export async function MyProfileView() {
       current: s.is_current,
       jersey: inSquad.get(s.id) ?? null,
       played: inSquad.has(s.id),
-      statsRecorded: statsRecorded(s),
+      recorded: recordedStats(s),
       row: inSquad.has(s.id) ? rowOf(s.label, s.id) : null,
     }))
   const current = seasons.find((s) => s.is_current)

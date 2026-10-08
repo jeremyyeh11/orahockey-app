@@ -190,10 +190,11 @@ export function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean })
   )
 }
 
-const STAT_COLS = ['FG', 'PC', 'PS', 'A', 'CS', 'POTM', 'App'] as const
+const ALL_RECORDED = ['goals', 'goal_types', 'assists', 'cards', 'potm']
 
 export function statValue(row: LeaderboardRow, col: string): number {
   switch (col) {
+    case 'G': return row.goals
     case 'FG': return row.fg
     case 'PC': return row.pc
     case 'PS': return row.ps
@@ -205,26 +206,48 @@ export function statValue(row: LeaderboardRow, col: string): number {
   }
 }
 
-/** Stat columns that apply to a player's positions. */
-export function statColumns(positions: string[] | null): string[] {
+/**
+ * Stat columns that apply to a player's positions and to what the season
+ * recorded (`recorded`, see lib/season): FG/PC/PS where goal types were kept,
+ * else G (total goals); A and POTM only where recorded. `withTotal` adds G next
+ * to FG/PC/PS — for views spanning seasons (All time, career) where some goals
+ * have no type.
+ */
+export function statColumns(positions: string[] | null, recorded: readonly string[] = ALL_RECORDED, withTotal = false): string[] {
   const isGK = positions?.includes('GK') ?? false
   const isOutfield = positions?.some((p) => p !== 'GK') ?? false
+  const has = (s: string) => recorded.includes(s)
 
-  // GK-only: show CS, hide FG/PC/PS/A
-  // Outfield-only: show FG/PC/PS/A, hide CS
-  // Both (GK + outfield): show everything
+  // GK-only: show CS, hide goals/A. Outfield-only: goals/A, hide CS. Both: everything.
   const cols: string[] = []
-  if (isOutfield) cols.push('FG', 'PC', 'PS', 'A')
+  if (isOutfield) {
+    if (has('goals') && (withTotal || !has('goal_types'))) cols.push('G')
+    if (has('goal_types')) cols.push('FG', 'PC', 'PS')
+    if (has('assists')) cols.push('A')
+  }
   if (isGK) cols.push('CS')
-  cols.push('POTM', 'APP')
+  if (has('potm')) cols.push('POTM')
+  cols.push('APP')
   return cols
 }
 
-function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean; positions: string[] | null }) {
+function StatRow({
+  row,
+  isMe,
+  positions,
+  recorded,
+  withTotal,
+}: {
+  row: LeaderboardRow
+  isMe: boolean
+  positions: string[] | null
+  recorded?: readonly string[]
+  withTotal?: boolean
+}) {
   const valCls = (v: number) =>
     v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'
   const labelCls = isMe ? 'text-white/50' : 'text-slate-500'
-  const cols = statColumns(positions)
+  const cols = statColumns(positions, recorded, withTotal)
 
   return (
     <div className="liga-roster-stats liga-meta min-w-0 flex flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 mt-1.5 text-xs tabular-nums">
@@ -249,6 +272,8 @@ export default function RosterList<T extends RosterPlayer>({
   onSelect,
   statsMap,
   accountMap,
+  recorded,
+  withTotal = false,
 }: {
   players: T[]
   myPlayerId: string | null
@@ -256,6 +281,10 @@ export default function RosterList<T extends RosterPlayer>({
   statsMap?: Map<string, LeaderboardRow>
   /** Admin view only: player id → login-account status dot */
   accountMap?: Map<string, AccountStatus>
+  /** What the season recorded (lib/season recordedStats) — picks the stat columns */
+  recorded?: readonly string[]
+  /** Views spanning seasons: show total goals (G) as well */
+  withTotal?: boolean
 }) {
   const sorted = [...players].sort((a, b) => {
     // User's row always first
@@ -319,7 +348,7 @@ export default function RosterList<T extends RosterPlayer>({
 
             {stats && (
               <div className="liga-roster-details relative mt-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
-                <StatRow row={stats} isMe={isMe} positions={player.position} />
+                <StatRow row={stats} isMe={isMe} positions={player.position} recorded={recorded} withTotal={withTotal} />
                 <div className="liga-roster-sanctions liga-meta shrink-0">
                   <CardsCell row={stats} isMe={isMe} />
                 </div>

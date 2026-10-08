@@ -14,6 +14,7 @@ import {
 } from './RosterList'
 
 const STATS = [
+  { key: 'G', title: 'Goals (type not recorded)' },
   { key: 'FG', title: 'Field goals' },
   { key: 'PC', title: 'Penalty corner goals' },
   { key: 'PS', title: 'Penalty stroke goals' },
@@ -37,6 +38,8 @@ export default function RosterTable<T extends RosterPlayer>({
   onSelect,
   statsMap,
   accountMap,
+  recorded,
+  withTotal = false,
 }: {
   players: T[]
   myPlayerId: string | null
@@ -44,14 +47,21 @@ export default function RosterTable<T extends RosterPlayer>({
   statsMap?: Map<string, LeaderboardRow>
   /** Admin view only: player id → login-account status */
   accountMap?: Map<string, AccountStatus>
+  /** What the season recorded — picks the stat columns */
+  recorded?: readonly string[]
+  /** Views spanning seasons: show total goals (G) as well */
+  withTotal?: boolean
 }) {
+  // Only the columns this season has, for any position
+  const shown = STATS.filter((s) => statColumns(['FG', 'GK'], recorded, withTotal).includes(s.key))
+  const showCards = !recorded || recorded.includes('cards')
   const [sort, setSort] = useState<Sort>({ key: 'name', desc: false })
 
   // -1 = doesn't apply (e.g. CS for outfielders, no jersey number): always sorted last
   const valueOf = (p: T, key: SortKey): number => {
     if (key === 'number') return p.jersey_number ?? -1
     const row = statsMap?.get(p.id)
-    if (!row || !statColumns(p.position).includes(key)) return -1
+    if (!row || !statColumns(p.position, recorded, withTotal).includes(key)) return -1
     return statValue(row, key)
   }
   const byName = (a: T, b: T) => a.full_name.toLowerCase().localeCompare(b.full_name.toLowerCase())
@@ -110,10 +120,12 @@ export default function RosterTable<T extends RosterPlayer>({
             <th scope="col" className="px-2 py-2 text-left font-medium uppercase tracking-wide">
               Pos
             </th>
-            {STATS.map((s) => header(s.key, s.key, s.title, 'right'))}
-            <th scope="col" className="px-2 py-2 text-left font-medium uppercase tracking-wide">
-              Cards
-            </th>
+            {shown.map((s) => header(s.key, s.key, s.title, 'right'))}
+            {showCards && (
+              <th scope="col" className="px-2 py-2 text-left font-medium uppercase tracking-wide">
+                Cards
+              </th>
+            )}
             {accountMap && (
               <th scope="col" className="px-2 py-2 text-center font-medium uppercase tracking-wide">
                 <span title="Login account">Acct</span>
@@ -125,7 +137,7 @@ export default function RosterTable<T extends RosterPlayer>({
           {rows.map((p) => {
             const isMe = p.id === myPlayerId
             const row = statsMap?.get(p.id)
-            const applies = statColumns(p.position)
+            const applies = statColumns(p.position, recorded, withTotal)
             const account = accountMap?.get(p.id)
             const name = (
               <>
@@ -167,7 +179,7 @@ export default function RosterTable<T extends RosterPlayer>({
                 <td className="liga-meta whitespace-nowrap px-2 py-3 text-xs text-slate-300">
                   {sortPositions(p.position).join(' ')}
                 </td>
-                {STATS.map((s) => {
+                {shown.map((s) => {
                   // Blank = doesn't apply to this player's positions; – = none yet
                   if (!applies.includes(s.key)) return <td key={s.key} className="px-2 py-3" />
                   const v = row ? statValue(row, s.key) : 0
@@ -180,7 +192,7 @@ export default function RosterTable<T extends RosterPlayer>({
                     </td>
                   )
                 })}
-                <td className="liga-meta px-2 py-3">{row && <CardsCell row={row} isMe={isMe} />}</td>
+                {showCards && <td className="liga-meta px-2 py-3">{row && <CardsCell row={row} isMe={isMe} />}</td>}
                 {accountMap && (
                   <td className="px-2 py-3 text-center">
                     {account && (
