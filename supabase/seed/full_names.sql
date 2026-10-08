@@ -24,7 +24,7 @@ from (values
   ('MARCUS',       'MARCUS OOI YIXUAN',                            'MARCUS'),
   ('NICK',         'NICHOLAS ANDREW JONATHAN KIRAMATHYPATHY',      'NICK'),
   ('KEANE',        'KEANE KWA BING HONG',                          'KEANE'),
-  ('ZAKI',         'AHMAD ZAKI B ISKANDAR',                        'ZAKI'),
+  ('ZAKI',         'AHMAD ZAKI BIN ISKANDAR',                      'ZAKI'),
   ('JUSTIN',       'JUSTIN LEE ZHENG XIAN',                        'JUSTIN'),
   ('HANIF',        'ABDURRAHIM HANIF BIN ISKANDAR',                'HANIF'),
   ('HAO DUAN',     'ANG HAO DUAN',                                 'HAO DUAN'),
@@ -41,7 +41,9 @@ from (values
   ('TIMOTHY',      'GOH KAI YANG TIMOTHY',                         'TIM'),
   ('ADAM',         'ADAM ANIQ BIN AMIR',                           'ADAM'),
   ('CALEB ANG',    'CALEB ANG SI KAI',                             'CALEB'),
-  ('NATHANIEL GOH','NATHANIEL GOH RUO CHUAN',                      'NAT GOH')
+  ('NATHANIEL GOH','NATHANIEL GOH RUO CHUAN',                      'NAT GOH'),
+  ('JIM',          'CHOW JIM AN',                                  'JIM'),
+  ('DANIEL XU',    'DANIEL XU JUEWEN',                             'DANIEL XU')
 ) as v(old_name, new_name, pref)
 where p.full_name = v.old_name
   and not exists (select 1 from players q where q.full_name = v.new_name);
