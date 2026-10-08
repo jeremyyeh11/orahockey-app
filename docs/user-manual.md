@@ -10,7 +10,7 @@ For players using the ORA Hockey team app on a phone or in a browser. Coaches an
 - **Forgot your password?** Ask a coach/manager — they can send you a reset link the same way (that one expires after 1 hour).
 
 
-After setup, sign in with your roster email and chosen password. Players see **Home**, **Squad**, **Schedule**, and **Polls** - in the bar along the bottom on a phone, or in the top bar on a computer. A thin green line across the top of the screen means a page is loading.
+After setup, sign in with your roster email and chosen password. Players see **Home**, **Schedule**, **Polls**, and **Squad** - in the bar along the bottom on a phone, or in the top bar on a computer. A thin green line across the top of the screen means a page is loading.
 
 ## Using the app
 

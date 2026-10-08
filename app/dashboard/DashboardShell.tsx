@@ -10,9 +10,9 @@ import { HomeIcon, UsersIcon, CalendarIcon, PollIcon } from '@/components/icons'
 
 const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Home', Icon: HomeIcon, exact: true },
-  { href: '/dashboard/team', label: 'Squad', Icon: UsersIcon },
   { href: '/dashboard/schedule', label: 'Schedule', Icon: CalendarIcon },
   { href: '/dashboard/polls', label: 'Polls', Icon: PollIcon },
+  { href: '/dashboard/team', label: 'Squad', Icon: UsersIcon },
 ]
 
 export default function DashboardShell({
