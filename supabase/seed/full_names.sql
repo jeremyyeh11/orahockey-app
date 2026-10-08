@@ -53,6 +53,7 @@ from (values
   ('BENJY',        'CHER SHAO JIE BENJAMIN',                       'BENJY'),
   ('HAKIIM',       'MOHAMAD HAKIIM BIN MOHAMAD RAZALI',            'HAKIIM'),
   ('SIVA',         'SIVAKAANTHAN AMBEDKAR',                        'SIVA'),
+  ('ACAP',         'AHMAD ASHRAF BIN MUHAMMAD JOHARI',             'ACAP'),
   -- already in the app (current squad): the registered full name
   ('IAN VANDERPUT','VANDERPUT IAN JAMES VALENCE',                  'IAN')
 ) as v(old_name, new_name, pref)
