@@ -13,6 +13,9 @@ export const LATE_CHANGE_WINDOW_MS = 24 * 60 * 60 * 1000
 const HOUR = 60 * 60 * 1000
 
 export type FineKind = 'game' | 'training' | 'event' | 'poll'
+
+/** What players call each kind in fine wording: "24h before the match" */
+export const FINE_KIND_NOUN: Record<FineKind, string> = { game: 'match', training: 'training', event: 'event', poll: 'poll' }
 export type FineReason = 'late_reply' | 'late_change'
 export type RsvpStatus = 'attending' | 'not_attending' | 'maybe'
 

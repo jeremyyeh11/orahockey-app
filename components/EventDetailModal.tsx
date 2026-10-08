@@ -6,7 +6,7 @@ import { preferredName } from './RosterList'
 import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
-import { FINE_AMOUNT, type FineReason } from '@/lib/fines'
+import { FINE_AMOUNT, FINE_KIND_NOUN, type FineReason } from '@/lib/fines'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
@@ -411,7 +411,11 @@ export function EventDetailModal({
               <DetailRow
                 label="Reply by"
                 value={fmtDateTime(eventRespondBy(currentItem)!)}
-                sub={eventFinesEnabled(currentItem) ? `$${FINE_AMOUNT} fine if late, or for a change in the last 24h` : 'No fines'}
+                sub={
+                  eventFinesEnabled(currentItem)
+                    ? `$${FINE_AMOUNT} fine if late reply, or for a change within 24h before the ${FINE_KIND_NOUN[currentItem.kind]}`
+                    : 'No fines'
+                }
               />
             )}
           </div>
@@ -523,7 +527,7 @@ export function EventDetailModal({
                         <div key={id} className="liga-breakdown-row flex items-baseline justify-between gap-3 text-[11px] text-slate-300">
                           <span className="min-w-0 break-words">
                             {name}
-                            {/* Fined (unwaived): a late or missing reply, or a change in the last 24h */}
+                            {/* Fined (unwaived): a late or missing reply, or a change within 24h before the start */}
                             {fined?.[id]?.map((reason) => (
                               <span key={reason} className="liga-fine-mark ml-1.5 rounded bg-red-900/50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-red-300">
                                 {reason === 'late_change' ? 'Late change' : 'Late'}
@@ -657,7 +661,7 @@ export function EventDetailModal({
 function DetailRow({ label, value, sub }: { label: string; value: string; sub?: string | null }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <span className="text-xs font-medium text-slate-400">{label}</span>
+      <span className="shrink-0 whitespace-nowrap text-xs font-medium text-slate-400">{label}</span>
       <span className="text-right text-sm text-white">
         {value}
         {/* e.g. the report-early time under the date & time */}

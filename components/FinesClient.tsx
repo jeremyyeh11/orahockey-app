@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { fmtDateTime } from '@/lib/format'
-import { FINE_AMOUNT, fineHref, fineKey, finesByPlayer, type Fine, type RsvpStatus } from '@/lib/fines'
+import { FINE_AMOUNT, FINE_KIND_NOUN, fineHref, fineKey, finesByPlayer, type Fine, type RsvpStatus } from '@/lib/fines'
 import { setFineWaived } from '@/app/admin/fines/actions'
 import { preferredName } from '@/components/RosterList'
 
@@ -11,7 +11,7 @@ const STATUS: Record<RsvpStatus, string> = { attending: "I'm in", maybe: 'Maybe'
 
 /** What a fine was for, in a line */
 function fineLine(f: Fine) {
-  if (f.reason === 'late_change') return `Changed ${STATUS[f.from!]} → ${STATUS[f.to!]} · ${fmtDateTime(f.at)} (last 24h)`
+  if (f.reason === 'late_change') return `Changed ${STATUS[f.from!]} → ${STATUS[f.to!]} · ${fmtDateTime(f.at)} (within 24h before the ${FINE_KIND_NOUN[f.kind]})`
   return f.repliedAt ? `Replied ${fmtDateTime(f.repliedAt)} · due ${fmtDateTime(f.at)}` : `No reply · due ${fmtDateTime(f.at)}`
 }
 
@@ -85,7 +85,7 @@ export default function FinesClient({
       <div className="liga-page-header mb-4">
         <h1 className="liga-page-title text-white">Fines</h1>
         <p className="liga-meta mt-1 text-slate-400">
-          ${FINE_AMOUNT} for a late or missing reply, or changing your RSVP in the last 24h without telling the coaching committee.
+          ${FINE_AMOUNT} for a late or missing reply, or changing your RSVP within 24h before a training, match or event without telling the coaching committee.
         </p>
       </div>
 

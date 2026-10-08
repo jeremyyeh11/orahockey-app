@@ -149,7 +149,7 @@ test('reply-by: a countdown over the deadline — grey while open, amber in the 
 
   const open = { respondBy: due, finesEnabled: true, now: sg('2026-10-14T18:39:59') }
   assert.match(html(open), /data-state="open"/)
-  assert.equal(text(open), '1d 5h left to reply Reply by Thu 15 Oct · 23:59 · $5 fine if late')
+  assert.equal(text(open), '1d 5h left to reply Reply by Thu 15 Oct · 23:59 · $5 fine if late reply')
   const soon = { respondBy: due, finesEnabled: false, now: sg('2026-10-15T18:39:59') }
   assert.match(html(soon), /data-state="soon"[\s\S]*text-amber-300/)
   assert.equal(text(soon), '5h 20m left to reply Reply by Thu 15 Oct · 23:59', 'no fine mentioned when fines are off')

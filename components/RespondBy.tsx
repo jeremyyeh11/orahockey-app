@@ -65,7 +65,7 @@ export function RespondBy({
       </div>
       <div className={`liga-meta mt-0.5 ${detailTone}`}>
         {state === 'overdue' ? `Was due ${due}` : `Reply by ${due}`}
-        {finesEnabled ? ` · $${FINE_AMOUNT} fine${state === 'overdue' ? '' : ' if late'}` : ''}
+        {finesEnabled ? ` · $${FINE_AMOUNT} fine${state === 'overdue' ? '' : ' if late reply'}` : ''}
       </div>
     </div>
   )
