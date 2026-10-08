@@ -2,12 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { createPoll, setPollActive, deletePoll } from './actions'
-import { votePoll } from '@/app/dashboard/polls/actions'
 import { fmtDateTime, fromDatetimeLocal } from '@/lib/format'
 import PotmPolls from '@/components/PotmPolls'
-import { PollResults } from '@/components/PollResults'
+import { PollOptions } from '@/components/PollOptions'
 import type { PotmPoll } from '@/lib/potm'
-import type { Poll } from '@/lib/polls'
+import { isPollOpen, voterCount, type Poll } from '@/lib/polls'
 import Modal from '@/components/Modal'
 import { FinesFields, readFinesFields } from '@/components/FinesFields'
 import { RespondBy } from '@/components/RespondBy'
@@ -65,7 +64,7 @@ export default function PollsClient({
     setError(null)
     startTransition(async () => {
       try {
-        await createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null, readFinesFields(fd))
+        await createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null, fd.get('multiple_choice') === 'on', readFinesFields(fd))
         setShowModal(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -200,6 +199,10 @@ export default function PollsClient({
                   + Add option
                 </button>
               )}
+              <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-300">
+                <input type="checkbox" name="multiple_choice" className="h-4 w-4 accent-brand" />
+                Multiple answers
+              </label>
             </div>
 
             <div>
@@ -253,28 +256,10 @@ function PollCard({
   onToggle: () => void
   onDelete: () => void
 }) {
-  const [selected, setSelected] = useState<string | null>(null)
-  const [voteError, setVoteError] = useState<string | null>(null)
-  const [isVoting, startVoting] = useTransition()
-
-  const total = poll.poll_votes.length
-  const sorted = [...poll.poll_options].sort((a, b) => a.sort_order - b.sort_order)
-  const myVote = myPlayerId
-    ? poll.poll_votes.find((v) => v.player_id === myPlayerId)?.poll_option_id ?? null
-    : null
-  const canVote = poll.is_active && myVote == null
-
-  function handleVote() {
-    if (!selected) return
-    setVoteError(null)
-    startVoting(async () => {
-      try {
-        await votePoll(poll.id, selected)
-      } catch (err) {
-        setVoteError(err instanceof Error ? err.message : 'Something went wrong')
-      }
-    })
-  }
+  const total = voterCount(poll.poll_votes)
+  const open = isPollOpen(poll, new Date(now).getTime())
+  const voted = myPlayerId != null && poll.poll_votes.some((v) => v.player_id === myPlayerId)
+  const canVote = open && !voted
 
   return (
     <div className="liga-poll-card card p-4">
@@ -283,6 +268,7 @@ function PollCard({
           <div className="liga-poll-title text-sm font-semibold text-white">{poll.question}</div>
           <div className="liga-meta mt-0.5 text-slate-500">
             {total} vote{total === 1 ? '' : 's'}
+            {poll.multiple_choice && ' · multiple answers'}
             {poll.closes_at && ` · ${poll.is_active ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
           </div>
           {canVote && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
@@ -294,60 +280,32 @@ function PollCard({
         )}
       </div>
 
-      {/* Result bars */}
-      <PollResults poll={poll} myVote={myVote} mutedBarClass="bg-brand-light/80" />
+      {/* Results, and your own vote — tap an option (admins are players too) */}
+      <PollOptions poll={poll} myPlayerId={myPlayerId} open={open} alwaysShowResults mutedBarClass="bg-brand-light/80" />
 
-      {/* Cast your own vote (admins are players too) */}
-      {canVote && (
-        <div className="liga-divider mt-4 border-t border-white/5 pt-3">
-          <div className="mb-2 text-xs font-medium text-slate-400">Your vote</div>
-          <div className="flex flex-wrap gap-1.5">
-            {sorted.map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => setSelected(opt.id)}
-                className={`liga-poll-option liga-button rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                  selected === opt.id
-                    ? 'border-brand bg-brand/20 text-white'
-                    : 'border-surface-border text-slate-400 hover:text-white'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+      <PollVoters
+        votes={poll.poll_votes}
+        roster={roster}
+        fined={fined}
+        actions={
+          <>
             <button
-              onClick={handleVote}
-              disabled={!selected || isVoting}
-              className="liga-button liga-button-primary bg-accent rounded-full px-4 py-1.5 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
+              onClick={onToggle}
+              disabled={isPending}
+              className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
             >
-              {isVoting ? 'Voting…' : 'Vote'}
+              {poll.is_active ? 'Close poll' : 'Reopen'}
             </button>
-          </div>
-          {voteError && (
-            <p className="liga-alert liga-alert-error mt-2 rounded-lg bg-red-900/40 px-3 py-2 text-xs text-red-400">{voteError}</p>
-          )}
-        </div>
-      )}
-
-      <PollVoters votes={poll.poll_votes} roster={roster} fined={fined} />
-
-      {/* Actions */}
-      <div className="liga-actions mt-4 flex gap-2 border-t border-white/5 pt-3">
-        <button
-          onClick={onToggle}
-          disabled={isPending}
-          className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
-        >
-          {poll.is_active ? 'Close poll' : 'Reopen'}
-        </button>
-        <button
-          onClick={onDelete}
-          disabled={isPending}
-          className="liga-button liga-button-danger rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-40"
-        >
-          Delete
-        </button>
-      </div>
+            <button
+              onClick={onDelete}
+              disabled={isPending}
+              className="liga-button liga-button-danger rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-40"
+            >
+              Delete
+            </button>
+          </>
+        }
+      />
     </div>
   )
 }

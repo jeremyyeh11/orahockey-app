@@ -1,15 +1,13 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { votePoll } from './actions'
 import { fmtDateTime } from '@/lib/format'
 import PotmPolls from '@/components/PotmPolls'
-import { PollResults } from '@/components/PollResults'
+import { PollOptions } from '@/components/PollOptions'
 import { RespondBy } from '@/components/RespondBy'
 import { PollVoters } from '@/components/PollVoters'
 import type { FineReason } from '@/lib/fines'
 import type { PotmPoll } from '@/lib/potm'
-import type { Poll } from '@/lib/polls'
+import { isPollOpen, voterCount, type Poll } from '@/lib/polls'
 
 export default function PollsClient({
   polls,
@@ -29,9 +27,7 @@ export default function PollsClient({
   fined: Record<string, Record<string, FineReason[]>>
 }) {
   const nowMs = new Date(now).getTime()
-  const open = polls.filter(
-    (p) => p.is_active && (!p.closes_at || new Date(p.closes_at).getTime() > nowMs)
-  )
+  const open = polls.filter((p) => isPollOpen(p, nowMs))
   const closed = polls.filter((p) => !open.includes(p))
 
   return (
@@ -86,77 +82,20 @@ function PollCard({
   fined?: Record<string, FineReason[]>
   votable?: boolean
 }) {
-  const [selected, setSelected] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
-
-  const total = poll.poll_votes.length
-  const sorted = [...poll.poll_options].sort((a, b) => a.sort_order - b.sort_order)
-  const myVote = myPlayerId
-    ? poll.poll_votes.find((v) => v.player_id === myPlayerId)?.poll_option_id ?? null
-    : null
-
-  const showResults = !votable || myVote != null
-
-  function handleVote() {
-    if (!selected) return
-    setError(null)
-    startTransition(async () => {
-      try {
-        await votePoll(poll.id, selected)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      }
-    })
-  }
+  const total = voterCount(poll.poll_votes)
+  const voted = myPlayerId != null && poll.poll_votes.some((v) => v.player_id === myPlayerId)
 
   return (
     <div className="liga-poll-card card p-4">
       <div className="liga-poll-title text-sm font-semibold text-white">{poll.question}</div>
       <div className="liga-meta mt-0.5 text-slate-500">
         {total} vote{total === 1 ? '' : 's'}
+        {poll.multiple_choice && ' · multiple answers'}
         {poll.closes_at && ` · ${votable ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
       </div>
-      {votable && myVote == null && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
+      {votable && !voted && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
 
-      {showResults ? (
-        <PollResults poll={poll} myVote={myVote} mutedBarClass="bg-brand-light/50" />
-      ) : (
-        <>
-          <div className="mt-3 space-y-2">
-            {sorted.map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => setSelected(opt.id)}
-                className={`liga-poll-option liga-button flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition ${
-                  selected === opt.id
-                    ? 'border-brand bg-brand/10 text-white'
-                    : 'border-surface-border text-slate-300 hover:border-slate-500'
-                }`}
-              >
-                <span
-                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                    selected === opt.id ? 'border-brand-light' : 'border-slate-600'
-                  }`}
-                >
-                  {selected === opt.id && <span className="h-2 w-2 rounded-full bg-brand-light" />}
-                </span>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          {error && <p className="liga-alert liga-alert-error mt-3 rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-
-          <button
-            onClick={handleVote}
-            disabled={!selected || isPending}
-            className="liga-button liga-button-primary bg-accent mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
-          >
-            {isPending ? 'Voting…' : 'Vote'}
-          </button>
-        </>
-      )}
+      <PollOptions poll={poll} myPlayerId={myPlayerId} open={votable} mutedBarClass="bg-brand-light/50" />
 
       <PollVoters votes={poll.poll_votes} roster={roster} fined={fined} />
     </div>
