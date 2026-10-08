@@ -29,12 +29,15 @@ export function RespondBy({
   finesEnabled,
   now,
   onAccent = false,
+  countdownOnly = false,
   className = '',
 }: {
   respondBy: string | null | undefined
   finesEnabled: boolean | undefined
   now: string | Date
   onAccent?: boolean
+  /** Just the countdown line (the event details show the deadline in their own row) */
+  countdownOnly?: boolean
   className?: string
 }) {
   const start = new Date(now).getTime()
@@ -63,10 +66,12 @@ export function RespondBy({
       <div className={`liga-respond-countdown text-sm font-semibold leading-tight ${countdownTone}`}>
         {state === 'overdue' ? `Reply overdue by ${fmtCountdown(left)}` : `${fmtCountdown(left)} left to reply`}
       </div>
-      <div className={`liga-meta mt-0.5 ${detailTone}`}>
-        {state === 'overdue' ? `Was due ${due}` : `Reply by ${due}`}
-        {finesEnabled ? ` · $${FINE_AMOUNT} fine${state === 'overdue' ? '' : ' if late reply'}` : ''}
-      </div>
+      {!countdownOnly && (
+        <div className={`liga-meta mt-0.5 ${detailTone}`}>
+          {state === 'overdue' ? `Was due ${due}` : `Reply by ${due}`}
+          {finesEnabled ? ` · $${FINE_AMOUNT} fine${state === 'overdue' ? '' : ' if late reply'}` : ''}
+        </div>
+      )}
     </div>
   )
 }

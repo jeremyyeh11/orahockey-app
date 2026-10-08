@@ -7,6 +7,7 @@ import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, t
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
 import { FINE_AMOUNT, FINE_KIND_NOUN, type FineReason } from '@/lib/fines'
+import { RespondBy } from './RespondBy'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
@@ -211,6 +212,8 @@ export function EventDetailModal({
   const endIso = eventEnd(currentItem)
   const editEnd = endIso ? toTimeLocal(endIso) : ''
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
+  // Reply times: open seasons only (archived ones carry import times)
+  const showTimes = !readOnly && breakdown.some((g) => g.players.some((p) => p.at))
 
   // Update result — matches only, enabled once the match date/time has passed
   const hasStarted = new Date(dateStr).getTime() <= new Date(now).getTime()
@@ -487,6 +490,10 @@ export function EventDetailModal({
           >
             {!readOnly && (
             <div className="mb-4">
+              {eventRespondBy(currentItem) &&
+                (!localMyStatus || new Date(eventRespondBy(currentItem)!).getTime() > new Date(now).getTime()) && (
+                  <RespondBy respondBy={eventRespondBy(currentItem)} finesEnabled={eventFinesEnabled(currentItem)} now={now} countdownOnly className="mb-3" />
+                )}
               <div className="mb-2 text-[11px] font-medium text-slate-500">Your response</div>
               <div className="flex gap-2">
                 {([
@@ -517,14 +524,24 @@ export function EventDetailModal({
 
             {breakdown.length > 0 && (
               <div className="space-y-2">
-                {breakdown.map((group) => (
+                {breakdown.map((group, i) => (
                   <div key={group.label}>
-                    <div className="mb-1 text-[11px] font-medium text-slate-500">
-                      {group.label} ({group.players.length})
+                    <div className="mb-1 flex items-baseline justify-between gap-3 text-[11px] font-medium text-slate-500">
+                      <span>
+                        {group.label} ({group.players.length})
+                      </span>
+                      {/* Heading for the times column (once, on the first group) */}
+                      {i === 0 && showTimes && <span className="liga-section-title shrink-0 normal-case tracking-normal">Responded on</span>}
                     </div>
                     <div className="space-y-0.5">
                       {group.players.map(({ id, name, at }) => (
-                        <div key={id} className="liga-breakdown-row flex items-baseline justify-between gap-3 text-[11px] text-slate-300">
+                        <div
+                          key={id}
+                          data-fined={fined?.[id]?.length ? '' : undefined}
+                          className={`liga-breakdown-row -mx-1.5 flex items-baseline justify-between gap-3 rounded px-1.5 py-px text-[11px] ${
+                            fined?.[id]?.length ? 'bg-red-900/40 text-red-200' : 'text-slate-300'
+                          }`}
+                        >
                           <span className="min-w-0 break-words">
                             {name}
                             {/* Fined (unwaived): a late or missing reply, or a change within 24h before the start */}
@@ -535,7 +552,9 @@ export function EventDetailModal({
                             ))}
                           </span>
                           {/* When they gave this answer — open seasons only (archived ones carry import times) */}
-                          {at && !readOnly && <span className="liga-meta shrink-0 text-slate-500">{fmtDateTime(at)}</span>}
+                          {at && showTimes && (
+                            <span className={`liga-meta shrink-0 ${fined?.[id]?.length ? 'text-red-300' : 'text-slate-500'}`}>{fmtDateTime(at)}</span>
+                          )}
                         </div>
                       ))}
                     </div>
