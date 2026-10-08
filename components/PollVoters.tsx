@@ -27,8 +27,14 @@ export function PollVoters({
   const [open, setOpen] = useState(false)
   const byId = new Map(roster.map((p) => [p.id, p]))
   const nameOf = (id: string) => (byId.get(id) ? preferredName(byId.get(id)!) : 'Former player')
-  const voted = [...votes].sort((a, b) => (a.voted_at ?? '').localeCompare(b.voted_at ?? ''))
-  const votedIds = new Set(votes.map((v) => v.player_id))
+  // A multiple-answer vote is several rows: one per voter, at their earliest
+  const firstVote = new Map<string, { player_id: string; voted_at?: string }>()
+  for (const v of votes) {
+    const prev = firstVote.get(v.player_id)
+    if (!prev || (v.voted_at ?? '') < (prev.voted_at ?? '')) firstVote.set(v.player_id, v)
+  }
+  const voted = Array.from(firstVote.values()).sort((a, b) => (a.voted_at ?? '').localeCompare(b.voted_at ?? ''))
+  const votedIds = new Set(Array.from(firstVote.keys()))
   const notVoted = roster.filter((p) => !votedIds.has(p.id)).sort((a, b) => nameOf(a.id).localeCompare(nameOf(b.id)))
   const late = Object.keys(fined ?? {}).length
 

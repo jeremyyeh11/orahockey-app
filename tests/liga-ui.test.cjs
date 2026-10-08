@@ -56,7 +56,7 @@ test('authenticated app typography, controls and shell are scoped to app routes'
 
 test('shared app pages expose consistent list, surface and modal hooks', () => {
   for (const file of [
-    'components/PollResults.tsx',
+    'components/PollOptions.tsx',
     'components/PotmPolls.tsx',
     'components/ReadEditModal.tsx',
     'components/MatchResultModal.tsx',

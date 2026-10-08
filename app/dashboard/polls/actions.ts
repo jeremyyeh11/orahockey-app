@@ -3,32 +3,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function votePoll(pollId: string, optionId: string) {
+/**
+ * Set your picks on an open poll to exactly `optionIds` — tap-to-vote, switch,
+ * add/remove (multiple answers) and retract (empty list) all go through here.
+ * set_poll_vote() checks the poll is open and the one-answer rule.
+ */
+export async function setPollVote(pollId: string, optionIds: string[]) {
   const supabase = createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not signed in')
-
-  const { data: me, error: meError } = await supabase
-    .from('players')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (meError || !me) throw new Error('No player record linked to this account')
-
-  const { error } = await supabase.from('poll_votes').insert({
-    poll_id: pollId,
-    poll_option_id: optionId,
-    player_id: me.id,
-  })
-
-  if (error) {
-    if (error.code === '23505') throw new Error('You have already voted in this poll')
-    throw new Error(error.message)
-  }
+  const { error } = await supabase.rpc('set_poll_vote', { p_poll_id: pollId, p_option_ids: optionIds })
+  if (error) throw new Error(error.message)
 
   revalidatePath('/dashboard/polls')
   revalidatePath('/admin/polls')
