@@ -3,8 +3,11 @@
 import { useState, useTransition } from 'react'
 import { setAttendance } from './actions'
 import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
-import { EventRow, eventId, type EventItem, type MyStatus } from '@/components/EventRow'
+import { EventRow, eventFinesEnabled, eventId, eventRespondBy, type EventItem, type MyStatus } from '@/components/EventRow'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
+import { RespondBy } from '@/components/RespondBy'
+import { RsvpButtons } from '@/components/RsvpButtons'
+import type { FineReason } from '@/lib/fines'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
@@ -27,6 +30,7 @@ export default function ScheduleClient({
   cardsByGame,
   potmByGame,
   initialEventKey,
+  fined,
 }: {
   /** The season being shown; a locked season is read-only */
   season: Season
@@ -46,6 +50,8 @@ export default function ScheduleClient({
   potmByGame: Record<string, PotmPlacing[]>
   /** Event to open on arrival — `game-<id>`, `training-<id>` or `event-<id>` */
   initialEventKey: string | null
+  /** Unwaived fines per entry ('training-<id>') and player */
+  fined: Record<string, Record<string, FineReason[]>>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings' | 'events'>('all')
   const [isPending, startTransition] = useTransition()
@@ -150,6 +156,7 @@ export default function ScheduleClient({
       goalsByGame={goalsByGame}
       cardsByGame={cardsByGame}
       potmByGame={potmByGame}
+      fined={fined[eventKey(selectedItem)]}
       onClose={() => setSelectedItem(null)}
       onSaveGame={handleSaveGame}
       onSaveTraining={handleSaveTraining}
@@ -213,33 +220,11 @@ export default function ScheduleClient({
                       >
                         <EventRow item={item} />
                       </div>
+                      {!readOnly && !mine && (
+                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} className="ml-14 mt-2" />
+                      )}
                       {!readOnly && (
-                      <div className="liga-event-actions mt-2 flex gap-2">
-                        {(
-                          [
-                            ['attending', "I'm in"],
-                            ['maybe', 'Maybe'],
-                            ['not_attending', 'Out'],
-                          ] as const
-                        ).map(([status, label]) => (
-                          <button
-                            key={status}
-                            onClick={() => respond(item, status)}
-                            disabled={isPending && pendingId === id}
-                            className={`liga-button flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
-                              mine === status
-                                ? status === 'attending'
-                                  ? 'bg-accent text-white ring-1 ring-white/10'
-                                  : status === 'maybe'
-                                  ? 'bg-amber-900/60 text-amber-300'
-                                  : 'bg-slate-700 text-slate-300'
-                                : 'liga-event-action-quiet text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
+                        <RsvpButtons value={mine} onPick={(status) => respond(item, status)} disabled={isPending && pendingId === id} className="ml-14 mt-2" />
                       )}
                     </div>
                   )

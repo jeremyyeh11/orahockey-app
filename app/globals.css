@@ -500,26 +500,6 @@
   }
 }
 
-.liga-ui .liga-event-actions {
-  border-top: 0;
-  justify-content: space-between;
-  padding-top: 0;
-}
-
-.liga-ui .liga-event-actions .liga-button {
-  border: 0;
-  border-radius: 4px;
-  flex: 0 1 6rem;
-  min-width: 5.5rem;
-}
-
-.liga-ui .liga-event-actions .liga-event-action-quiet {
-  background-color: transparent;
-  background-image: none;
-  border-radius: 0;
-  color: #94a3b8;
-}
-
 .liga-ui .liga-event-result .liga-result-badge,
 .liga-ui .liga-event-type {
   background-color: transparent;
@@ -553,10 +533,6 @@
   font-size: 0.6875rem;
   line-height: 1.45;
   overflow-wrap: break-word;
-}
-
-.liga-ui .liga-event-actions {
-  border-top-color: #323238;
 }
 
 .liga-ui .liga-roster-name {

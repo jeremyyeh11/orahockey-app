@@ -4,6 +4,8 @@ import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
 import { getSeasonSquad, getSelectedSeason, inSeason, seasonRoster } from '@/lib/season-server'
+import { loadFines } from '@/lib/fines-server'
+import { finedBySession } from '@/lib/fines'
 import type { AttendanceRow, TeamListSelection } from '@/app/dashboard/schedule/page'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 
@@ -35,11 +37,12 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
     { data: goalRows },
     { data: cardRows },
     { data: potmRows },
+    { fines },
   ] = await Promise.all([
     inSeason(supabase.from('games').select('*'), season).order('game_date', { ascending: false }),
     inSeason(supabase.from('training_sessions').select('*'), season).order('session_date', { ascending: false }),
-    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes'), season).order('event_date', { ascending: false }),
-    supabase.from('attendance').select('player_id, session_id, status, player:players(full_name, preferred_name)'),
+    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled, created_at'), season).order('event_date', { ascending: false }),
+    supabase.from('attendance').select('player_id, session_id, status, responded_at, player:players(full_name, preferred_name)'),
     supabase
       .from('players')
       .select('id, attendance(session_id, status)')
@@ -58,6 +61,7 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
       .select('id, game_id, player_id, card_type')
       .not('game_id', 'is', null),
     supabase.from('potm').select('game_id, player_id, place'),
+    loadFines(),
   ])
 
   const error = gamesError ?? trainingsError ?? eventsError
@@ -113,6 +117,7 @@ export default async function AdminSchedulePage({ searchParams }: { searchParams
       cardsByGame={groupByGame((cardRows ?? []) as CardRow[])}
       potmByGame={groupByGame((potmRows ?? []) as { game_id: string; player_id: string; place: number }[])}
       initialEventKey={typeof searchParams.event === 'string' ? searchParams.event : null}
+      fined={finedBySession(fines)}
     />
   )
 }

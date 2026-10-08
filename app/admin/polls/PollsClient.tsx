@@ -9,6 +9,10 @@ import { PollResults } from '@/components/PollResults'
 import type { PotmPoll } from '@/lib/potm'
 import type { Poll } from '@/lib/polls'
 import Modal from '@/components/Modal'
+import { FinesFields, readFinesFields } from '@/components/FinesFields'
+import { RespondBy } from '@/components/RespondBy'
+import { PollVoters } from '@/components/PollVoters'
+import type { FineReason } from '@/lib/fines'
 
 const inputCls =
   'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -19,10 +23,18 @@ export default function PollsClient({
   polls,
   potmPolls,
   myPlayerId,
+  now,
+  roster,
+  fined,
 }: {
   polls: Poll[]
   potmPolls: PotmPoll[]
   myPlayerId: string | null
+  now: string
+  /** Who should vote: the current season's active squad */
+  roster: { id: string; full_name: string; preferred_name: string | null }[]
+  /** Unwaived fines per entry ('poll-<id>') and player */
+  fined: Record<string, Record<string, FineReason[]>>
 }) {
   const [showModal, setShowModal] = useState(false)
   const [options, setOptions] = useState<string[]>(['', ''])
@@ -53,7 +65,7 @@ export default function PollsClient({
     setError(null)
     startTransition(async () => {
       try {
-        await createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null)
+        await createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null, readFinesFields(fd))
         setShowModal(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -102,6 +114,9 @@ export default function PollsClient({
                 key={poll.id}
                 poll={poll}
                 myPlayerId={myPlayerId}
+                now={now}
+                roster={roster}
+                fined={fined[`poll-${poll.id}`]}
                 isPending={isPending}
                 onToggle={() => handleToggle(poll)}
                 onDelete={() => handleDelete(poll)}
@@ -120,6 +135,9 @@ export default function PollsClient({
                 key={poll.id}
                 poll={poll}
                 myPlayerId={myPlayerId}
+                now={now}
+                roster={roster}
+                fined={fined[`poll-${poll.id}`]}
                 isPending={isPending}
                 onToggle={() => handleToggle(poll)}
                 onDelete={() => handleDelete(poll)}
@@ -189,6 +207,8 @@ export default function PollsClient({
               <input name="closes_at" type="datetime-local" className={dateInputCls} />
             </div>
 
+            <FinesFields kind="poll" closesName="closes_at" />
+
             {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
 
             <div className="flex gap-3 pt-1">
@@ -217,12 +237,18 @@ export default function PollsClient({
 function PollCard({
   poll,
   myPlayerId,
+  now,
+  roster,
+  fined,
   isPending,
   onToggle,
   onDelete,
 }: {
   poll: Poll
   myPlayerId: string | null
+  now: string
+  roster: { id: string; full_name: string; preferred_name: string | null }[]
+  fined?: Record<string, FineReason[]>
   isPending: boolean
   onToggle: () => void
   onDelete: () => void
@@ -259,6 +285,7 @@ function PollCard({
             {total} vote{total === 1 ? '' : 's'}
             {poll.closes_at && ` · ${poll.is_active ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
           </div>
+          {canVote && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
         </div>
         {poll.is_active && (
           <span className="liga-status-label shrink-0 text-[10px] font-semibold uppercase text-green-300">
@@ -301,6 +328,8 @@ function PollCard({
           )}
         </div>
       )}
+
+      <PollVoters votes={poll.poll_votes} roster={roster} fined={fined} />
 
       {/* Actions */}
       <div className="liga-actions mt-4 flex gap-2 border-t border-white/5 pt-3">

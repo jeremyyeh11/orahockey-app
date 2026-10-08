@@ -10,8 +10,8 @@ import PullToRefresh from '@/components/PullToRefresh'
 import NavigationProgress from '@/components/NavigationProgress'
 import { LockedSeasonStrip, SeasonMenu, SeasonTabs, type SeasonNav } from '@/components/SeasonSwitcher'
 
-// Pages whose data isn't season-scoped don't show the season switcher
-const NOT_SEASON_SCOPED = /\/(polls|profile)(\/|$)/
+// Pages whose data isn't season-scoped don't show the season switcher (Fines go by month)
+const NOT_SEASON_SCOPED = /\/(polls|profile|fines)(\/|$)/
 
 /**
  * Shared app chrome for the admin and player areas: sticky top bar (crest +

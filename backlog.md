@@ -46,22 +46,6 @@ Open questions to resolve at build time:
 
 Needs a nullable `reason` column on `attendance` (new migration).
 
-## 9. Timestamps on attendance votes and poll votes
-
-Show **when** each person responded, for every event type (matches, trainings, team events)
-and for polls. In the event detail modal's attendance breakdown, each name gets a small
-relative time ("2h ago" / "Mon 14:05"); in the Polls tab, the voted/"Yet to vote" area shows
-when each voter submitted.
-
-Data already exists: `attendance.responded_at` and `potm_ballots.created_at`. Mostly UI work.
-
-Open questions to resolve at build time:
-- Does changing a vote (e.g. Attending → Not attending) update the timestamp? Check whether
-  the attendance upsert currently refreshes `responded_at` — it defaults to `now()` on insert
-  only, so changed votes may show the original time.
-- Seeded 2026 attendance rows carry seed-time timestamps — hide timestamps for those, or show them?
-- Relative ("2h ago") vs absolute ("Mon 14:05")? Sort names by response time?
-
 ## 10. Copy "Hasn't responded" names
 
 In the event detail modal's attendance breakdown, add an icon-only copy button beside the
@@ -102,9 +86,61 @@ Open questions to resolve at build time:
 - Photo: any moderation/approval by admin, or live immediately? Crop to the trading-card ratio?
 - Does the player's Profile tab replace tapping their own card in Squad, or do both stay?
 
+## 13. Finemaster role
+
+Fines can only be marked **Paid** or **Waived** by admins (RLS on `fine_payments` /
+`fine_waivers`, migrations 018–019). Add a **finemaster** role so a non-admin player can run
+the monthly collection: mark fines paid, waive them (with a reason), and copy the outstanding
+list — without the rest of admin.
+
+Open questions to resolve at build time:
+- A new `player_role` value, or a separate flag on `players` (a finemaster can still be an admin)?
+- Who assigns it — any admin, from the player's profile edit?
+- Should a finemaster be able to edit Respond by / Fines on events and polls, or only settle fines?
+
+Needs: a role/flag column, `is_finemaster()` alongside `is_admin()` in the two tables' policies,
+and the Fines tab's Paid/Waive buttons shown to finemasters.
+
 ---
 
 ## Archived
+
+### 12. Respond-by deadlines and fines ✓ Oct 2026
+
+Club fines ($5, collated monthly) for late attendance/poll replies and last-minute changes.
+Migration `018_fines.sql`: `respond_by` + `fines_enabled` on games, trainings, team events and
+polls; `attendance_log` (every RSVP/status change, database-stamped — `responded_at` and
+`poll_votes.voted_at` are now set server-side so clients can't backdate); `fine_waivers`.
+Fines are derived, never stored (`lib/fines.ts` `computeFines`, loaded by `lib/fines-server.ts`).
+
+Decided at build time: deadlines Thu 23:59 before weekend games/trainings, Sun 23:59 before weekday
+training, 72h before weekday games, 72h after posting for polls/team events; events posted after
+their deadline get no fines; every own change within 24h of the start is fined and admins waive
+the ones who PM'd the coaching committee; **everyone sees everyone's fines**; a fine counts in the
+month it happened; team events start with fines off; POTM voting is exempt; only active squad
+members with an app account are fined (no player accounts existed at launch — RSVPs were
+admin-imported). UI: Respond by + Fines fields on all add/edit forms, Reply-by lines on cards,
+reply times and Late tags in the attendance breakdown, a **Fines** nav tab (month view, waive, copy
+for WhatsApp).
+
+Covers **#9** for attendance: each name in the event breakdown shows when they gave their answer
+(open seasons only). Poll vote times aren't shown — the Polls tab has no per-voter list.
+
+### 9. Timestamps on attendance votes and poll votes ✓ Oct 2026 (built in #12)
+
+Show **when** each person responded, for every event type (matches, trainings, team events)
+and for polls. In the event detail modal's attendance breakdown, each name gets a small
+relative time ("2h ago" / "Mon 14:05"); in the Polls tab, the voted/"Yet to vote" area shows
+when each voter submitted.
+
+Data already exists: `attendance.responded_at` and `potm_ballots.created_at`. Mostly UI work.
+
+Open questions to resolve at build time:
+- Does changing a vote (e.g. Attending → Not attending) update the timestamp? Check whether
+  the attendance upsert currently refreshes `responded_at` — it defaults to `now()` on insert
+  only, so changed votes may show the original time.
+- Seeded 2026 attendance rows carry seed-time timestamps — hide timestamps for those, or show them?
+- Relative ("2h ago") vs absolute ("Mon 14:05")? Sort names by response time?
 
 ### 7.1 Dynamic season labels ✓ July 2026
 

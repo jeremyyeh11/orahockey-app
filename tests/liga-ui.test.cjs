@@ -29,9 +29,11 @@ test('authenticated app typography, controls and shell are scoped to app routes'
   assert.equal(declarations('.liga-ui')['font-family'], 'var(--font-inter), ui-sans-serif, system-ui, sans-serif')
   assert.equal(declarations('.liga-ui .liga-event-card.card')['background-color'], 'transparent')
   assert.equal(declarations('.liga-ui .liga-event-card.card')['border-bottom'], '1px solid #323238')
-  assert.equal(declarations('.liga-ui .liga-event-actions .liga-button')['border'], '0')
-  assert.equal(declarations('.liga-ui .liga-event-actions .liga-button')['flex'], '0 1 6rem')
-  assert.equal(declarations('.liga-ui .liga-event-actions .liga-event-action-quiet')['background-color'], 'transparent')
+  // RSVP: one compact bordered group (Home cards and schedule rows), never spread across the row
+  assert.match(read('components/RsvpButtons.tsx'), /liga-rsvp flex gap-2 lg:max-w-sm/)
+  for (const area of ['admin', 'dashboard']) assert.match(read(`app/${area}/schedule/ScheduleClient.tsx`), /<RsvpButtons value=\{mine\}/)
+  assert.match(read('components/HomeRsvp.tsx'), /<RsvpButtons /)
+  assert.deepEqual(declarations('.liga-ui .liga-event-actions .liga-button'), {}, 'no spread-out action styles left')
   assert.equal(declarations('.liga-ui .liga-meta')['font-family'], 'var(--font-liga-mono), ui-monospace, monospace')
   assert.equal(declarations('.liga-ui .liga-button')['min-height'], '44px')
   assert.equal(declarations('.liga-ui .liga-page')['margin-inline'], 'auto')
@@ -199,15 +201,20 @@ test('admins and players share one Home dashboard', () => {
   assert.ok(!fs.existsSync(path.join(root, 'components/admin/DashboardView.tsx')), 'no separate admin dashboard')
   const home = read('components/HomeView.tsx')
   assert.ok(!/href="\/(dashboard|admin)\//.test(home), 'links follow the caller section')
-  assert.ok(home.includes('href={`${basePath}/schedule`}'))
+  assert.ok(home.includes('href={`${basePath}/schedule?event=${item.kind}-${item.id}`}'), 'Next up opens its event on the schedule')
+  assert.ok(home.includes('href={`${basePath}/schedule?event=game-${lastGame.id}`}'), 'Last game opens that game')
   assert.ok(home.includes('href={`${basePath}/polls`}'))
   assert.ok(read('app/admin/AdminShell.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
-  // Desktop: season + your stats beside next up / last game / polls; phones stay one column
+  // Desktop: season strip, Next up, last game and polls on the left, your stats on the right; phones stay one column
   assert.ok(home.includes('liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6'))
-  // Next up: top of the right column on desktop (flush with the hero); under the hero on phones
-  assert.match(home, /<div className="hidden lg:block">\s*<h2 className="liga-section-title">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/, 'right column starts flush with the hero')
-  assert.match(home, /<div className="lg:hidden">\s*<h2 className="liga-section-title mt-6">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/)
-  assert.ok(home.indexOf('<div className="lg:hidden">') < home.indexOf('Your all-time stats'), 'phones: Next up above your season stats')
+  // Next up: straight under the season strip on every layout
+  assert.match(home, /<h2 className="liga-section-title mt-6">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/)
+  assert.ok(home.indexOf('{nextUpCard}') < home.indexOf('<div className="lg:hidden">{yourStats}</div>'), 'phones: Next up above your stats')
+  assert.ok(home.includes('<div className="hidden min-w-0 lg:block">{yourStats}</div>'), 'desktop: your stats in the right column')
+  // Next up: one card per type, soonest featured; RSVP only where the season can change
+  assert.match(home, /featured=\{i === 0\}/)
+  assert.match(home, /rsvp=\{season\.locked \? undefined : myStatusOf\(item\)\}/)
+  assert.match(home, /<HomeRsvp sessionId=\{next\.id\} kind=\{next\.kind\}/)
 })
 
 test('Home leads with the selected season and keeps all-time stats below it', () => {
@@ -218,14 +225,14 @@ test('Home leads with the selected season and keeps all-time stats below it', ()
   // All time: always open, phones included
   assert.match(home, /<div className="liga-all-time mt-6">/)
   // Next up: the title says what it is, so the meta line is just when + where (no repeated "Training")
-  assert.doesNotMatch(home, /next\.kind/)
+  assert.match(home, /\{fmtDateTimeRange\(next\.when, next\.ends\)\}<\/div>/)
   assert.match(home, /title: 'Team training'/)
   assert.doesNotMatch(home, /<details/)
 })
 
 test('season switcher: header dropdown on desktop, pinned tabs on touch layouts, hidden where not season-scoped', () => {
   const shell = read('components/AppShell.tsx')
-  assert.match(shell, /NOT_SEASON_SCOPED = \/\\\/\(polls\|profile\)/, 'Polls and Profile are not season-scoped')
+  assert.match(shell, /NOT_SEASON_SCOPED = \/\\\/\(polls\|profile\|fines\)/, 'Polls, Profile and Fines (by month) are not season-scoped')
   assert.match(shell, /\{seasons && <SeasonMenu \{\.\.\.seasons\} \/>\}/, 'desktop dropdown sits in the header row')
   assert.match(shell, /<SeasonTabs \{\.\.\.seasons\} \/>\s*<LockedSeasonStrip \{\.\.\.seasons\} \/>[\s\S]*<\/header>/, 'tabs + locked strip are inside the sticky header')
   const switcher = read('components/SeasonSwitcher.tsx')
@@ -248,7 +255,7 @@ test('locked seasons are read-only in the app, admins included', () => {
     const schedule = read(`app/${area}/schedule/ScheduleClient.tsx`)
     assert.match(schedule, /const readOnly = season\.locked/)
     assert.match(schedule, /readOnly=\{readOnly\}/, `${area} schedule passes read-only to event details`)
-    assert.match(schedule, /\{!readOnly && \(\s*<div className="liga-event-actions/, `${area} schedule hides RSVP buttons`)
+    assert.match(schedule, /\{!readOnly && \(\s*<RsvpButtons /, `${area} schedule hides RSVP buttons`)
   }
   assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /\{!readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
   for (const fn of ['addGame', 'addTraining']) {

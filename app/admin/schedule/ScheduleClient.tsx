@@ -18,14 +18,18 @@ import {
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
-import { EventRow, eventId, type EventItem, type MyStatus } from '@/components/EventRow'
+import { EventRow, eventFinesEnabled, eventId, eventRespondBy, type EventItem, type MyStatus } from '@/components/EventRow'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
+import { RespondBy } from '@/components/RespondBy'
+import { RsvpButtons } from '@/components/RsvpButtons'
+import type { FineReason } from '@/lib/fines'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 import type { Season } from '@/lib/season'
 import Modal from '@/components/Modal'
 import { GameTypeSwitch } from '@/components/GameTypeSwitch'
 import { ScheduleTimeFields, readTimeFields } from '@/components/ScheduleTimeFields'
+import { FinesFields, readFinesFields } from '@/components/FinesFields'
 import { countsForRecord } from '@/lib/stats'
 
 const inputCls =
@@ -50,6 +54,7 @@ export default function ScheduleClient({
   cardsByGame,
   potmByGame,
   initialEventKey,
+  fined,
 }: {
   /** The season being shown; a locked season is read-only, admins included */
   season: Season
@@ -70,6 +75,8 @@ export default function ScheduleClient({
   potmByGame: Record<string, PotmPlacing[]>
   /** Event to open on arrival — `game-<id>`, `training-<id>` or `event-<id>` */
   initialEventKey: string | null
+  /** Unwaived fines per entry ('training-<id>') and player */
+  fined: Record<string, Record<string, FineReason[]>>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings' | 'events'>('all')
   const [addModal, setAddModal] = useState<'game' | 'training' | 'event' | null>(null)
@@ -183,6 +190,7 @@ export default function ScheduleClient({
       goals_against: null,
       notes: (fd.get('notes') as string) || null,
       ...readTimeFields(fd, gameDate),
+      ...readFinesFields(fd),
     }
     setError(null)
     startTransition(async () => {
@@ -204,6 +212,7 @@ export default function ScheduleClient({
       location: (fd.get('location') as string) || null,
       notes: (fd.get('notes') as string) || null,
       ...readTimeFields(fd, sessionDate),
+      ...readFinesFields(fd),
     }
     setError(null)
     startTransition(async () => {
@@ -226,6 +235,7 @@ export default function ScheduleClient({
       location: (fd.get('location') as string) || null,
       notes: (fd.get('notes') as string) || null,
       ...readTimeFields(fd, eventDate),
+      ...readFinesFields(fd),
     }
     setError(null)
     startTransition(async () => {
@@ -254,6 +264,7 @@ export default function ScheduleClient({
       goalsByGame={goalsByGame}
       cardsByGame={cardsByGame}
       potmByGame={potmByGame}
+      fined={fined[eventKey(selectedItem)]}
       onClose={() => { setSelectedItem(null); setError(null) }}
       onSaveGame={handleSaveGame}
       onSaveTraining={handleSaveTraining}
@@ -352,33 +363,11 @@ export default function ScheduleClient({
                       >
                         <EventRow item={item} attending={attending} />
                       </div>
+                      {!readOnly && !mine && (
+                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} className="ml-14 mt-2" />
+                      )}
                       {!readOnly && (
-                      <div className="liga-event-actions mt-2 flex gap-2">
-                        {(
-                          [
-                            ['attending', "I'm in"],
-                            ['maybe', 'Maybe'],
-                            ['not_attending', 'Out'],
-                          ] as const
-                        ).map(([status, label]) => (
-                          <button
-                            key={status}
-                            onClick={() => respond(item, status)}
-                            disabled={isPending && respondingId === id}
-                            className={`liga-button flex-1 rounded-lg py-2 text-xs font-semibold transition disabled:opacity-40 ${
-                              mine === status
-                                ? status === 'attending'
-                                  ? 'bg-accent text-white ring-1 ring-white/10'
-                                  : status === 'maybe'
-                                  ? 'bg-amber-900/60 text-amber-300'
-                                  : 'bg-slate-700 text-slate-300'
-                                : 'liga-event-action-quiet text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
+                        <RsvpButtons value={mine} onPick={(status) => respond(item, status)} disabled={isPending && respondingId === id} className="ml-14 mt-2" />
                       )}
                     </div>
                   )
@@ -432,6 +421,7 @@ export default function ScheduleClient({
               <input name="game_date" type="datetime-local" required className={dateInputCls} />
             </div>
             <ScheduleTimeFields />
+            <FinesFields kind="game" startName="game_date" />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium" />
@@ -465,6 +455,7 @@ export default function ScheduleClient({
               <input name="session_date" type="datetime-local" required className={dateInputCls} />
             </div>
             <ScheduleTimeFields />
+            <FinesFields kind="training" startName="session_date" />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Sengkang Hockey Stadium — Pitch 2" />
@@ -492,6 +483,7 @@ export default function ScheduleClient({
               <input name="event_date" type="datetime-local" required className={dateInputCls} />
             </div>
             <ScheduleTimeFields />
+            <FinesFields kind="event" startName="event_date" />
             <div>
               <label className={labelCls}>Location</label>
               <input name="location" type="text" className={inputCls} placeholder="Optional" />
@@ -521,15 +513,20 @@ function EventCard({
   selected: boolean
   onClick: () => void
 }) {
+  // A div, not a <button>: on desktop rows bleed 0.75rem past the column for
+  // their highlight, and a button's fixed width would leave it short on the right
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter') onClick() }}
       aria-current={selected || undefined}
       data-selected={selected || undefined}
-      className="liga-event-card card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
+      className="liga-event-card card flex cursor-pointer items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
     >
-      <EventRow item={item} attending={attending} />
-    </button>
+      <EventRow item={item} attending={attending} past />
+    </div>
   )
 }
 

@@ -61,13 +61,25 @@ Manage the roster.
 
 ### Schedule
 - **+ Event** / **+ Training** / **+ Game** add to the season's schedule. A game has an opponent, date/time, venue, home/away, notes and a **League / Friendly** switch. A training has date/time, venue and notes. An **event** is anything else - a gathering, meeting, social - and needs a **title** plus date/time; venue and notes are optional. Players can RSVP to all three. Each can also have an optional **Ends at** time (pick a time on the same day; one earlier than the start means it runs past midnight) and **Report early by** minutes, shown under the date and time as e.g. *Report 08:45 · 15 min early*. **Friendlies don't count** towards the season record, player stats or leaderboards - you can still enter their score, scorers and cards.
+- **Respond by + Fines:** every game, training and event has a **Respond by** deadline, filled in from the club rule as you pick the date - Thursday 23:59 before a weekend game/training, Sunday 23:59 before a weekday training, 72 hours before a weekday game, 72 hours after posting for an event. It follows the date until you change it by hand (**Use club rule** puts it back). The **Fines ($5)** switch is on by default for games and trainings, **off for events**, and off for anything you add after its deadline has already passed. Clear the deadline or switch fines off for casual entries.
+- Each row shows the headcount on the right - *attending* for upcoming events, *attended* for past ones.
 - **Tap any event** to open the detail view (on a computer it opens in the panel beside the list). As an admin you get an **Edit** button that turns the fields into editable inputs; **Save** writes the change and **Discard changes** cancels. You can also **delete** the event (this also removes its attendance and stats).
 - For games, **Update result** (available once the match has started) records the score, scorers, assists, and cards - the W/D/L result is worked out from the score - and **Team list** picks and publishes the match squad.
 
 ### Polls
-- **+ New Poll** creates a poll: a question, 2-6 options, and an optional close date.
+- **+ New Poll** creates a poll: a question, 2-6 options, an optional close date, and a **Respond by** deadline (72 hours after posting, or the close date if that's sooner) with a **Fines ($5)** switch - on by default; switch it off for casual polls.
 - Open polls can be **Closed** (or reopened), and any poll can be **Deleted** (votes included).
 - Admins vote in polls just like players do.
+- The vote count on each poll (e.g. *12 voted · 18 haven't · 2 late*) opens a list of who has voted (with when) and who hasn't from the current season's active squad, with late voters in red - votes stay anonymous.
+
+### Fines
+The **Fines** tab (between Squad and Profile). Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:
+- **Late reply** - first reply after the deadline, or none at all (counted in the month the deadline passed).
+- **Late change** - a player changing their own answer in the 24 hours before the start (counted in the month of the change). The app can't see who PM'd the coaching committee, so every such change is fined - **Waive** the ones who did.
+- Each outstanding fine has **Paid** and **Waive**. **Waive** asks for a reason (e.g. *PM'd Ish before changing*), which shows on the fine for everyone. Paid and waived fines are greyed out and keep an **Undo**.
+- The card under the month says **Outstanding** (with the amount still owed) or **Settled** once every fine is paid or waived. Players who still owe are listed first and open; settled players collapse.
+- **Copy outstanding for WhatsApp** copies what each player still owes that month, to paste into a message.
+- Only active squad members with an app account are fined. Players see the same page without the waive buttons.
 
 ### Profile
 Your identity card - name, email, role, jersey number, and positions - plus a **Sign out** button.

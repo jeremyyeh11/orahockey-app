@@ -5,8 +5,11 @@ import { ReadEditModal } from './ReadEditModal'
 import { preferredName } from './RosterList'
 import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
-import { eventEnd, eventId, eventLocation, eventNotes, eventReportMinutes, eventTitle, type EventItem } from './EventRow'
+import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
+import { FINE_AMOUNT, FINE_KIND_NOUN, type FineReason } from '@/lib/fines'
+import { RespondBy } from './RespondBy'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
+import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
 import { competitionLabel } from '@/lib/constants'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
@@ -36,6 +39,8 @@ export type Game = {
   team_list_status: 'draft' | 'published' | null
   ends_at?: string | null
   report_minutes?: number | null
+  respond_by?: string | null
+  fines_enabled?: boolean
 }
 
 export type Training = {
@@ -45,6 +50,8 @@ export type Training = {
   notes: string | null
   ends_at?: string | null
   report_minutes?: number | null
+  respond_by?: string | null
+  fines_enabled?: boolean
 }
 
 /** A titled team event — gathering, meeting, social… */
@@ -56,6 +63,10 @@ export type TeamEvent = {
   notes: string | null
   ends_at?: string | null
   report_minutes?: number | null
+  respond_by?: string | null
+  fines_enabled?: boolean
+  /** When it was posted — team events' default respond-by counts from it */
+  created_at?: string
 }
 
 export type PlayerLite = {
@@ -70,6 +81,8 @@ export type AttendanceRow = {
   player_id: string
   session_id: string
   status: 'attending' | 'not_attending' | 'maybe'
+  /** When they gave this answer */
+  responded_at?: string
   player: { full_name: string; preferred_name: string | null }
 }
 
@@ -88,14 +101,14 @@ const inputCls =
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
-type BreakdownGroup = { label: string; players: string[] }
+type BreakdownGroup = { label: string; players: { id: string; name: string; at?: string }[] }
 
 function buildBreakdown(
   attendance: AttendanceRow[] | undefined,
   roster: PlayerLite[],
   myPlayerId: string
 ): BreakdownGroup[] {
-  const groups: Record<string, PlayerLite[]> = {
+  const groups: Record<string, (PlayerLite & { at?: string })[]> = {
     attending: [],
     maybe: [],
     not_attending: [],
@@ -103,10 +116,11 @@ function buildBreakdown(
   const respondedIds = new Set<string>()
 
   for (const a of attendance ?? []) {
-    const p: PlayerLite = {
+    const p = {
       id: a.player_id,
       full_name: a.player.full_name,
       preferred_name: a.player.preferred_name,
+      at: a.responded_at,
     }
     if (groups[a.status]) groups[a.status].push(p)
     respondedIds.add(a.player_id)
@@ -115,10 +129,10 @@ function buildBreakdown(
   const noResponse = roster.filter((p) => !respondedIds.has(p.id))
 
   return [
-    { label: 'Attending', players: groups.attending.map((p) => preferredName(p)) },
-    { label: 'Maybe', players: groups.maybe.map((p) => preferredName(p)) },
-    { label: 'Not attending', players: groups.not_attending.map((p) => preferredName(p)) },
-    { label: "Hasn't responded", players: noResponse.map((p) => preferredName(p)) },
+    { label: 'Attending', players: groups.attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
+    { label: 'Maybe', players: groups.maybe.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
+    { label: 'Not attending', players: groups.not_attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
+    { label: "Hasn't responded", players: noResponse.map((p) => ({ id: p.id, name: preferredName(p) })) },
   ].filter((g) => g.players.length > 0)
 }
 
@@ -135,6 +149,7 @@ export function EventDetailModal({
   goalsByGame,
   cardsByGame,
   potmByGame,
+  fined,
   onClose,
   onSaveGame,
   onSaveTraining,
@@ -156,6 +171,8 @@ export function EventDetailModal({
   goalsByGame: Record<string, GoalRow[]>
   cardsByGame: Record<string, CardRow[]>
   potmByGame: Record<string, PotmPlacing[]>
+  /** This event's unwaived fines by player — marked in the attendance list */
+  fined?: Record<string, FineReason[]>
   onClose: () => void
   onSaveGame: (id: string, data: GameInput) => void
   onSaveTraining: (id: string, data: TrainingInput) => void
@@ -195,6 +212,8 @@ export function EventDetailModal({
   const endIso = eventEnd(currentItem)
   const editEnd = endIso ? toTimeLocal(endIso) : ''
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
+  // Reply times: open seasons only (archived ones carry import times)
+  const showTimes = !readOnly && breakdown.some((g) => g.players.some((p) => p.at))
 
   // Update result — matches only, enabled once the match date/time has passed
   const hasStarted = new Date(dateStr).getTime() <= new Date(now).getTime()
@@ -275,6 +294,7 @@ export function EventDetailModal({
         goals_against: ga === '' ? null : Number(ga),
         notes: (fd.get('notes') as string) || null,
         ...readTimeFields(fd, gameDate),
+        ...readFinesFields(fd),
       }
       onSaveGame(sessionId, data)
     } else if (kind === 'event') {
@@ -285,6 +305,7 @@ export function EventDetailModal({
         location: (fd.get('location') as string) || null,
         notes: (fd.get('notes') as string) || null,
         ...readTimeFields(fd, eventDate),
+        ...readFinesFields(fd),
       }
       onSaveEvent(sessionId, data)
     } else {
@@ -294,6 +315,7 @@ export function EventDetailModal({
         location: (fd.get('location') as string) || null,
         notes: (fd.get('notes') as string) || null,
         ...readTimeFields(fd, sessionDate),
+        ...readFinesFields(fd),
       }
       onSaveTraining(sessionId, data)
     }
@@ -388,6 +410,17 @@ export function EventDetailModal({
               </>
             )}
             <DetailRow label="Venue" value={location || 'TBD'} />
+            {eventRespondBy(currentItem) && (
+              <DetailRow
+                label="Reply by"
+                value={fmtDateTime(eventRespondBy(currentItem)!)}
+                sub={
+                  eventFinesEnabled(currentItem)
+                    ? `$${FINE_AMOUNT} fine if late reply, or for a change within 24h before the ${FINE_KIND_NOUN[currentItem.kind]}`
+                    : 'No fines'
+                }
+              />
+            )}
           </div>
 
           {/* Match Result — shown once the score has been entered */}
@@ -457,6 +490,10 @@ export function EventDetailModal({
           >
             {!readOnly && (
             <div className="mb-4">
+              {eventRespondBy(currentItem) &&
+                (!localMyStatus || new Date(eventRespondBy(currentItem)!).getTime() > new Date(now).getTime()) && (
+                  <RespondBy respondBy={eventRespondBy(currentItem)} finesEnabled={eventFinesEnabled(currentItem)} now={now} countdownOnly className="mb-3" />
+                )}
               <div className="mb-2 text-[11px] font-medium text-slate-500">Your response</div>
               <div className="flex gap-2">
                 {([
@@ -487,15 +524,37 @@ export function EventDetailModal({
 
             {breakdown.length > 0 && (
               <div className="space-y-2">
-                {breakdown.map((group) => (
+                {breakdown.map((group, i) => (
                   <div key={group.label}>
-                    <div className="mb-1 text-[11px] font-medium text-slate-500">
-                      {group.label} ({group.players.length})
+                    <div className="mb-1 flex items-baseline justify-between gap-3 text-[11px] font-medium text-slate-500">
+                      <span>
+                        {group.label} ({group.players.length})
+                      </span>
+                      {/* Heading for the times column (once, on the first group) */}
+                      {i === 0 && showTimes && <span className="liga-section-title shrink-0 normal-case tracking-normal">Responded on</span>}
                     </div>
                     <div className="space-y-0.5">
-                      {group.players.map((name) => (
-                        <div key={name} className="text-[11px] text-slate-300">
-                          {name}
+                      {group.players.map(({ id, name, at }) => (
+                        <div
+                          key={id}
+                          data-fined={fined?.[id]?.length ? '' : undefined}
+                          className={`liga-breakdown-row -mx-1.5 flex items-baseline justify-between gap-3 rounded px-1.5 py-px text-[11px] ${
+                            fined?.[id]?.length ? 'bg-red-900/40 text-red-200' : 'text-slate-300'
+                          }`}
+                        >
+                          <span className="min-w-0 break-words">
+                            {name}
+                            {/* Fined (unwaived): a late or missing reply, or a change within 24h before the start */}
+                            {fined?.[id]?.map((reason) => (
+                              <span key={reason} className="liga-fine-mark ml-1.5 rounded bg-red-900/50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-red-300">
+                                {reason === 'late_change' ? 'Late change' : 'Late'}
+                              </span>
+                            ))}
+                          </span>
+                          {/* When they gave this answer — open seasons only (archived ones carry import times) */}
+                          {at && showTimes && (
+                            <span className={`liga-meta shrink-0 ${fined?.[id]?.length ? 'text-red-300' : 'text-slate-500'}`}>{fmtDateTime(at)}</span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -529,6 +588,11 @@ export function EventDetailModal({
                 <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={dateInputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
+              <FinesFields
+                kind="game"
+                startName="game_date"
+                saved={{ respondBy: currentItem.game.respond_by ?? null, finesEnabled: currentItem.game.fines_enabled ?? false }}
+              />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.game.location ?? ''} className={inputCls} placeholder="Sengkang Hockey Stadium" />
@@ -569,6 +633,12 @@ export function EventDetailModal({
                 <input name="event_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.event.event_date)} className={dateInputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
+              <FinesFields
+                kind="event"
+                startName="event_date"
+                postedAt={currentItem.event.created_at}
+                saved={{ respondBy: currentItem.event.respond_by ?? null, finesEnabled: currentItem.event.fines_enabled ?? false }}
+              />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.event.location ?? ''} className={inputCls} placeholder="Optional" />
@@ -586,6 +656,11 @@ export function EventDetailModal({
                 <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={dateInputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
+              <FinesFields
+                kind="training"
+                startName="session_date"
+                saved={{ respondBy: currentItem.training.respond_by ?? null, finesEnabled: currentItem.training.fines_enabled ?? false }}
+              />
               <div>
                 <label className={labelCls}>Location</label>
                 <input name="location" type="text" defaultValue={currentItem.training.location ?? ''} className={inputCls} placeholder="Sengkang Hockey Stadium — Pitch 2" />
@@ -605,7 +680,7 @@ export function EventDetailModal({
 function DetailRow({ label, value, sub }: { label: string; value: string; sub?: string | null }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <span className="text-xs font-medium text-slate-400">{label}</span>
+      <span className="shrink-0 whitespace-nowrap text-xs font-medium text-slate-400">{label}</span>
       <span className="text-right text-sm text-white">
         {value}
         {/* e.g. the report-early time under the date & time */}
