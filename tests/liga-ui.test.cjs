@@ -199,15 +199,20 @@ test('admins and players share one Home dashboard', () => {
   assert.ok(!fs.existsSync(path.join(root, 'components/admin/DashboardView.tsx')), 'no separate admin dashboard')
   const home = read('components/HomeView.tsx')
   assert.ok(!/href="\/(dashboard|admin)\//.test(home), 'links follow the caller section')
-  assert.ok(home.includes('href={`${basePath}/schedule`}'))
+  assert.ok(home.includes('href={`${basePath}/schedule?event=${item.kind}-${item.id}`}'), 'Next up opens its event on the schedule')
+  assert.ok(home.includes('href={`${basePath}/schedule?event=game-${lastGame.id}`}'), 'Last game opens that game')
   assert.ok(home.includes('href={`${basePath}/polls`}'))
   assert.ok(read('app/admin/AdminShell.tsx').includes("{ href: '/admin/dashboard', label: 'Home', Icon: HomeIcon, exact: true }"))
-  // Desktop: season + your stats beside next up / last game / polls; phones stay one column
+  // Desktop: season strip, Next up, last game and polls on the left, your stats on the right; phones stay one column
   assert.ok(home.includes('liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6'))
-  // Next up: top of the right column on desktop (flush with the hero); under the hero on phones
-  assert.match(home, /<div className="hidden lg:block">\s*<h2 className="liga-section-title">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/, 'right column starts flush with the hero')
-  assert.match(home, /<div className="lg:hidden">\s*<h2 className="liga-section-title mt-6">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/)
-  assert.ok(home.indexOf('<div className="lg:hidden">') < home.indexOf('Your all-time stats'), 'phones: Next up above your season stats')
+  // Next up: straight under the season strip on every layout
+  assert.match(home, /<h2 className="liga-section-title mt-6">\{nextUpTitle\}<\/h2>\s*\{nextUpCard\}/)
+  assert.ok(home.indexOf('{nextUpCard}') < home.indexOf('<div className="lg:hidden">{yourStats}</div>'), 'phones: Next up above your stats')
+  assert.ok(home.includes('<div className="hidden min-w-0 lg:block">{yourStats}</div>'), 'desktop: your stats in the right column')
+  // Next up: one card per type, soonest featured; RSVP only where the season can change
+  assert.match(home, /featured=\{i === 0\}/)
+  assert.match(home, /rsvp=\{season\.locked \? undefined : myStatusOf\(item\)\}/)
+  assert.match(home, /<HomeRsvp sessionId=\{next\.id\} kind=\{next\.kind\}/)
 })
 
 test('Home leads with the selected season and keeps all-time stats below it', () => {
@@ -218,7 +223,7 @@ test('Home leads with the selected season and keeps all-time stats below it', ()
   // All time: always open, phones included
   assert.match(home, /<div className="liga-all-time mt-6">/)
   // Next up: the title says what it is, so the meta line is just when + where (no repeated "Training")
-  assert.doesNotMatch(home, /next\.kind/)
+  assert.match(home, /\{fmtDateTimeRange\(next\.when, next\.ends\)\}<\/div>/)
   assert.match(home, /title: 'Team training'/)
   assert.doesNotMatch(home, /<details/)
 })

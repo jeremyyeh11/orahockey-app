@@ -465,7 +465,8 @@ test('schedule master–detail: inline details panel on desktop, modal on touch 
   assert.match(selection, /picked \?\? \(isDesktop \? upcoming\[0\] \?\? past\[0\] \?\? null : null\)/, 'desktop defaults to the next event, else the latest')
   for (const area of ['admin', 'dashboard']) {
     const src = fs.readFileSync(path.join(root, `app/${area}/schedule/ScheduleClient.tsx`), 'utf8')
-    assert.match(src, /useEventSelection\(upcoming, past\)/)
+    assert.match(src, /useEventSelection\(upcoming, past, initialEventKey\)/, '?event= opens that event (Home links)')
+    assert.match(fs.readFileSync(path.join(root, `app/${area}/schedule/page.tsx`), 'utf8'), /initialEventKey=\{typeof searchParams\.event === 'string' \? searchParams\.event : null\}/)
     assert.match(src, /key=\{eventKey\(selectedItem\)\}\s+inline=\{isDesktop\}/, 'panel remounts per event so local state never leaks across events')
     assert.match(src, /\{isDesktop && detail\}/)
     assert.match(src, /\{!isDesktop && detail\}/)
@@ -882,10 +883,10 @@ test('Home card: ORA vs titles, MHL1/Friendly, day banner, phase + quote outside
 
   const home = fs.readFileSync(path.join(root, 'components/HomeView.tsx'), 'utf8')
   assert.match(home, /return g \? 'Game day' : t \? 'Training day' : e \? 'Event day' : null/, 'game beats training beats event')
-  assert.match(home, /\{preSeason \? PHASE_LABEL\['pre-season'\]\.toUpperCase\(\) : `\$\{record\.w\}W/, 'PRE-SEASON replaces 0W·0D·0L')
+  assert.match(home, /\{preSeason \? PHASE_LABEL\['pre-season'\] : `\$\{record\.w\}W/, 'Pre-season replaces 0W·0D·0L')
   assert.match(home, /\{preSeason \? quote : `\$\{gamesLabel\(played\.length\)\}/, 'pre-season: a quote replaces the games/scored/conceded line')
   assert.match(home, /return `\$\{n\} game\$\{n === 1 \? '' : 's'\}`/, '"1 game", not "1 games"')
-  assert.match(home, /\{phase === 'post-season' && \(\s*<div className="liga-hero-quote[^>]*>\{quote\}<\/div>/, 'post-season: final record stays, quote added below')
+  assert.match(home, /\{phase === 'post-season' && \(?\s*<div className="liga-hero-quote[^>]*>\{quote\}<\/div>/, 'post-season: final record stays, quote added below')
   assert.match(home, /phase === 'pre-season' \? pickQuote\(PRE_SEASON_QUOTES\) : phase === 'post-season' \? pickQuote\(POST_SEASON_QUOTES\)/)
   assert.match(home, /<CompetitionTag label=\{competitionLabel\(lastGame\.game_type\)\} \/>/)
 })
