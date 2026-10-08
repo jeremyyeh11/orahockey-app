@@ -1,10 +1,11 @@
 -- =============================================================
 -- ORA Hockey — 2018 season (National Hockey League 1) from the caps sheet
 -- Source: "ORA caps - 2018 (done).csv" — who played each of the 10 league
--- games. Scores come from the league's weekend reviews, so far only seven:
+-- games. Scores come from the league's weekend reviews, so far eight:
 -- Khalsa 1–2 ORA (3–4 Mar), ORA 2–2 Eagles-PV (10–11 Mar), Tornados 2–6 ORA
 -- (24–25 Mar), ORA 2–0 Khalsa (7–8 Apr), SCC 3–1 ORA (5–6 May), Eagles-PV
--- 3–3 ORA (12–13 May), ORA 2–2 Tornados (19–20 May). The reviews also give home/away. Every other game has no
+-- 3–3 ORA (12–13 May), ORA 2–2 Tornados (19–20 May), Jansenites 4–2 ORA
+-- (2–3 Jun). The 9 Jun fixture list puts ORA at home to Jansenites. The reviews also give home/away. Every other game has no
 -- scoreline (result 'unrecorded': counts as played for caps, no score or
 -- W-D-L — migration 025). Update the rows here as more reviews turn up. No goals / assists /
 -- cards / POTM / training attendance were recorded, and no kick-off times
@@ -59,8 +60,8 @@ begin
     ('2018-05-05 15:00+08', 'SCC', 'away', 1, 3, 'loss', array['NICK', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'ZAKI', 'ISHWARPAL SINGH GREWAL', 'JASMEET SINGH', 'IAN VANDERPUT', 'AMIRUL AFIQ', 'MARK CHEONG CHEE HAN', 'FAZLY', 'KEVIN K SAJI', 'AHMAD FARIS BIN MUHD JOHARI', 'EASHWAR', 'RYAN JAY NAIDU', 'MUHAMAD RAZIQ BIN MOHD NOOR', 'GOUTHAM', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'AKASH PREBHASH CHANDRA', 'ALTON CHUA KAI CONG']),
     ('2018-05-13 15:00+08', 'Eagles-PV', 'away', 3, 3, 'tie', array['NICK', 'ISHWARPAL SINGH GREWAL', 'MARK CHEONG CHEE HAN', 'CALEB ANG', 'FAZLY', 'EASHWAR', 'ZAKI', 'ALTON CHUA KAI CONG', 'JASMEET SINGH', 'AKASH PREBHASH CHANDRA', 'RYAN JAY NAIDU', 'AHMAD FARIS BIN MUHD JOHARI', 'IAN VANDERPUT', 'MUHAMAD RAZIQ BIN MOHD NOOR', 'ADAM', 'GOUTHAM', 'AMIRUL AFIQ', 'ADIB']),
     ('2018-05-19 15:00+08', 'Tornados', 'home', 2, 2, 'tie', array['TAY BOON KAI', 'JUSTIN', 'CALEB ANG', 'ISHWARPAL SINGH GREWAL', 'MARK CHEONG CHEE HAN', 'CHEE YONG', 'EASHWAR', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'ALTON CHUA KAI CONG', 'JASMEET SINGH', 'AKASH PREBHASH CHANDRA', 'GOUTHAM', 'ADAM', 'ADIB', 'IAN VANDERPUT', 'AHMAD FARIS BIN MUHD JOHARI', 'AMIRUL AFIQ']),
-    ('2018-06-03 15:00+08', 'Jansenites', null, null::smallint, null::smallint, 'unrecorded', array['TAY BOON KAI', 'CALEB ANG', 'MARK CHEONG CHEE HAN', 'ISHWARPAL SINGH GREWAL', 'FAZLY', 'CHEE YONG', 'JUSTIN', 'AKASH PREBHASH CHANDRA', 'ALTON CHUA KAI CONG', 'KEVIN K SAJI', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'JASMEET SINGH', 'ADAM', 'IAN VANDERPUT', 'RYAN JAY NAIDU', 'AMIRUL AFIQ', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'GOUTHAM']),
-    ('2018-06-09 15:00+08', 'Jansenites', null, null::smallint, null::smallint, 'unrecorded', array['NICK', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'MARK CHEONG CHEE HAN', 'ADIB', 'ISHWARPAL SINGH GREWAL', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'ZAKI', 'GOUTHAM', 'ADAM', 'AHMAD FARIS BIN MUHD JOHARI', 'JASMEET SINGH', 'FAZLY', 'EASHWAR', 'ALTON CHUA KAI CONG', 'AKASH PREBHASH CHANDRA', 'MUHAMAD RAZIQ BIN MOHD NOOR', 'RYAN JAY NAIDU'])
+    ('2018-06-03 15:00+08', 'Jansenites', 'away', 2, 4, 'loss', array['TAY BOON KAI', 'CALEB ANG', 'MARK CHEONG CHEE HAN', 'ISHWARPAL SINGH GREWAL', 'FAZLY', 'CHEE YONG', 'JUSTIN', 'AKASH PREBHASH CHANDRA', 'ALTON CHUA KAI CONG', 'KEVIN K SAJI', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'JASMEET SINGH', 'ADAM', 'IAN VANDERPUT', 'RYAN JAY NAIDU', 'AMIRUL AFIQ', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'GOUTHAM']),
+    ('2018-06-09 15:00+08', 'Jansenites', 'home', null::smallint, null::smallint, 'unrecorded', array['NICK', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'MARK CHEONG CHEE HAN', 'ADIB', 'ISHWARPAL SINGH GREWAL', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'ZAKI', 'GOUTHAM', 'ADAM', 'AHMAD FARIS BIN MUHD JOHARI', 'JASMEET SINGH', 'FAZLY', 'EASHWAR', 'ALTON CHUA KAI CONG', 'AKASH PREBHASH CHANDRA', 'MUHAMAD RAZIQ BIN MOHD NOOR', 'RYAN JAY NAIDU'])
     ) as t(game_date, opponent, home_away, goals_for, goals_against, result, played)
   loop
     select string_agg(n, ', ') into missing from unnest(g.played) n where not exists (select 1 from players p where p.full_name = n);
