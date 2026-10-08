@@ -62,6 +62,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     { data: nextEvent },
     { data: myStats },
     { data: myAtt },
+    { data: pastTrainings },
+    { data: pastEvents },
     { data: mySeason },
     { count: activePolls },
   ] = await Promise.all([
@@ -86,12 +88,15 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .limit(1)
       .maybeSingle(),
     supabase.from('player_stats').select('game_id, goals, assists').eq('player_id', me?.id ?? ''),
+    // Every RSVP "I'm in" — games, trainings and team events (attendance % counts them all)
     supabase
       .from('attendance')
-      .select('session_id, status')
+      .select('session_id, session_type')
       .eq('player_id', me?.id ?? '')
-      .eq('session_type', 'game')
       .eq('status', 'attending'),
+    // Trainings and team events that have started, for attendance %
+    inSeason(supabase.from('training_sessions').select('id'), season).lte('session_date', now),
+    inSeason(supabase.from('team_events').select('id'), season).lte('event_date', now),
     // Jersey number for the season being viewed ("All time": their latest, below)
     season.allTime
       ? Promise.resolve({ data: null })
@@ -160,11 +165,21 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     return {
       goals: rows.reduce((s, r) => s + r.goals, 0),
       assists: rows.reduce((s, r) => s + r.assists, 0),
-      apps: (myAtt ?? []).filter((a) => ids.has(a.session_id)).length,
+      apps: (myAtt ?? []).filter((a) => a.session_type === 'game' && ids.has(a.session_id)).length,
     }
   }
+  // Apps: league games only. Attendance %: every event that has started — games
+  // (friendlies too, with or without a result), trainings and team events.
   const mine = myTotals(played)
-  const attendancePct = played.length > 0 ? Math.round((mine.apps / played.length) * 100) : 0
+  const pastSessions = new Set([
+    ...((games ?? []) as HomeGame[])
+      .filter((g) => inView(g) && new Date(g.game_date).getTime() <= nowDate.getTime())
+      .map((g) => `game-${g.id}`),
+    ...(pastTrainings ?? []).map((t) => `training-${t.id}`),
+    ...(pastEvents ?? []).map((e) => `event-${e.id}`),
+  ])
+  const attended = (myAtt ?? []).filter((a) => pastSessions.has(`${a.session_type}-${a.session_id}`)).length
+  const attendancePct = pastSessions.size > 0 ? Math.round((attended / pastSessions.size) * 100) : 0
   const allTime = myTotals(playedAll)
   const allTimeRecord = recordOf(playedAll)
   const jersey = mySeason?.jersey_number ?? me?.jersey_number ?? null
@@ -204,7 +219,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const yourStats = (
     <>
       <h2 className="liga-section-title mt-6 lg:mt-0">{season.allTime ? 'Your all-time stats' : `Your ${season.label} season`}</h2>
-      <div className="liga-stat-grid mt-2 grid grid-cols-3 gap-3">
+      <div className="liga-stat-grid mt-2 grid grid-cols-4 gap-3">
+        <Tile value={mine.apps} label="Apps" />
         <Tile value={mine.goals} label="Goals" />
         <Tile value={mine.assists} label="Assists" />
         <Tile value={`${attendancePct}%`} label="Attendance" />
@@ -430,8 +446,8 @@ function MiniStat({ value, label }: { value: number; label: string }) {
 
 function Tile({ value, label }: { value: number | string; label: string }) {
   return (
-    <div className="liga-stat-tile card flex flex-col items-center gap-1 p-3.5">
-      <div className="font-display text-2xl font-bold leading-none text-white">{value}</div>
+    <div className="liga-stat-tile card flex min-w-0 flex-col items-center gap-1 px-1 py-3.5">
+      <div className="font-display text-xl font-bold leading-none text-white lg:text-2xl">{value}</div>
       <div className="text-[11px] text-slate-400">{label}</div>
     </div>
   )
