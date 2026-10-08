@@ -28,7 +28,7 @@ from (values
   ('JUSTIN',       'JUSTIN LEE ZHENG XIAN',                        'JUSTIN'),
   ('HANIF',        'ABDURRAHIM HANIF BIN ISKANDAR',                'HANIF'),
   ('HAO DUAN',     'ANG HAO DUAN',                                 'HAO DUAN'),
-  ('ADIB',         'MUHAMMAD ADIB B SAPARI',                       'ADIB'),
+  ('ADIB',         'MUHAMMAD ADIB BIN SAPARI',                     'ADIB'),
   ('AQIL',         'MUHAMMAD AQIL BIN BAKHTIAR',                   'AQIL'),
   ('AMIRUL AFIQ',  'MUHAMMAD AMIRUL AFIQ BIN BAKTHIAR',            'AMIRUL AFIQ'),
   ('ZHYKRY',       'ZHYKRY BIN ZULKIFLEE',                         'ZHYKRY'),
@@ -50,7 +50,11 @@ from (values
   -- 2016 placeholders (created by seed/2016_caps.sql)
   ('HARI SHORAN',  'HARI SHORAN SILVARAJOO',                       'HARI S'),
   ('ILIYA',        'MUHAMAD ILIYA BIN MOHD NOOR',                  'ILIYA'),
-  ('BENJY',        'BENJAMIN CHER',                                'BENJY')
+  ('BENJY',        'CHER SHAO JIE BENJAMIN',                       'BENJY'),
+  ('HAKIIM',       'MOHAMAD HAKIIM BIN MOHAMAD RAZALI',            'HAKIIM'),
+  ('SIVA',         'SIVAKAANTHAN AMBEDKAR',                        'SIVA'),
+  -- already in the app (current squad): the registered full name
+  ('IAN VANDERPUT','VANDERPUT IAN JAMES VALENCE',                  'IAN')
 ) as v(old_name, new_name, pref)
 where p.full_name = v.old_name
   and not exists (select 1 from players q where q.full_name = v.new_name);
