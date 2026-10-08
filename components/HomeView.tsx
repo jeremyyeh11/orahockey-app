@@ -9,6 +9,8 @@ import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season
 import { countsForRecord } from '@/lib/stats'
 import { PHASE_LABEL, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
+import HomeRsvp from '@/components/HomeRsvp'
+import type { MyStatus } from '@/components/EventRow'
 
 function firstName(full: string) {
   const f = full.split(/\s+/)[0] ?? ''
@@ -36,8 +38,9 @@ function recordOf(games: HomeGame[]) {
 
 /**
  * Home dashboard — the same for players and admins (admins are players too):
- * greeting, the selected season's record, the next event (the featured card),
- * your stats this season and all time, the last result and an active-polls prompt.
+ * greeting, the selected season's record, what's next (the next game, training and
+ * team event, each with your RSVP; the soonest is the featured card), your stats this
+ * season and all time, the last result and an active-polls prompt.
  * `basePath` points its links at the caller's own section
  * (/dashboard/schedule vs /admin/schedule).
  */
@@ -71,7 +74,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .from('games')
       .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id')
       .order('game_date', { ascending: false }),
-    // Next event: within the season — or across every season for "All time"
+    // Next game, training and team event: within the season — or across every season for "All time"
     inSeason(supabase.from('games').select('id, opponent, game_date, location, ends_at, report_minutes, game_type'), season)
       .gte('game_date', now)
       .order('game_date')
@@ -88,12 +91,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .limit(1)
       .maybeSingle(),
     supabase.from('player_stats').select('game_id, goals, assists').eq('player_id', me?.id ?? ''),
-    // Every RSVP "I'm in" — games, trainings and team events (attendance % counts them all)
-    supabase
-      .from('attendance')
-      .select('session_id, session_type')
-      .eq('player_id', me?.id ?? '')
-      .eq('status', 'attending'),
+    // Every RSVP of yours — games, trainings and team events (attendance %, Next up's buttons)
+    supabase.from('attendance').select('session_id, session_type, status').eq('player_id', me?.id ?? ''),
     // Trainings and team events that have started, for attendance %
     inSeason(supabase.from('training_sessions').select('id'), season).lte('session_date', now),
     inSeason(supabase.from('team_events').select('id'), season).lte('event_date', now),
@@ -158,6 +157,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const goalsFor = played.reduce((s, g) => s + (g.goals_for ?? 0), 0)
   const goalsAgainst = played.reduce((s, g) => s + (g.goals_against ?? 0), 0)
 
+  const myAttending = (myAtt ?? []).filter((a) => a.status === 'attending')
+
   /** Your goals / assists / games attended across a set of played games */
   function myTotals(gamesPlayed: HomeGame[]) {
     const ids = new Set(gamesPlayed.map((g) => g.id))
@@ -165,7 +166,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     return {
       goals: rows.reduce((s, r) => s + r.goals, 0),
       assists: rows.reduce((s, r) => s + r.assists, 0),
-      apps: (myAtt ?? []).filter((a) => a.session_type === 'game' && ids.has(a.session_id)).length,
+      apps: myAttending.filter((a) => a.session_type === 'game' && ids.has(a.session_id)).length,
     }
   }
   // Apps: league games only. Attendance %: every event that has started — games
@@ -178,7 +179,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     ...(pastTrainings ?? []).map((t) => `training-${t.id}`),
     ...(pastEvents ?? []).map((e) => `event-${e.id}`),
   ])
-  const attended = (myAtt ?? []).filter((a) => pastSessions.has(`${a.session_type}-${a.session_id}`)).length
+  const attended = myAttending.filter((a) => pastSessions.has(`${a.session_type}-${a.session_id}`)).length
   const attendancePct = pastSessions.size > 0 ? Math.round((attended / pastSessions.size) * 100) : 0
   const allTime = myTotals(playedAll)
   const allTimeRecord = recordOf(playedAll)
@@ -187,26 +188,42 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   // The most recent result shown on Home can be a friendly (it's just not counted)
   const lastGame = finished.filter(inView)[0]
 
-  // Soonest of the next game, training and team event. `key` matches the schedule's
-  // event keys (lib/useEventSelection) so "Open details" can open that event.
-  const next =
-    [
-      nextGame && { key: `game-${nextGame.id}`, title: gameTitle(nextGame.opponent), tag: competitionLabel(nextGame.game_type), when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
-      nextTraining && { key: `training-${nextTraining.id}`, title: 'Team training', tag: null, when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
-      nextEvent && { key: `event-${nextEvent.id}`, title: nextEvent.title, tag: null, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
-    ]
-      .filter((x): x is NextItem & { key: string } => !!x)
-      .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime())[0] ?? null
+  // Next up: the next game, training and team event (one of each, soonest first).
+  // `key` matches the schedule's event keys (lib/useEventSelection) so the card's
+  // link opens that event there.
+  const candidates: (NextItem | null)[] = [
+    nextGame && { kind: 'game' as const, id: nextGame.id, title: gameTitle(nextGame.opponent), tag: competitionLabel(nextGame.game_type), when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
+    nextTraining && { kind: 'training' as const, id: nextTraining.id, title: 'Team training', tag: null, when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
+    nextEvent && { kind: 'event' as const, id: nextEvent.id, title: nextEvent.title, tag: null, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
+  ]
+  const nextUp = candidates
+    .filter((x): x is NextItem => !!x)
+    .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime())
+  const myStatusOf = (item: NextItem) =>
+    ((myAtt ?? []).find((a) => a.session_type === item.kind && a.session_id === item.id)?.status as MyStatus | undefined) ?? null
 
-  // Next up / season complete — the featured card straight under the season record
+  // Next up / season complete — straight under the season strip. The soonest event is
+  // the green featured card; RSVP buttons only where the season can change (not
+  // archived seasons or "All time").
   const nextUpTitle = season.locked && !season.allTime ? 'Season' : 'Next up'
   const nextUpCard =
     season.locked && !season.allTime ? (
       <NextUpNote title="Season finished">
         {LEAGUE} {season.label} is a past season. Switch season to see what&apos;s next.
       </NextUpNote>
-    ) : next ? (
-      <NextUpCard next={next} href={`${basePath}/schedule?event=${next.key}`} now={nowDate} />
+    ) : nextUp.length > 0 ? (
+      <div className="liga-next-list mt-2 space-y-3">
+        {nextUp.map((item, i) => (
+          <NextUpCard
+            key={`${item.kind}-${item.id}`}
+            next={item}
+            featured={i === 0}
+            href={`${basePath}/schedule?event=${item.kind}-${item.id}`}
+            now={nowDate}
+            rsvp={season.locked ? undefined : myStatusOf(item)}
+          />
+        ))}
+      </div>
     ) : played.length > 0 ? (
       <NextUpNote title="Season complete">Nothing scheduled — enjoy the off-season.</NextUpNote>
     ) : (
@@ -363,40 +380,82 @@ function CompetitionTag({ label }: { label: string }) {
   )
 }
 
-type NextItem = { title: string; tag: string | null; when: string; ends: string | null; report: number | null; place: string | null }
+type NextItem = {
+  kind: 'game' | 'training' | 'event'
+  id: string
+  title: string
+  tag: string | null
+  when: string
+  ends: string | null
+  report: number | null
+  place: string | null
+}
 
 /**
- * The next event, featured on the green accent: a big date block, title, time and place, and an
- * "Open details" call to action into the schedule (the details panel on desktop,
- * the event modal on phones).
+ * A Next up event: date block, title, time and place, a → link top right into the
+ * schedule (the details panel on desktop, the event modal on phones) and your
+ * I'm in / Maybe / Out. The link is stretched over the whole card; the RSVP buttons
+ * sit above it. `featured` (the soonest event) is the big green card, the rest grey.
+ * `rsvp` undefined hides the buttons (read-only season); null means no reply yet.
  */
-function NextUpCard({ next, href, now }: { next: NextItem; href: string; now: Date }) {
+function NextUpCard({
+  next,
+  featured,
+  href,
+  now,
+  rsvp,
+}: {
+  next: NextItem
+  featured: boolean
+  href: string
+  now: Date
+  rsvp: MyStatus | null | undefined
+}) {
   const day = dateBlock(next.when)
   const report = fmtReport(next.when, next.report)
   return (
-    <Link href={href} className="liga-next-card bg-accent card mt-2 block p-4 transition hover:brightness-110 lg:p-5">
+    <div
+      className={`liga-next-card card relative p-4 transition lg:p-5 ${
+        featured ? 'liga-next-card-featured bg-accent hover:brightness-110' : 'hover:border-white/15'
+      }`}
+    >
       <div className="flex items-start gap-4">
-        <div className="liga-next-date flex w-14 shrink-0 flex-col items-center border-r border-white/20 pr-4">
-          <span className="liga-next-date-day text-3xl font-bold leading-none text-white">{day.day}</span>
-          <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-white/80">{day.mon}</span>
+        <div
+          className={`liga-next-date flex w-14 shrink-0 flex-col items-center border-r pr-4 ${featured ? 'border-white/20' : 'border-white/10'}`}
+        >
+          <span className={`liga-next-date-day font-bold leading-none text-white ${featured ? 'text-3xl' : 'text-2xl'}`}>{day.day}</span>
+          <span className={`mt-1 text-[11px] font-semibold uppercase tracking-wider ${featured ? 'text-white/80' : 'text-slate-400'}`}>
+            {day.mon}
+          </span>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="liga-meta font-semibold uppercase text-white/85">{fmtRelativeDay(next.when, now)}</div>
+          <div className={`liga-meta font-semibold uppercase ${featured ? 'text-white/85' : 'text-brand-light'}`}>
+            {fmtRelativeDay(next.when, now)}
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <div className="liga-next-title break-words text-xl font-semibold leading-tight text-white lg:text-2xl">{next.title}</div>
+            <div
+              className={`liga-next-title break-words font-semibold leading-tight text-white ${featured ? 'text-xl lg:text-2xl' : 'text-base lg:text-lg'}`}
+            >
+              {next.title}
+            </div>
             {next.tag && <CompetitionTag label={next.tag} />}
           </div>
-          <div className="liga-meta mt-2 text-white">{fmtDateTimeRange(next.when, next.ends)}</div>
-          {next.place && <div className="liga-meta break-words text-white/85">{next.place}</div>}
-          {report && <div className="liga-meta text-white/85">{report}</div>}
+          <div className={`liga-meta mt-2 ${featured ? 'text-white' : 'text-slate-300'}`}>{fmtDateTimeRange(next.when, next.ends)}</div>
+          {next.place && <div className={`liga-meta break-words ${featured ? 'text-white/85' : 'text-slate-400'}`}>{next.place}</div>}
+          {report && <div className={`liga-meta ${featured ? 'text-white/85' : 'text-slate-400'}`}>{report}</div>}
         </div>
+        <Link
+          href={href}
+          aria-label={`Open details: ${next.title}`}
+          className={`liga-next-open flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base after:absolute after:inset-0 after:rounded-[inherit] ${
+            featured ? 'bg-white/15 text-white' : 'bg-white/[0.06] text-slate-300'
+          }`}
+        >
+          <span aria-hidden="true">→</span>
+        </Link>
       </div>
-      <div className="mt-4 flex">
-        <span className="liga-button w-full rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-brand-dark lg:ml-auto lg:w-auto">
-          Open details<span aria-hidden="true">&nbsp;→</span>
-        </span>
-      </div>
-    </Link>
+      {rsvp !== undefined && <HomeRsvp sessionId={next.id} kind={next.kind} status={rsvp} onAccent={featured} />}
+    </div>
   )
 }
 
