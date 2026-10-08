@@ -11,7 +11,7 @@ type Person = { id: string; full_name: string; preferred_name: string | null }
  * Who's voted on a poll and who hasn't — not what anyone picked, so votes stay
  * anonymous. Voters are listed in the order they voted, with when; anyone fined
  * for the poll (unwaived — a late or missing vote) is in red. Collapsed behind a
- * summary line ("12 voted · 18 haven't · 2 late").
+ * right-aligned summary ("12 voted · 18 haven't · 2 late") — tap it to open.
  */
 export function PollVoters({
   votes,
@@ -59,9 +59,8 @@ export function PollVoters({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex min-h-[32px] w-full items-center justify-between gap-3 text-left"
+        className="flex min-h-[32px] w-full items-center justify-end gap-3 text-right"
       >
-        <span className="text-xs font-medium text-slate-400">Who&apos;s voted</span>
         <span className="flex items-center gap-2">
           <span className="liga-meta text-slate-400">
             {voted.length} voted · {notVoted.length} haven&apos;t

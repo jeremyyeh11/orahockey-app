@@ -44,7 +44,7 @@ A list of the season's games, training sessions and team **events** (gatherings,
   - read the **Additional Information** note (added by coaches).
 
 ### Polls
-Open polls show voting options - pick one and tap **Vote**. Until you vote, the poll shows a countdown to its reply deadline. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Tap **Who's voted** on any poll to see who has voted (and when) and who hasn't - not what anyone picked. Anyone fined for a late or missing vote is in red. Closed polls are kept below for reference.
+Open polls show voting options - pick one and tap **Vote**. Until you vote, the poll shows a countdown to its reply deadline. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Tap the vote count on any poll (e.g. *12 voted · 18 haven't*) to see who has voted (and when) and who hasn't - not what anyone picked. Anyone fined for a late or missing vote is in red. Closed polls are kept below for reference.
 
 ### Fines
 **$5** a time, collated at the end of each month. The **Fines** tab shows everyone's fines, one month at a time: a card says whether the month is **Outstanding** or **Settled**, then each player with what each fine was for. Paid and waived fines are greyed out (a waived fine shows why).
