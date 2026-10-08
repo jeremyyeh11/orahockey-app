@@ -28,6 +28,8 @@ export type MyProfileData = {
     current: boolean
     jersey: number | null
     played: boolean
+    /** Why the season never ran (e.g. 'COVID-19'); null for a normal season */
+    cancelled: string | null
     /** Stats the season kept (lib/season recordedStats): goals, goal_types, assists, cards, potm */
     recorded: string[]
     row: LeaderboardRow | null
@@ -251,10 +253,10 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                           {s.label}
                           {s.current && <span className="liga-meta ml-1.5 font-normal text-brand-light">now</span>}
                         </td>
-                        <td>{s.row?.caps ?? 0}</td>
+                        <td>{s.cancelled ? '—' : s.row?.caps ?? 0}</td>
                         {!s.played ? (
                           <td colSpan={isGK ? 8 : 7} className="liga-meta text-center text-slate-500">
-                            Didn&apos;t play this season
+                            {s.cancelled ? `Season cancelled (${s.cancelled})` : "Didn't play this season"}
                           </td>
                         ) : s.recorded.length > 0 ? (
                           <>

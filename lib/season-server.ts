@@ -8,7 +8,7 @@ import { ALL_TIME, SEASON_COOKIE, lockedSeasonMessage, nextSeasonLabel, seasonPh
 export const getSeasons = cache(async (): Promise<Season[]> => {
   const { data, error } = await createClient()
     .from('seasons')
-    .select('id, label, starts_on, ends_on, is_current, locked, recorded_stats')
+    .select('id, label, starts_on, ends_on, is_current, locked, recorded_stats, cancelled_reason')
     .order('starts_on', { ascending: false })
   if (error) throw new Error(`Error loading seasons: ${error.message}`)
   return (data ?? []) as Season[]
@@ -34,8 +34,9 @@ export async function getSeasonNav(): Promise<{ seasons: Season[]; selectedId: s
   try {
     const seasons = await getSeasons()
     if (seasons.length === 0) return null
-    // "All time" first, so it stays on top as seasons stack up (newest season next)
-    return { seasons: [ALL_TIME, ...seasons], selectedId: (await getSelectedSeason()).id }
+    // "All time" first, so it stays on top as seasons stack up (newest season next).
+    // Cancelled seasons (2020, 2021) have nothing to show, so they stay out of the switcher.
+    return { seasons: [ALL_TIME, ...seasons.filter((s) => !s.cancelled_reason)], selectedId: (await getSelectedSeason()).id }
   } catch {
     // Signed out (RLS hides seasons) or seasons unavailable — render the shell without a switcher
     return null

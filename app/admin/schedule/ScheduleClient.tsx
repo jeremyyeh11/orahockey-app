@@ -30,7 +30,7 @@ import Modal from '@/components/Modal'
 import { GameTypeSwitch } from '@/components/GameTypeSwitch'
 import { ScheduleTimeFields, readTimeFields } from '@/components/ScheduleTimeFields'
 import { FinesFields, readFinesFields } from '@/components/FinesFields'
-import { countsForRecord } from '@/lib/stats'
+import { countsForRecord, hasScore } from '@/lib/stats'
 
 const inputCls =
   'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -105,7 +105,7 @@ export default function ScheduleClient({
 
   const readOnly = season.locked
   // Season record: league games only (friendlies never count)
-  const played = games.filter((g) => g.result && countsForRecord(g))
+  const played = games.filter((g) => hasScore(g) && countsForRecord(g))
   const record = {
     w: played.filter((g) => g.result === 'win' || g.result === 'ot_win').length,
     d: played.filter((g) => g.result === 'tie').length,

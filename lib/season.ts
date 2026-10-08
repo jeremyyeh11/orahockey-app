@@ -22,6 +22,8 @@ export type Season = {
    * goals + potm; 2025 none (appearances only). Undefined = all (e.g. All time).
    */
   recorded_stats?: string[]
+  /** Set when the season never ran (migration 026), e.g. 'COVID-19'; null/undefined = a normal season */
+  cancelled_reason?: string | null
 }
 
 export const RECORDABLE_STATS = ['goals', 'goal_types', 'assists', 'cards', 'potm'] as const
