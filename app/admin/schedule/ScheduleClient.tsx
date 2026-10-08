@@ -513,15 +513,20 @@ function EventCard({
   selected: boolean
   onClick: () => void
 }) {
+  // A div, not a <button>: on desktop rows bleed 0.75rem past the column for
+  // their highlight, and a button's fixed width would leave it short on the right
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter') onClick() }}
       aria-current={selected || undefined}
       data-selected={selected || undefined}
-      className="liga-event-card card flex w-full items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
+      className="liga-event-card card flex cursor-pointer items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
     >
       <EventRow item={item} attending={attending} past />
-    </button>
+    </div>
   )
 }
 
