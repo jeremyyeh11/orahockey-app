@@ -24,6 +24,11 @@ export function countsForRecord(g: { game_type?: string | null }) {
   return g.game_type !== 'exhibition'
 }
 
+/** A game with a real scoreline. 'unrecorded' games count as played (caps) but have no score or W/D/L. */
+export function hasScore(g: { result?: string | null }) {
+  return !!g.result && g.result !== 'unrecorded'
+}
+
 export type SeasonStat = {
   player_id: string
   game_id: string

@@ -6,7 +6,7 @@ import { getNow } from '@/lib/preview'
 import { LEAGUE, competitionLabel, gameTitle } from '@/lib/constants'
 import { POST_SEASON_QUOTES, PRE_SEASON_QUOTES, pickQuote } from '@/lib/quotes'
 import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season-server'
-import { countsForRecord } from '@/lib/stats'
+import { countsForRecord, hasScore } from '@/lib/stats'
 import { PHASE_LABEL, records, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
 import HomeRsvp from '@/components/HomeRsvp'
@@ -154,6 +154,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const closeSummary =
     basePath === '/admin' && season.is_current && !season.locked ? await getCloseSeasonSummary(season) : null
 
+  // Seasons imported from caps with no scores: games count as played, but there's no record to show
+  const noScores = played.length > 0 && !played.some(hasScore)
   const record = recordOf(played)
   const goalsFor = played.reduce((s, g) => s + (g.goals_for ?? 0), 0)
   const goalsAgainst = played.reduce((s, g) => s + (g.goals_against ?? 0), 0)
@@ -256,7 +258,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     </>
   )
 
-  const RESULT_LABEL: Record<string, string> = { win: 'Win', loss: 'Loss', tie: 'Draw', ot_win: 'OT Win', ot_loss: 'OT Loss' }
+  const RESULT_LABEL: Record<string, string> = { win: 'Win', loss: 'Loss', tie: 'Draw', ot_win: 'OT Win', ot_loss: 'OT Loss', unrecorded: 'No scoreline recorded' }
 
   return (
     <div className="liga-page liga-home p-4">
@@ -280,7 +282,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
                 <span className="liga-hero-record text-lg font-bold leading-tight text-white">
-                  {preSeason ? PHASE_LABEL['pre-season'] : `${record.w}W · ${record.d}D · ${record.l}L`}
+                  {preSeason ? PHASE_LABEL['pre-season'] : noScores ? 'No scorelines recorded' : `${record.w}W · ${record.d}D · ${record.l}L`}
                 </span>
                 <span className="liga-meta text-slate-400">
                   {season.allTime ? `All time · ${LEAGUE}` : `Season ${season.label} · ${LEAGUE}`}
@@ -295,7 +297,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
               )}
             </div>
             <div className="liga-hero-sub mt-1 text-xs text-slate-400">
-              {preSeason ? quote : `${gamesLabel(played.length)} · ${goalsFor} scored · ${goalsAgainst} conceded`}
+              {preSeason ? quote : noScores ? gamesLabel(played.length) : `${gamesLabel(played.length)} · ${goalsFor} scored · ${goalsAgainst} conceded`}
             </div>
             {phase === 'post-season' && <div className="liga-hero-quote mt-0.5 text-xs text-slate-300">{quote}</div>}
           </div>
@@ -316,12 +318,12 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
                   className={`liga-result-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
                     lastGame.result === 'win' || lastGame.result === 'ot_win'
                       ? 'bg-green-900/50 text-green-300'
-                      : lastGame.result === 'tie'
+                      : lastGame.result === 'tie' || !hasScore(lastGame)
                       ? 'bg-slate-700 text-slate-300'
                       : 'bg-red-900/50 text-red-300'
                   }`}
                 >
-                  {lastGame.goals_for}–{lastGame.goals_against}
+                  {hasScore(lastGame) ? `${lastGame.goals_for}–${lastGame.goals_against}` : '–'}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

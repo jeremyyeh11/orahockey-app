@@ -56,6 +56,7 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   tie: { label: 'D', cls: 'bg-slate-700 text-slate-300' },
   ot_win: { label: 'W·OT', cls: 'bg-green-900/60 text-green-300' },
   ot_loss: { label: 'L·OT', cls: 'bg-red-900/60 text-red-300' },
+  unrecorded: { label: 'No score', cls: 'bg-slate-700 text-slate-400' },
 }
 
 const STATUS_CHIP: Record<MyStatus, { label: string; cls: string }> = {
@@ -133,9 +134,11 @@ export function EventRow({
               <span className={`liga-result-badge rounded px-1.5 py-0.5 text-xs font-bold ${RESULT_BADGE[result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
                 {RESULT_BADGE[result]?.label ?? result}
               </span>
-              <span className="liga-event-score text-sm font-semibold text-white">
-                {item.game.goals_for}–{item.game.goals_against}
-              </span>
+              {result !== 'unrecorded' && (
+                <span className="liga-event-score text-sm font-semibold text-white">
+                  {item.game.goals_for}–{item.game.goals_against}
+                </span>
+              )}
             </div>
           )}
           {/* Headcount: a number you can read at a glance, but quieter than the title */}
