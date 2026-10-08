@@ -9,6 +9,7 @@ import {
   UsersIcon,
   CalendarIcon,
   PollIcon,
+  ReceiptIcon,
   UserIcon,
 } from '@/components/icons'
 
@@ -17,6 +18,7 @@ const NAV: NavItem[] = [
   { href: '/admin/schedule', label: 'Schedule', Icon: CalendarIcon },
   { href: '/admin/polls', label: 'Polls', Icon: PollIcon },
   { href: '/admin/team', label: 'Squad', Icon: UsersIcon },
+  { href: '/admin/fines', label: 'Fines', Icon: ReceiptIcon },
   { href: '/admin/profile', label: 'Profile', Icon: UserIcon },
 ]
 

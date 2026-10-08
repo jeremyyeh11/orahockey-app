@@ -34,9 +34,10 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
               className={`flex h-10 items-center rounded-full transition-colors duration-300 ${
+                // Six tabs: slimmer padding on the narrowest phones (< 360px) so the dock fits
                 active
-                  ? 'bg-brand px-3.5 text-white ring-1 ring-white/10'
-                  : 'px-[11px] text-slate-400 hover:text-white'
+                  ? 'bg-brand px-3.5 text-white ring-1 ring-white/10 max-[359px]:px-3'
+                  : 'px-[11px] text-slate-400 hover:text-white max-[359px]:px-2'
               }`}
             >
               <item.Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.25 : 2} />

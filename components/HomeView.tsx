@@ -11,8 +11,6 @@ import { PHASE_LABEL, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
 import HomeRsvp from '@/components/HomeRsvp'
 import { RespondBy } from '@/components/RespondBy'
-import { loadFines } from '@/lib/fines-server'
-import { fineMonth, finesByPlayer, monthLabel, sgMonth } from '@/lib/fines'
 import type { MyStatus } from '@/components/EventRow'
 
 function firstName(full: string) {
@@ -151,14 +149,6 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   // Post-season: the final record stays, with a line about wrapping up added below it.
   const preSeason = phase === 'pre-season'
   const quote = phase === 'pre-season' ? pickQuote(PRE_SEASON_QUOTES) : phase === 'post-season' ? pickQuote(POST_SEASON_QUOTES) : null
-
-  // This month's fines, team-wide (everyone sees everyone's) and yours
-  const { fines } = await loadFines()
-  const month = sgMonth(nowDate)
-  const monthFines = finesByPlayer(fines.filter((f) => fineMonth(f) === month))
-  const finesTotal = monthFines.reduce((s, r) => s + r.total, 0)
-  const finesCount = monthFines.reduce((s, r) => s + r.count, 0)
-  const myFines = monthFines.find((r) => r.playerId === me?.id)?.total ?? 0
 
   // Admin Danger zone: closing the current season (admin Home, viewing that season)
   const closeSummary =
@@ -360,21 +350,6 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
               <span className="text-brand-light">→</span>
             </Link>
           )}
-
-          {/* This month's fines */}
-          <Link
-            href={`${basePath}/fines`}
-            className="liga-link-row liga-home-fines card mt-6 flex items-center justify-between p-4 transition hover:border-white/15"
-          >
-            <div>
-              <div className="liga-link-title text-sm font-semibold text-white">{monthLabel(month).split(' ')[0]} fines</div>
-              <div className="mt-0.5 text-xs text-slate-400">
-                {finesCount > 0 ? `$${finesTotal} · ${finesCount} fine${finesCount === 1 ? '' : 's'}` : 'None so far'}
-                {myFines > 0 ? ` · you owe $${myFines}` : ''}
-              </div>
-            </div>
-            <span className="text-brand-light">→</span>
-          </Link>
         </div>
 
         {/* Your stats — desktop: the right column, beside the season record */}

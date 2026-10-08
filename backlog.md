@@ -105,8 +105,8 @@ the ones who PM'd the coaching committee; **everyone sees everyone's fines**; a 
 month it happened; team events start with fines off; POTM voting is exempt; only active squad
 members with an app account are fined (no player accounts existed at launch — RSVPs were
 admin-imported). UI: Respond by + Fines fields on all add/edit forms, Reply-by lines on cards,
-reply times and Late tags in the attendance breakdown, a Fines page (month view, waive, copy for
-WhatsApp) linked from Home.
+reply times and Late tags in the attendance breakdown, a **Fines** nav tab (month view, waive, copy
+for WhatsApp).
 
 Covers **#9** for attendance: each name in the event breakdown shows when they gave their answer
 (open seasons only). Poll vote times aren't shown — the Polls tab has no per-voter list.

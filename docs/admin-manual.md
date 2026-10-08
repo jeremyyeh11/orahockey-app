@@ -71,7 +71,7 @@ Manage the roster.
 - Admins vote in polls just like players do.
 
 ### Fines
-Open **Fines** from the row at the bottom of Home. Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:
+The **Fines** tab (between Squad and Profile). Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:
 - **Late reply** - first reply after the deadline, or none at all (counted in the month the deadline passed).
 - **Late change** - a player changing their own answer in the 24 hours before the start (counted in the month of the change). The app can't see who PM'd the coaching committee, so every such change is fined - **Waive** the ones who did.
 - Each fine has **Waive** / **Undo**; waived fines stay listed but cost nothing. **Copy list for WhatsApp** copies the month's totals per player to paste into a message.
