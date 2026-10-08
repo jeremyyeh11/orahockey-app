@@ -18,6 +18,35 @@ export function fmtCountdown(ms: number) {
 }
 
 /**
+ * Where a schedule row shows its reply countdown, as a class for <RespondBy>: null = not at
+ * all. Wide screens keep the old rule (until you reply — the details panel sits beside the
+ * list and covers the rest). Touch layouts also show it after you reply, but only for the
+ * first event with an open deadline or once under 48h, so the list stays clean; an overdue,
+ * unreplied one always shows.
+ */
+export function rowCountdownClass({
+  respondBy,
+  replied,
+  now,
+  first,
+}: {
+  respondBy: string | null | undefined
+  replied: boolean
+  now: string | Date
+  /** The first upcoming event with an open deadline */
+  first: boolean
+}): string | null {
+  if (!respondBy) return null
+  const left = new Date(respondBy).getTime() - new Date(now).getTime()
+  const wide = !replied
+  const touch = left <= 0 ? !replied : first || left < 2 * DAY
+  if (wide && touch) return ''
+  if (touch) return 'lg:hidden'
+  if (wide) return 'hidden lg:block'
+  return null
+}
+
+/**
  * For someone who hasn't replied yet — schedule rows, Home's Next up cards and
  * poll cards: a countdown ("1d 5h left", amber in the last 24h, red "Overdue by
  * 3h") over the actual deadline and the fine. Ticks every 30s from the page's
