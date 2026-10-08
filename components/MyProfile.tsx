@@ -230,7 +230,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                       {isGK && <th className="font-medium" title="Clean sheets">CS</th>}
                       <th className="font-medium">POTM</th>
                       {/* Goal types: the breakdown of G — smaller and greyer */}
-                      <th className={`${MUTED} border-l border-surface-border`} title="Field goals">FG</th>
+                      <th className={`${MUTED} pl-6`} title="Field goals">FG</th>
                       <th className={MUTED} title="Penalty corners">PC</th>
                       <th className={MUTED} title="Penalty strokes">PS</th>
                       <th className="font-medium">Cards</th>
@@ -255,7 +255,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                             <td>{s.recorded.includes('assists') ? s.row?.assists ?? 0 : '—'}</td>
                             {isGK && <td>{s.row?.cleanSheets ?? 0}</td>}
                             <td>{s.recorded.includes('potm') ? s.row?.potmWins ?? 0 : '—'}</td>
-                            <td className={`${MUTED_CELL} border-l border-surface-border`}>{s.recorded.includes('goal_types') ? s.row?.fg ?? 0 : '—'}</td>
+                            <td className={`${MUTED_CELL} pl-6`}>{s.recorded.includes('goal_types') ? s.row?.fg ?? 0 : '—'}</td>
                             <td className={MUTED_CELL}>{s.recorded.includes('goal_types') ? s.row?.pc ?? 0 : '—'}</td>
                             <td className={MUTED_CELL}>{s.recorded.includes('goal_types') ? s.row?.ps ?? 0 : '—'}</td>
                             <td>{s.recorded.includes('cards') ? cardCount(s.row) : '—'}</td>
@@ -274,7 +274,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                       <td>{assists}</td>
                       {isGK && <td>{career?.cleanSheets ?? 0}</td>}
                       <td>{potm}</td>
-                      <td className={`${MUTED_CELL} border-l border-surface-border`}>{career?.fg ?? 0}</td>
+                      <td className={`${MUTED_CELL} pl-6`}>{career?.fg ?? 0}</td>
                       <td className={MUTED_CELL}>{career?.pc ?? 0}</td>
                       <td className={MUTED_CELL}>{career?.ps ?? 0}</td>
                       <td>{cardCount(career)}</td>
