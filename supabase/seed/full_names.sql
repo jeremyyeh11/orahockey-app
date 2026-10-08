@@ -44,7 +44,8 @@ from (values
   ('NATHANIEL GOH','NATHANIEL GOH RUO CHUAN',                      'NAT GOH'),
   ('JIM',          'CHOW JIM AN',                                  'JIM'),
   ('DANIEL XU',    'DANIEL XU JUEWEN',                             'DANIEL XU'),
-  ('MOHAMMAD EZECKIEL', 'MOHAMAD EZECKIEL BIN MOHAMMAD IRWAN',          'EZEC')
+  ('MOHAMMAD EZECKIEL', 'MOHAMAD EZECKIEL BIN MOHAMMAD IRWAN',          'EZEC'),
+  ('ETHAN WONG',   'ETHAN WONG JUN YING',                          'ETHAN W')
 ) as v(old_name, new_name, pref)
 where p.full_name = v.old_name
   and not exists (select 1 from players q where q.full_name = v.new_name);
