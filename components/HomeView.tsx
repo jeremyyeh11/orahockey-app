@@ -255,31 +255,30 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       {/* Desktop (lg+): season record, next up and recent activity on the left, your stats on the right */}
       <div className="liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
         <div className="min-w-0">
-          {/* Season record hero */}
-          <div className="liga-hero bg-accent relative overflow-hidden rounded-[1.5rem] p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="liga-meta text-white/70">
-                {season.allTime ? `All time · ${LEAGUE}` : `Season ${season.label} · ${LEAGUE}`}
-                {season.locked && !season.allTime ? ' · Final' : ''}
-                {phase && !preSeason ? ` · ${PHASE_LABEL[phase]}` : ''}
+          {/* Season strip — a compact sub-heading (record or phase, season, day label) so
+              Next up below leads the page */}
+          <div className="liga-hero bg-accent relative overflow-hidden rounded-lg px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                <span className="liga-hero-record text-lg font-bold leading-tight text-white">
+                  {preSeason ? PHASE_LABEL['pre-season'] : `${record.w}W · ${record.d}D · ${record.l}L`}
+                </span>
+                <span className="liga-meta text-white/70">
+                  {season.allTime ? `All time · ${LEAGUE}` : `Season ${season.label} · ${LEAGUE}`}
+                  {season.locked && !season.allTime ? ' · Final' : ''}
+                  {phase && !preSeason ? ` · ${PHASE_LABEL[phase]}` : ''}
+                </span>
               </div>
               {dayLabel && (
-                <span className="liga-day-label shrink-0 rounded bg-white/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">
+                <span className="liga-day-label shrink-0 rounded bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
                   {dayLabel}
                 </span>
               )}
             </div>
-            <div className="mt-2 flex items-end gap-3">
-              <span className="font-display text-4xl font-extrabold leading-none text-white">
-                {preSeason ? PHASE_LABEL['pre-season'].toUpperCase() : `${record.w}W · ${record.d}D · ${record.l}L`}
-              </span>
-            </div>
-            <div className="liga-hero-sub mt-2 text-xs text-white/70">
+            <div className="liga-hero-sub mt-1 text-xs text-white/70">
               {preSeason ? quote : `${gamesLabel(played.length)} · ${goalsFor} scored · ${goalsAgainst} conceded`}
             </div>
-            {phase === 'post-season' && (
-              <div className="liga-hero-quote mt-3 border-t border-white/15 pt-3 text-sm text-white/90">{quote}</div>
-            )}
+            {phase === 'post-season' && <div className="liga-hero-quote mt-0.5 text-xs text-white/85">{quote}</div>}
           </div>
 
           {/* Next up — the featured card, straight under the season record */}
