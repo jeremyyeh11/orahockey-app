@@ -45,7 +45,12 @@ from (values
   ('JIM',          'CHOW JIM AN',                                  'JIM'),
   ('DANIEL XU',    'DANIEL XU JUEWEN',                             'DANIEL XU'),
   ('MOHAMMAD EZECKIEL', 'MOHAMAD EZECKIEL BIN MOHAMMAD IRWAN',          'EZEC'),
-  ('ETHAN WONG',   'ETHAN WONG JUN YING',                          'ETHAN W')
+  ('ETHAN WONG',   'ETHAN WONG JUN YING',                          'ETHAN W'),
+  ('NATHANIEL TAN','TAN YU SHUEN NATHANIEL',                       'NAT TAN'),
+  -- 2016 placeholders (created by seed/2016_caps.sql)
+  ('HARI SHORAN',  'HARI SHORAN SILVARAJOO',                       'HARI S'),
+  ('ILIYA',        'MUHAMAD ILIYA BIN MOHD NOOR',                  'ILIYA'),
+  ('BENJY',        'LEE GONG WEI BENJAMIN',                        'BENJY')
 ) as v(old_name, new_name, pref)
 where p.full_name = v.old_name
   and not exists (select 1 from players q where q.full_name = v.new_name);
