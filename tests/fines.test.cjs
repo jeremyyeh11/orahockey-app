@@ -6,15 +6,16 @@ const ts = require('typescript')
 
 const root = path.resolve(__dirname, '..')
 
-// Load the real lib/*.ts (with @/ imports) without a build step
+// Load the real .ts/.tsx sources (with @/ imports) without a build step
 function load(file, cache = new Map()) {
-  const filename = [file, `${file}.ts`].map((f) => path.resolve(root, f)).find((f) => fs.existsSync(f) && fs.statSync(f).isFile())
+  const filename = [file, `${file}.ts`, `${file}.tsx`].map((f) => path.resolve(root, f)).find((f) => fs.existsSync(f) && fs.statSync(f).isFile())
   assert.ok(filename, `Cannot resolve ${file}`)
   if (cache.has(filename)) return cache.get(filename).exports
   const mod = { exports: {} }
   cache.set(filename, mod)
   const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+    fileName: filename,
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
   })
   const req = (s) => (s.startsWith('@/') ? load(s.slice(2), cache) : require(s))
   new Function('require', 'module', 'exports', outputText)(req, mod, mod.exports)
@@ -130,4 +131,20 @@ test('polls: the vote time decides; totals are $5 a fine, most owed first', () =
   const totals = finesByPlayer(fines)
   assert.deepEqual(totals.map((t) => [t.playerId, t.total]), [['z', 2 * FINE_AMOUNT], ['y', FINE_AMOUNT]])
   assert.equal(FINE_AMOUNT, 5)
+})
+
+test('reply-by line: grey while open, amber in the last 24h, red once overdue; nothing without a deadline', () => {
+  const React = require('react')
+  const { renderToStaticMarkup } = require('react-dom/server')
+  const { RespondBy } = load('components/RespondBy.tsx')
+  const html = (props) => renderToStaticMarkup(React.createElement(RespondBy, props))
+  const due = sg('2026-10-15T23:59:59')
+  const open = html({ respondBy: due, finesEnabled: true, now: sg('2026-10-12T10:00:00') })
+  assert.match(open, /data-state="open"/)
+  assert.match(open, /Reply by Thu 15 Oct · 23:59 · \$5 fine if late/)
+  assert.match(html({ respondBy: due, finesEnabled: false, now: sg('2026-10-15T09:00:00') }), /data-state="soon"[^>]*>Reply by Thu 15 Oct · 23:59</)
+  const overdue = html({ respondBy: due, finesEnabled: true, now: sg('2026-10-16T09:00:00') })
+  assert.match(overdue, /text-red-400/)
+  assert.match(overdue, /Reply overdue — was due Thu 15 Oct · 23:59 · \$5 fine/)
+  assert.equal(html({ respondBy: null, finesEnabled: true, now: due }), '')
 })

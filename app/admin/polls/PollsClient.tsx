@@ -10,6 +10,7 @@ import type { PotmPoll } from '@/lib/potm'
 import type { Poll } from '@/lib/polls'
 import Modal from '@/components/Modal'
 import { FinesFields, readFinesFields } from '@/components/FinesFields'
+import { RespondBy } from '@/components/RespondBy'
 
 const inputCls =
   'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -20,10 +21,12 @@ export default function PollsClient({
   polls,
   potmPolls,
   myPlayerId,
+  now,
 }: {
   polls: Poll[]
   potmPolls: PotmPoll[]
   myPlayerId: string | null
+  now: string
 }) {
   const [showModal, setShowModal] = useState(false)
   const [options, setOptions] = useState<string[]>(['', ''])
@@ -103,6 +106,7 @@ export default function PollsClient({
                 key={poll.id}
                 poll={poll}
                 myPlayerId={myPlayerId}
+                now={now}
                 isPending={isPending}
                 onToggle={() => handleToggle(poll)}
                 onDelete={() => handleDelete(poll)}
@@ -121,6 +125,7 @@ export default function PollsClient({
                 key={poll.id}
                 poll={poll}
                 myPlayerId={myPlayerId}
+                now={now}
                 isPending={isPending}
                 onToggle={() => handleToggle(poll)}
                 onDelete={() => handleDelete(poll)}
@@ -220,12 +225,14 @@ export default function PollsClient({
 function PollCard({
   poll,
   myPlayerId,
+  now,
   isPending,
   onToggle,
   onDelete,
 }: {
   poll: Poll
   myPlayerId: string | null
+  now: string
   isPending: boolean
   onToggle: () => void
   onDelete: () => void
@@ -262,6 +269,7 @@ function PollCard({
             {total} vote{total === 1 ? '' : 's'}
             {poll.closes_at && ` · ${poll.is_active ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
           </div>
+          {canVote && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
         </div>
         {poll.is_active && (
           <span className="liga-status-label shrink-0 text-[10px] font-semibold uppercase text-green-300">

@@ -17,7 +17,7 @@ export default async function PlayerPollsPage() {
     supabase
       .from('polls')
       .select(
-        'id, question, is_active, closes_at, created_at, poll_options(id, label, sort_order), poll_votes(id, poll_option_id, player_id)'
+        'id, question, is_active, closes_at, created_at, respond_by, fines_enabled, poll_options(id, label, sort_order), poll_votes(id, poll_option_id, player_id)'
       )
       .order('created_at', { ascending: false }),
     getPotmPolls(),

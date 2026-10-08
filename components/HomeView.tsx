@@ -10,6 +10,7 @@ import { countsForRecord } from '@/lib/stats'
 import { PHASE_LABEL, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
 import HomeRsvp from '@/components/HomeRsvp'
+import { RespondBy } from '@/components/RespondBy'
 import type { MyStatus } from '@/components/EventRow'
 
 function firstName(full: string) {
@@ -75,17 +76,17 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id')
       .order('game_date', { ascending: false }),
     // Next game, training and team event: within the season — or across every season for "All time"
-    inSeason(supabase.from('games').select('id, opponent, game_date, location, ends_at, report_minutes, game_type'), season)
+    inSeason(supabase.from('games').select('id, opponent, game_date, location, ends_at, report_minutes, game_type, respond_by, fines_enabled'), season)
       .gte('game_date', now)
       .order('game_date')
       .limit(1)
       .maybeSingle(),
-    inSeason(supabase.from('training_sessions').select('id, session_date, location, ends_at, report_minutes'), season)
+    inSeason(supabase.from('training_sessions').select('id, session_date, location, ends_at, report_minutes, respond_by, fines_enabled'), season)
       .gte('session_date', now)
       .order('session_date')
       .limit(1)
       .maybeSingle(),
-    inSeason(supabase.from('team_events').select('id, title, event_date, location, ends_at, report_minutes'), season)
+    inSeason(supabase.from('team_events').select('id, title, event_date, location, ends_at, report_minutes, respond_by, fines_enabled'), season)
       .gte('event_date', now)
       .order('event_date')
       .limit(1)
@@ -192,9 +193,9 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   // `key` matches the schedule's event keys (lib/useEventSelection) so the card's
   // link opens that event there.
   const candidates: (NextItem | null)[] = [
-    nextGame && { kind: 'game' as const, id: nextGame.id, title: gameTitle(nextGame.opponent), tag: competitionLabel(nextGame.game_type), when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
-    nextTraining && { kind: 'training' as const, id: nextTraining.id, title: 'Team training', tag: null, when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
-    nextEvent && { kind: 'event' as const, id: nextEvent.id, title: nextEvent.title, tag: null, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
+    nextGame && { kind: 'game' as const, id: nextGame.id, title: gameTitle(nextGame.opponent), tag: competitionLabel(nextGame.game_type), when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location, respondBy: nextGame.respond_by, finesEnabled: nextGame.fines_enabled },
+    nextTraining && { kind: 'training' as const, id: nextTraining.id, title: 'Team training', tag: null, when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location, respondBy: nextTraining.respond_by, finesEnabled: nextTraining.fines_enabled },
+    nextEvent && { kind: 'event' as const, id: nextEvent.id, title: nextEvent.title, tag: null, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location, respondBy: nextEvent.respond_by, finesEnabled: nextEvent.fines_enabled },
   ]
   const nextUp = candidates
     .filter((x): x is NextItem => !!x)
@@ -389,6 +390,8 @@ type NextItem = {
   ends: string | null
   report: number | null
   place: string | null
+  respondBy: string | null
+  finesEnabled: boolean
 }
 
 /**
@@ -443,6 +446,10 @@ function NextUpCard({
           <div className={`liga-meta mt-2 ${featured ? 'text-white' : 'text-slate-300'}`}>{fmtDateTimeRange(next.when, next.ends)}</div>
           {next.place && <div className={`liga-meta break-words ${featured ? 'text-white/85' : 'text-slate-400'}`}>{next.place}</div>}
           {report && <div className={`liga-meta ${featured ? 'text-white/85' : 'text-slate-400'}`}>{report}</div>}
+          {/* No reply yet: when it's due */}
+          {rsvp === null && (
+            <RespondBy respondBy={next.respondBy} finesEnabled={next.finesEnabled} now={now} onAccent={featured} className="mt-1.5" />
+          )}
         </div>
         <Link
           href={href}

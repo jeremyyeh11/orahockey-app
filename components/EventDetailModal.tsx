@@ -5,7 +5,8 @@ import { ReadEditModal } from './ReadEditModal'
 import { preferredName } from './RosterList'
 import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
-import { eventEnd, eventId, eventLocation, eventNotes, eventReportMinutes, eventTitle, type EventItem } from './EventRow'
+import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
+import { FINE_AMOUNT } from '@/lib/fines'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
@@ -79,6 +80,8 @@ export type AttendanceRow = {
   player_id: string
   session_id: string
   status: 'attending' | 'not_attending' | 'maybe'
+  /** When they gave this answer */
+  responded_at?: string
   player: { full_name: string; preferred_name: string | null }
 }
 
@@ -97,14 +100,14 @@ const inputCls =
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
-type BreakdownGroup = { label: string; players: string[] }
+type BreakdownGroup = { label: string; players: { name: string; at?: string }[] }
 
 function buildBreakdown(
   attendance: AttendanceRow[] | undefined,
   roster: PlayerLite[],
   myPlayerId: string
 ): BreakdownGroup[] {
-  const groups: Record<string, PlayerLite[]> = {
+  const groups: Record<string, (PlayerLite & { at?: string })[]> = {
     attending: [],
     maybe: [],
     not_attending: [],
@@ -112,10 +115,11 @@ function buildBreakdown(
   const respondedIds = new Set<string>()
 
   for (const a of attendance ?? []) {
-    const p: PlayerLite = {
+    const p = {
       id: a.player_id,
       full_name: a.player.full_name,
       preferred_name: a.player.preferred_name,
+      at: a.responded_at,
     }
     if (groups[a.status]) groups[a.status].push(p)
     respondedIds.add(a.player_id)
@@ -124,10 +128,10 @@ function buildBreakdown(
   const noResponse = roster.filter((p) => !respondedIds.has(p.id))
 
   return [
-    { label: 'Attending', players: groups.attending.map((p) => preferredName(p)) },
-    { label: 'Maybe', players: groups.maybe.map((p) => preferredName(p)) },
-    { label: 'Not attending', players: groups.not_attending.map((p) => preferredName(p)) },
-    { label: "Hasn't responded", players: noResponse.map((p) => preferredName(p)) },
+    { label: 'Attending', players: groups.attending.map((p) => ({ name: preferredName(p), at: p.at })) },
+    { label: 'Maybe', players: groups.maybe.map((p) => ({ name: preferredName(p), at: p.at })) },
+    { label: 'Not attending', players: groups.not_attending.map((p) => ({ name: preferredName(p), at: p.at })) },
+    { label: "Hasn't responded", players: noResponse.map((p) => ({ name: preferredName(p) })) },
   ].filter((g) => g.players.length > 0)
 }
 
@@ -400,6 +404,13 @@ export function EventDetailModal({
               </>
             )}
             <DetailRow label="Venue" value={location || 'TBD'} />
+            {eventRespondBy(currentItem) && (
+              <DetailRow
+                label="Reply by"
+                value={fmtDateTime(eventRespondBy(currentItem)!)}
+                sub={eventFinesEnabled(currentItem) ? `$${FINE_AMOUNT} fine if late, or for a change in the last 24h` : 'No fines'}
+              />
+            )}
           </div>
 
           {/* Match Result — shown once the score has been entered */}
@@ -505,9 +516,11 @@ export function EventDetailModal({
                       {group.label} ({group.players.length})
                     </div>
                     <div className="space-y-0.5">
-                      {group.players.map((name) => (
-                        <div key={name} className="text-[11px] text-slate-300">
-                          {name}
+                      {group.players.map(({ name, at }) => (
+                        <div key={name} className="liga-breakdown-row flex items-baseline justify-between gap-3 text-[11px] text-slate-300">
+                          <span className="min-w-0 break-words">{name}</span>
+                          {/* When they gave this answer — open seasons only (archived ones carry import times) */}
+                          {at && !readOnly && <span className="liga-meta shrink-0 text-slate-500">{fmtDateTime(at)}</span>}
                         </div>
                       ))}
                     </div>

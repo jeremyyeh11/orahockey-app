@@ -5,6 +5,7 @@ import { votePoll } from './actions'
 import { fmtDateTime } from '@/lib/format'
 import PotmPolls from '@/components/PotmPolls'
 import { PollResults } from '@/components/PollResults'
+import { RespondBy } from '@/components/RespondBy'
 import type { PotmPoll } from '@/lib/potm'
 import type { Poll } from '@/lib/polls'
 
@@ -42,7 +43,7 @@ export default function PollsClient({
           <h2 className="liga-section-title mb-2">Open</h2>
           <div className="liga-poll-list mb-6 space-y-0">
             {open.map((poll) => (
-              <PollCard key={poll.id} poll={poll} myPlayerId={myPlayerId} votable />
+              <PollCard key={poll.id} poll={poll} myPlayerId={myPlayerId} now={now} votable />
             ))}
           </div>
         </>
@@ -53,7 +54,7 @@ export default function PollsClient({
           <h2 className="liga-section-title mb-2">Closed</h2>
           <div className="liga-poll-list space-y-0">
             {closed.map((poll) => (
-              <PollCard key={poll.id} poll={poll} myPlayerId={myPlayerId} />
+              <PollCard key={poll.id} poll={poll} myPlayerId={myPlayerId} now={now} />
             ))}
           </div>
         </>
@@ -65,10 +66,12 @@ export default function PollsClient({
 function PollCard({
   poll,
   myPlayerId,
+  now,
   votable = false,
 }: {
   poll: Poll
   myPlayerId: string | null
+  now: string
   votable?: boolean
 }) {
   const [selected, setSelected] = useState<string | null>(null)
@@ -102,6 +105,7 @@ function PollCard({
         {total} vote{total === 1 ? '' : 's'}
         {poll.closes_at && ` · ${votable ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
       </div>
+      {votable && myVote == null && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
 
       {showResults ? (
         <PollResults poll={poll} myVote={myVote} mutedBarClass="bg-brand-light/50" />

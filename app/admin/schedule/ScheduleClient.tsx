@@ -18,8 +18,9 @@ import {
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
-import { EventRow, eventId, type EventItem, type MyStatus } from '@/components/EventRow'
+import { EventRow, eventFinesEnabled, eventId, eventRespondBy, type EventItem, type MyStatus } from '@/components/EventRow'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
+import { RespondBy } from '@/components/RespondBy'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 import type { Season } from '@/lib/season'
@@ -356,6 +357,9 @@ export default function ScheduleClient({
                       >
                         <EventRow item={item} attending={attending} />
                       </div>
+                      {!readOnly && !mine && (
+                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} className="mt-1.5" />
+                      )}
                       {!readOnly && (
                       <div className="liga-event-actions mt-2 flex gap-2">
                         {(

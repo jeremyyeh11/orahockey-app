@@ -34,6 +34,16 @@ export function eventReportMinutes(item: EventItem) {
   )
 }
 
+/** Reply deadline (null = none) */
+export function eventRespondBy(item: EventItem) {
+  return (item.kind === 'game' ? item.game.respond_by : item.kind === 'training' ? item.training.respond_by : item.event.respond_by) ?? null
+}
+
+/** Whether a late or missing reply is fined */
+export function eventFinesEnabled(item: EventItem) {
+  return (item.kind === 'game' ? item.game.fines_enabled : item.kind === 'training' ? item.training.fines_enabled : item.event.fines_enabled) ?? false
+}
+
 export function eventNotes(item: EventItem) {
   return item.kind === 'game' ? item.game.notes : item.kind === 'training' ? item.training.notes : item.event.notes
 }

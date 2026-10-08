@@ -23,6 +23,8 @@ export type AttendanceRow = {
   player_id: string
   session_id: string
   status: 'attending' | 'not_attending' | 'maybe'
+  /** When they gave this answer */
+  responded_at?: string
   player: { full_name: string; preferred_name: string | null }
 }
 
@@ -79,7 +81,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
     supabase.from('attendance').select('session_id, status').eq('player_id', me?.id ?? ''),
     supabase
       .from('attendance')
-      .select('player_id, session_id, status, player:players(full_name, preferred_name)'),
+      .select('player_id, session_id, status, responded_at, player:players(full_name, preferred_name)'),
     getSeasonSquad(season.id),
     // Admins see all team list selections; players only see published (RLS handles this)
     supabase

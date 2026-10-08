@@ -3,8 +3,9 @@
 import { useState, useTransition } from 'react'
 import { setAttendance } from './actions'
 import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
-import { EventRow, eventId, type EventItem, type MyStatus } from '@/components/EventRow'
+import { EventRow, eventFinesEnabled, eventId, eventRespondBy, type EventItem, type MyStatus } from '@/components/EventRow'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
+import { RespondBy } from '@/components/RespondBy'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
@@ -213,6 +214,9 @@ export default function ScheduleClient({
                       >
                         <EventRow item={item} />
                       </div>
+                      {!readOnly && !mine && (
+                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} className="mt-1.5" />
+                      )}
                       {!readOnly && (
                       <div className="liga-event-actions mt-2 flex gap-2">
                         {(
