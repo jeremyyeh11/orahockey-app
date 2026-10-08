@@ -52,6 +52,10 @@ const fmtDob = (dob: string) =>
   new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dob}T00:00:00Z`))
 
 const goalsOf = (r: LeaderboardRow | null) => r?.goals ?? 0
+
+// The goal-type breakdown columns (FG/PC/PS): a lower tier than G and A
+const MUTED = 'text-[10px] font-medium text-slate-600'
+const MUTED_CELL = 'text-xs font-normal text-slate-500'
 const cardCount = (r: LeaderboardRow | null) => (r ? r.cards.green + r.cards.yellow + r.cards.red : 0)
 
 /**
@@ -221,13 +225,14 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                     <tr className="liga-meta text-slate-500">
                       <th className="py-1.5 text-left font-medium">Season</th>
                       <th className="font-medium">Apps</th>
-                      <th className="font-medium" title="Goals (all types)">G</th>
-                      <th className="font-medium" title="Field goals">FG</th>
-                      <th className="font-medium" title="Penalty corners">PC</th>
-                      <th className="font-medium" title="Penalty strokes">PS</th>
-                      <th className="font-medium">Ast</th>
+                      <th className="font-medium" title="Goals">G</th>
+                      <th className="font-medium" title="Assists">A</th>
                       {isGK && <th className="font-medium" title="Clean sheets">CS</th>}
                       <th className="font-medium">POTM</th>
+                      {/* Goal types: the breakdown of G — smaller and greyer */}
+                      <th className={`${MUTED} border-l border-surface-border`} title="Field goals">FG</th>
+                      <th className={MUTED} title="Penalty corners">PC</th>
+                      <th className={MUTED} title="Penalty strokes">PS</th>
                       <th className="font-medium">Cards</th>
                     </tr>
                   </thead>
@@ -247,12 +252,12 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                           <>
                             {/* — = not recorded that season */}
                             <td>{s.recorded.includes('goals') ? goalsOf(s.row) : '—'}</td>
-                            <td>{s.recorded.includes('goal_types') ? s.row?.fg ?? 0 : '—'}</td>
-                            <td>{s.recorded.includes('goal_types') ? s.row?.pc ?? 0 : '—'}</td>
-                            <td>{s.recorded.includes('goal_types') ? s.row?.ps ?? 0 : '—'}</td>
                             <td>{s.recorded.includes('assists') ? s.row?.assists ?? 0 : '—'}</td>
                             {isGK && <td>{s.row?.cleanSheets ?? 0}</td>}
                             <td>{s.recorded.includes('potm') ? s.row?.potmWins ?? 0 : '—'}</td>
+                            <td className={`${MUTED_CELL} border-l border-surface-border`}>{s.recorded.includes('goal_types') ? s.row?.fg ?? 0 : '—'}</td>
+                            <td className={MUTED_CELL}>{s.recorded.includes('goal_types') ? s.row?.pc ?? 0 : '—'}</td>
+                            <td className={MUTED_CELL}>{s.recorded.includes('goal_types') ? s.row?.ps ?? 0 : '—'}</td>
                             <td>{s.recorded.includes('cards') ? cardCount(s.row) : '—'}</td>
                           </>
                         ) : (
@@ -266,12 +271,12 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                       <td className="py-2 text-left">Career</td>
                       <td>{apps}</td>
                       <td>{goals}</td>
-                      <td>{career?.fg ?? 0}</td>
-                      <td>{career?.pc ?? 0}</td>
-                      <td>{career?.ps ?? 0}</td>
                       <td>{assists}</td>
                       {isGK && <td>{career?.cleanSheets ?? 0}</td>}
                       <td>{potm}</td>
+                      <td className={`${MUTED_CELL} border-l border-surface-border`}>{career?.fg ?? 0}</td>
+                      <td className={MUTED_CELL}>{career?.pc ?? 0}</td>
+                      <td className={MUTED_CELL}>{career?.ps ?? 0}</td>
                       <td>{cardCount(career)}</td>
                     </tr>
                   </tbody>

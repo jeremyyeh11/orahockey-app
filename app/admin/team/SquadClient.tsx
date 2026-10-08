@@ -116,7 +116,6 @@ export default function SquadClient({
     },
     statsMap,
     recorded: recordedStats(season),
-    withTotal: !!season.allTime,
     accountMap,
   }
 
