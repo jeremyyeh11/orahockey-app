@@ -10,9 +10,10 @@
 --
 -- Creates: a locked 2016 season (recorded_stats = appearances only), one
 -- opponent (Jansenites A — the sheet's "Jans A", kept apart from plain
--- Jansenites), 9 past players not yet in the app (Hari Shoran, Hari.R,
--- Hakiim, Iliya, Siva, Eugene, Acap, Benjamin Ang, Benjy — inactive, first
--- names / sheet names only), the 14 games, the 2016 squad and 219 caps (RSVP
+-- Jansenites), 10 past players not yet in the app (Hari Shoran, Hari.R,
+-- Hakiim, Iliya, Siva, Eugene, Acap, Benjamin Ang, Benjy, Dylan Wang —
+-- inactive, first names / sheet names only; Dylan Wang is also created by
+-- the 2017 seed, whichever runs first), the 14 games, the 2016 squad and 219 caps (RSVP
 -- 'attending' on each game). Sheet names mapped to players by hand (Boon is
 -- not in 2016; How Zhi = Yong How Zhi, Hari.S = Hari Shoran, Ethan.T =
 -- Ethan Tan, Dylan.W = Dylan Wang, Naidu = Ryan Jay Naidu, Dutch Club =
@@ -46,7 +47,7 @@ begin
   -- Past players not yet in the app: inactive, so they don't join the current squad
   insert into players (team_id, full_name, preferred_name, is_active, role)
   select v_team, n.full_name, n.preferred, false, 'player'
-  from (values ('HARI SHORAN', null), ('HARI.R', null), ('HAKIIM', null), ('ILIYA', null), ('SIVA', null), ('EUGENE', null), ('ACAP', null), ('BENJAMIN ANG', null), ('BENJY', null)) as n(full_name, preferred)
+  from (values ('HARI SHORAN', null), ('HARI.R', null), ('HAKIIM', null), ('ILIYA', null), ('SIVA', null), ('EUGENE', null), ('ACAP', null), ('BENJAMIN ANG', null), ('BENJY', null), ('DYLAN WANG', null)) as n(full_name, preferred)
   where not exists (select 1 from players p where p.full_name = n.full_name);
 
   for g in
