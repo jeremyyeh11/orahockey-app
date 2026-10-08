@@ -220,11 +220,11 @@ export function computeFines({
   return fines.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
 }
 
-/** Unwaived fines per schedule entry ('training-<id>') and player — the attendance list marks them */
+/** Unwaived fines per entry ('training-<id>', 'poll-<id>') and player — attendance and voter lists mark them */
 export function finedBySession(fines: Fine[]) {
   const by: Record<string, Record<string, FineReason[]>> = {}
   for (const f of fines) {
-    if (f.waived || f.kind === 'poll') continue
+    if (f.waived) continue
     const forEntry = (by[`${f.kind}-${f.itemId}`] ??= {})
     ;(forEntry[f.playerId] ??= []).push(f.reason)
   }

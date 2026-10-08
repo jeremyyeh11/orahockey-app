@@ -10,5 +10,5 @@ export type Poll = {
   respond_by?: string | null
   fines_enabled?: boolean
   poll_options: { id: string; label: string; sort_order: number }[]
-  poll_votes: { id: string; poll_option_id: string; player_id: string }[]
+  poll_votes: { id: string; poll_option_id: string; player_id: string; voted_at?: string }[]
 }

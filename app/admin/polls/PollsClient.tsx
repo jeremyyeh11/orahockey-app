@@ -11,6 +11,8 @@ import type { Poll } from '@/lib/polls'
 import Modal from '@/components/Modal'
 import { FinesFields, readFinesFields } from '@/components/FinesFields'
 import { RespondBy } from '@/components/RespondBy'
+import { PollVoters } from '@/components/PollVoters'
+import type { FineReason } from '@/lib/fines'
 
 const inputCls =
   'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
@@ -22,11 +24,17 @@ export default function PollsClient({
   potmPolls,
   myPlayerId,
   now,
+  roster,
+  fined,
 }: {
   polls: Poll[]
   potmPolls: PotmPoll[]
   myPlayerId: string | null
   now: string
+  /** Who should vote: the current season's active squad */
+  roster: { id: string; full_name: string; preferred_name: string | null }[]
+  /** Unwaived fines per entry ('poll-<id>') and player */
+  fined: Record<string, Record<string, FineReason[]>>
 }) {
   const [showModal, setShowModal] = useState(false)
   const [options, setOptions] = useState<string[]>(['', ''])
@@ -107,6 +115,8 @@ export default function PollsClient({
                 poll={poll}
                 myPlayerId={myPlayerId}
                 now={now}
+                roster={roster}
+                fined={fined[`poll-${poll.id}`]}
                 isPending={isPending}
                 onToggle={() => handleToggle(poll)}
                 onDelete={() => handleDelete(poll)}
@@ -126,6 +136,8 @@ export default function PollsClient({
                 poll={poll}
                 myPlayerId={myPlayerId}
                 now={now}
+                roster={roster}
+                fined={fined[`poll-${poll.id}`]}
                 isPending={isPending}
                 onToggle={() => handleToggle(poll)}
                 onDelete={() => handleDelete(poll)}
@@ -226,6 +238,8 @@ function PollCard({
   poll,
   myPlayerId,
   now,
+  roster,
+  fined,
   isPending,
   onToggle,
   onDelete,
@@ -233,6 +247,8 @@ function PollCard({
   poll: Poll
   myPlayerId: string | null
   now: string
+  roster: { id: string; full_name: string; preferred_name: string | null }[]
+  fined?: Record<string, FineReason[]>
   isPending: boolean
   onToggle: () => void
   onDelete: () => void
@@ -312,6 +328,8 @@ function PollCard({
           )}
         </div>
       )}
+
+      <PollVoters votes={poll.poll_votes} roster={roster} fined={fined} />
 
       {/* Actions */}
       <div className="liga-actions mt-4 flex gap-2 border-t border-white/5 pt-3">

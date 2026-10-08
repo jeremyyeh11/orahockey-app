@@ -70,6 +70,7 @@ Manage the roster.
 - **+ New Poll** creates a poll: a question, 2-6 options, an optional close date, and a **Respond by** deadline (72 hours after posting, or the close date if that's sooner) with a **Fines ($5)** switch - on by default; switch it off for casual polls.
 - Open polls can be **Closed** (or reopened), and any poll can be **Deleted** (votes included).
 - Admins vote in polls just like players do.
+- **Who's voted** on each poll lists who has voted (with when) and who hasn't from the current season's active squad, with late voters in red - votes stay anonymous.
 
 ### Fines
 The **Fines** tab (between Squad and Profile). Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:
