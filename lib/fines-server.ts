@@ -4,7 +4,7 @@ import { getNow } from '@/lib/preview'
 import { getSeasons } from '@/lib/season-server'
 import { gameTitle } from '@/lib/constants'
 import { fmtDate } from '@/lib/format'
-import { computeFines, type Fine, type FineEntry, type FineWaiver, type PollVote, type RsvpChange } from '@/lib/fines'
+import { computeFines, type Fine, type FineEntry, type FinePayment, type FineWaiver, type PollVote, type RsvpChange } from '@/lib/fines'
 
 export type FinePlayer = { id: string; full_name: string; preferred_name: string | null }
 
@@ -21,7 +21,7 @@ type SquadRow = {
  */
 export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<string, FinePlayer> }> => {
   const supabase = createClient()
-  const [seasons, { data: games }, { data: trainings }, { data: events }, { data: polls }, { data: squads }, { data: waivers }] =
+  const [seasons, { data: games }, { data: trainings }, { data: events }, { data: polls }, { data: squads }, { data: waivers }, { data: payments }] =
     await Promise.all([
       getSeasons(),
       supabase.from('games').select('id, season_id, opponent, game_date, respond_by').eq('fines_enabled', true).not('respond_by', 'is', null),
@@ -29,7 +29,8 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
       supabase.from('team_events').select('id, season_id, title, event_date, respond_by').eq('fines_enabled', true).not('respond_by', 'is', null),
       supabase.from('polls').select('id, question, created_at, respond_by').eq('fines_enabled', true).not('respond_by', 'is', null),
       supabase.from('season_players').select('season_id, player:players!inner(id, full_name, preferred_name, is_active, auth_user_id)'),
-      supabase.from('fine_waivers').select('player_id, item_type, item_id, reason'),
+      supabase.from('fine_waivers').select('player_id, item_type, item_id, reason, note'),
+      supabase.from('fine_payments').select('player_id, item_type, item_id, reason, paid_at'),
     ])
 
   const players = new Map<string, FinePlayer & { auth_user_id: string | null }>()
@@ -67,6 +68,7 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
     changes: (changes ?? []) as RsvpChange[],
     votes: (votes ?? []) as PollVote[],
     waivers: (waivers ?? []) as FineWaiver[],
+    payments: (payments ?? []) as FinePayment[],
     authIdOf: (id) => players.get(id)?.auth_user_id ?? null,
     now: getNow(),
   })

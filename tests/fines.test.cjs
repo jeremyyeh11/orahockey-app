@@ -158,3 +158,26 @@ test('reply-by: a countdown over the deadline — grey while open, amber in the 
   assert.equal(text(overdue), 'Reply overdue by 3h 0m Was due Thu 15 Oct · 23:59 · $5 fine')
   assert.equal(html({ respondBy: null, finesEnabled: true, now: due }), '')
 })
+
+test('paid and waived fines stop being outstanding; a player is settled once every fine is', () => {
+  const entry = { kind: 'poll', id: 'p2', title: 'Poll', start: null, respondBy: sg('2026-10-04T10:00:00'), finesEnabled: true, expected: ['a', 'b'] }
+  const fines = computeFines({
+    entries: [entry, { ...entry, id: 'p3' }],
+    changes: [],
+    votes: [],
+    waivers: [{ player_id: 'a', item_type: 'poll', item_id: 'p2', reason: 'late_reply', note: "PM'd Ish" }],
+    payments: [
+      { player_id: 'a', item_type: 'poll', item_id: 'p3', reason: 'late_reply', paid_at: sg('2026-10-30T20:00:00') },
+      { player_id: 'b', item_type: 'poll', item_id: 'p3', reason: 'late_reply', paid_at: sg('2026-10-30T20:00:00') },
+    ],
+    authIdOf: () => null,
+    now: new Date(sg('2026-10-20T00:00:00')),
+  })
+  const a2 = fines.find((f) => f.playerId === 'a' && f.itemId === 'p2')
+  assert.equal(a2.waived, true)
+  assert.equal(a2.waiveNote, "PM'd Ish")
+  assert.equal(fines.find((f) => f.playerId === 'b' && f.itemId === 'p3').paidAt, sg('2026-10-30T20:00:00'))
+  const totals = Object.fromEntries(finesByPlayer(fines).map((r) => [r.playerId, [r.count, r.total, r.paid, r.waived, r.settled]]))
+  assert.deepEqual(totals.a, [0, 0, 1, 1, true], 'a: one paid, one waived — settled')
+  assert.deepEqual(totals.b, [1, FINE_AMOUNT, 1, 0, false], 'b: one paid, one still owed')
+})

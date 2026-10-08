@@ -86,6 +86,21 @@ Open questions to resolve at build time:
 - Photo: any moderation/approval by admin, or live immediately? Crop to the trading-card ratio?
 - Does the player's Profile tab replace tapping their own card in Squad, or do both stay?
 
+## 13. Finemaster role
+
+Fines can only be marked **Paid** or **Waived** by admins (RLS on `fine_payments` /
+`fine_waivers`, migrations 018–019). Add a **finemaster** role so a non-admin player can run
+the monthly collection: mark fines paid, waive them (with a reason), and copy the outstanding
+list — without the rest of admin.
+
+Open questions to resolve at build time:
+- A new `player_role` value, or a separate flag on `players` (a finemaster can still be an admin)?
+- Who assigns it — any admin, from the player's profile edit?
+- Should a finemaster be able to edit Respond by / Fines on events and polls, or only settle fines?
+
+Needs: a role/flag column, `is_finemaster()` alongside `is_admin()` in the two tables' policies,
+and the Fines tab's Paid/Waive buttons shown to finemasters.
+
 ---
 
 ## Archived

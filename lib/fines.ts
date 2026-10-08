@@ -97,7 +97,8 @@ export type RsvpChange = {
 
 export type PollVote = { poll_id: string; player_id: string; voted_at: string }
 
-export type FineWaiver = { player_id: string; item_type: FineKind; item_id: string; reason: FineReason }
+export type FineWaiver = { player_id: string; item_type: FineKind; item_id: string; reason: FineReason; note?: string | null }
+export type FinePayment = { player_id: string; item_type: FineKind; item_id: string; reason: FineReason; paid_at: string }
 
 export type Fine = {
   playerId: string
@@ -112,8 +113,16 @@ export type Fine = {
   /** Late change: what changed */
   from?: RsvpStatus
   to?: RsvpStatus
+  /** Excused by an admin (with their reason) — costs nothing */
   waived: boolean
+  waiveNote?: string | null
+  /** Marked paid by an admin */
+  paid: boolean
+  paidAt?: string | null
 }
+
+/** Neither paid nor waived */
+export const isOutstanding = (f: Pick<Fine, 'waived' | 'paid'>) => !f.waived && !f.paid
 
 export const fineKey = (f: { playerId: string; kind: FineKind; itemId: string; reason: FineReason }) =>
   `${f.playerId}|${f.kind}|${f.itemId}|${f.reason}`
@@ -133,6 +142,7 @@ export function computeFines({
   changes,
   votes,
   waivers,
+  payments = [],
   authIdOf,
   now,
 }: {
@@ -140,10 +150,14 @@ export function computeFines({
   changes: RsvpChange[]
   votes: PollVote[]
   waivers: FineWaiver[]
+  payments?: FinePayment[]
   authIdOf: (playerId: string) => string | null
   now: Date
 }): Fine[] {
-  const waived = new Set(waivers.map((w) => fineKey({ playerId: w.player_id, kind: w.item_type, itemId: w.item_id, reason: w.reason })))
+  const keyOf = (r: { player_id: string; item_type: FineKind; item_id: string; reason: FineReason }) =>
+    fineKey({ playerId: r.player_id, kind: r.item_type, itemId: r.item_id, reason: r.reason })
+  const waived = new Map(waivers.map((w) => [keyOf(w), w.note ?? null]))
+  const paid = new Map(payments.map((p) => [keyOf(p), p.paid_at]))
   const nowMs = now.getTime()
 
   const firstReply = new Map<string, string>()
@@ -161,7 +175,10 @@ export function computeFines({
   }
 
   const fines: Fine[] = []
-  const add = (f: Omit<Fine, 'waived'>) => fines.push({ ...f, waived: waived.has(fineKey(f)) })
+  const add = (f: Omit<Fine, 'waived' | 'waiveNote' | 'paid' | 'paidAt'>) => {
+    const key = fineKey(f)
+    fines.push({ ...f, waived: waived.has(key), waiveNote: waived.get(key) ?? null, paid: paid.has(key), paidAt: paid.get(key) ?? null })
+  }
 
   for (const e of entries) {
     if (!e.finesEnabled || !e.respondBy) continue
@@ -217,13 +234,24 @@ export function finedBySession(fines: Fine[]) {
 /** 'YYYY-MM' (Singapore) a fine counts towards */
 export const fineMonth = (f: Pick<Fine, 'at'>) => sgYmd(f.at).slice(0, 7)
 
-/** Unwaived fines per player, most owed first: [{ playerId, count, total, fines }] */
+/**
+ * Fines per player, most owed first: `count`/`total` are what's still outstanding
+ * (neither paid nor waived); `settled` once every fine is paid or waived.
+ */
 export function finesByPlayer(fines: Fine[]) {
   const by = new Map<string, Fine[]>()
   for (const f of fines) by.set(f.playerId, [...(by.get(f.playerId) ?? []), f])
   return Array.from(by, ([playerId, list]) => {
-    const count = list.filter((f) => !f.waived).length
-    return { playerId, count, total: count * FINE_AMOUNT, fines: list }
+    const count = list.filter(isOutstanding).length
+    return {
+      playerId,
+      count,
+      total: count * FINE_AMOUNT,
+      paid: list.filter((f) => f.paid && !f.waived).length,
+      waived: list.filter((f) => f.waived).length,
+      settled: count === 0,
+      fines: list,
+    }
   }).sort((a, b) => b.total - a.total)
 }
 

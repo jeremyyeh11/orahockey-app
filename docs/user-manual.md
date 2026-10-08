@@ -47,7 +47,7 @@ A list of the season's games, training sessions and team **events** (gatherings,
 Open polls show voting options - pick one and tap **Vote**. Until you vote, the poll shows a countdown to its reply deadline. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Closed polls are kept below for reference.
 
 ### Fines
-**$5** a time, collated at the end of each month. The **Fines** tab shows everyone's fines, one month at a time (tap a name to see what each fine was for).
+**$5** a time, collated at the end of each month. The **Fines** tab shows everyone's fines, one month at a time: a card says whether the month is **Outstanding** or **Settled**, then each player with what each fine was for. Paid and waived fines are greyed out (a waived fine shows why).
 
 - **Late reply** - replying after the **Reply by** deadline, or not replying at all. Deadlines (Singapore time): weekend games and trainings - **Thursday 23:59** before; weekday training - **Sunday 23:59** before; weekday games - **72 hours** before; polls and team events - **72 hours** after they're posted. Your *first* reply is what counts.
 - **Late change** - changing your answer in the **24 hours before the start**. You must also PM a member of the coaching committee (Ish / Akash / Faris / Hiren / Jaspal); if you did, they'll waive the fine.
