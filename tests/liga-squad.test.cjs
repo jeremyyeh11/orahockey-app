@@ -587,6 +587,8 @@ test('admin player edit: prefilled form, season-aware jersey, locked email/role 
   const boundaryLoad = createTsLoader({
     'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
     './actions': { updatePlayer: async (...args) => saved.push(args) },
+    '@/app/admin/team/actions': { setPlayerPhoto: async () => {} },
+    '@/lib/supabase/client': { createClient: () => ({}) },
   })
   const { default: PlayerEditModal } = boundaryLoad('app/admin/team/PlayerEditModal.tsx')
   const player = {
@@ -595,6 +597,7 @@ test('admin player edit: prefilled form, season-aware jersey, locked email/role 
   }
   const html = (context) => render(PlayerEditModal, { player, context, onClose() {} })
   const open = html({ seasonLabel: '2027', jerseyMode: 'season', hasAccount: false, isSelf: false })
+  assert.match(open, /liga-photo-field[\s\S]*Upload photo/, 'admins upload the photo from the edit dialog')
   assert.match(open, /value="SOME PLAYER"/)
   assert.match(open, /value="1999-04-05"/)
   assert.match(textOf(open), /Jersey # \(MHL1 2027\)/)

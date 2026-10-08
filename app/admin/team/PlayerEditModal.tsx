@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import { LEAGUE, POSITIONS } from '@/lib/constants'
 import { updatePlayer } from './actions'
+import { PlayerPhotoField } from '@/components/PlayerPhotoField'
 
 /** What the admin profile knows about how this player can be edited */
 export type EditContext = {
@@ -32,6 +33,7 @@ export type EditablePlayer = {
   joined_year?: number | null
   is_active: boolean
   jersey_number: number | null
+  photo_path?: string | null
 }
 
 const inputCls =
@@ -97,6 +99,10 @@ export default function PlayerEditModal({
   return (
     <Modal onClose={onClose} layer="top" scrollable>
       <h2 className="mb-5 text-lg font-bold text-white">Edit player</h2>
+      {/* Saves on its own, straight away — not part of the form's Save */}
+      <div className="mb-4">
+        <PlayerPhotoField playerId={player.id} photoPath={player.photo_path ?? null} />
+      </div>
       <form onSubmit={handleSubmit} className="liga-player-edit space-y-4">
         <div>
           <label className={labelCls} htmlFor="edit-full-name">Full name *</label>

@@ -323,3 +323,26 @@ export async function setPlayerEmail(playerId: string, email: string) {
 
   revalidateSquad()
 }
+
+/**
+ * Set (or clear) a player's photo — the path of an object the admin just
+ * uploaded to the player-photos bucket. The previous photo's object is deleted.
+ */
+export async function setPlayerPhoto(playerId: string, path: string | null) {
+  const supabase = createClient()
+  await requireAdmin(supabase)
+  if (path && !path.startsWith(`${playerId}/`)) throw new Error('That photo belongs to another player.')
+
+  const { data: current, error: readError } = await supabase.from('players').select('photo_path').eq('id', playerId).single()
+  if (readError) throw new Error(readError.message)
+
+  const { error } = await supabase.from('players').update({ photo_path: path }).eq('id', playerId)
+  if (error) throw new Error(error.message)
+
+  if (current.photo_path && current.photo_path !== path) {
+    await supabase.storage.from('player-photos').remove([current.photo_path])
+  }
+  revalidateSquad()
+  revalidatePath('/admin/profile')
+  revalidatePath('/dashboard/profile')
+}

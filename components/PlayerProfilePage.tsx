@@ -13,6 +13,7 @@ import { addPlayersToSeason, removePlayerFromSeason, setPlayerEmail, togglePlaye
 import type { AccountStatus } from './RosterList'
 import { PencilIcon } from './icons'
 import PlayerEditModal, { type EditContext } from '@/app/admin/team/PlayerEditModal'
+import { playerPhotoUrl } from '@/lib/photos'
 
 export type { AccountStatus }
 
@@ -54,6 +55,7 @@ export type ProfilePlayer = PlayerLite & {
   role?: 'player' | 'admin'
   date_of_birth?: string | null
   joined_year?: number | null
+  photo_path?: string | null
 }
 
 // Inline stat row — same compact style as squad cards
@@ -288,6 +290,8 @@ export function PlayerProfilePage({
   const pathname = usePathname()
   const squadPath = pathname.replace(/\/[^/]+$/, '') // /admin/team/123 → /admin/team
 
+  const photoUrl = playerPhotoUrl(player.photo_path)
+
   // Photo, name and stat panels — shared by the full-screen and dialog layouts
   const body = (
     <>
@@ -303,23 +307,26 @@ export function PlayerProfilePage({
 
       {/* Player image — real photo scaled to cover, silhouette fallback */}
       <div className="liga-profile-image absolute inset-0 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`/players/${player.id}.png`}
-          alt={preferredName(player)}
-          className="h-full w-full object-cover object-top opacity-90"
-          onError={(e) => {
-            const img = e.currentTarget
-            img.style.display = 'none'
-            const fallback = img.nextElementSibling
-            if (fallback) (fallback as HTMLElement).style.display = 'flex'
-          }}
-        />
+        {/* Photo from Storage (admin-uploaded); silhouette when there's none or it fails */}
+        {photoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photoUrl}
+            alt={preferredName(player)}
+            className="h-full w-full object-cover object-top opacity-90"
+            onError={(e) => {
+              const img = e.currentTarget
+              img.style.display = 'none'
+              const fallback = img.nextElementSibling
+              if (fallback) (fallback as HTMLElement).style.display = 'flex'
+            }}
+          />
+        )}
         <svg
           viewBox="0 0 100 130"
           className="h-[55vh] w-auto opacity-25"
           fill="currentColor"
-          style={{ display: 'none', position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)' }}
+          style={{ display: photoUrl ? 'none' : 'flex', position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)' }}
         >
           <circle cx="50" cy="18" r="12" />
           <path d="M32 40 Q50 30 68 40 L68 72 L63 72 L63 48 L58 48 L58 130 L53 130 L53 72 L47 72 L47 130 L42 130 L42 48 L37 48 L37 72 L32 72 Z" />
