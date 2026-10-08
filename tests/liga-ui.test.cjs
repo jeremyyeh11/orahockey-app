@@ -230,7 +230,7 @@ test('Home leads with the selected season and keeps all-time stats below it', ()
 
 test('season switcher: header dropdown on desktop, pinned tabs on touch layouts, hidden where not season-scoped', () => {
   const shell = read('components/AppShell.tsx')
-  assert.match(shell, /NOT_SEASON_SCOPED = \/\\\/\(polls\|profile\)/, 'Polls and Profile are not season-scoped')
+  assert.match(shell, /NOT_SEASON_SCOPED = \/\\\/\(polls\|profile\|fines\)/, 'Polls, Profile and Fines (by month) are not season-scoped')
   assert.match(shell, /\{seasons && <SeasonMenu \{\.\.\.seasons\} \/>\}/, 'desktop dropdown sits in the header row')
   assert.match(shell, /<SeasonTabs \{\.\.\.seasons\} \/>\s*<LockedSeasonStrip \{\.\.\.seasons\} \/>[\s\S]*<\/header>/, 'tabs + locked strip are inside the sticky header')
   const switcher = read('components/SeasonSwitcher.tsx')

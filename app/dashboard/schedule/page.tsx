@@ -6,6 +6,8 @@ import { getNow } from '@/lib/preview'
 import { cookies } from 'next/headers'
 import { VIEW_COOKIE } from '@/lib/preview'
 import { getSeasonSquad, getSelectedSeason, inSeason, seasonRoster } from '@/lib/season-server'
+import { loadFines } from '@/lib/fines-server'
+import { finedBySession } from '@/lib/fines'
 import type { GoalRow, CardRow } from './resultActions'
 
 export const metadata: Metadata = { title: 'Schedule' }
@@ -67,6 +69,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
     { data: goalRows },
     { data: cardRows },
     { data: potmRows },
+    { fines },
   ] = await Promise.all([
     inSeason(
       supabase
@@ -96,6 +99,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
       .select('id, game_id, player_id, card_type')
       .not('game_id', 'is', null),
     supabase.from('potm').select('game_id, player_id, place'),
+    loadFines(),
   ])
 
   const error = gamesError ?? trainingsError ?? eventsError
@@ -143,6 +147,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
       cardsByGame={groupByGame((cardRows ?? []) as CardRow[])}
       potmByGame={groupByGame((potmRows ?? []) as { game_id: string; player_id: string; place: number }[])}
       initialEventKey={typeof searchParams.event === 'string' ? searchParams.event : null}
+      fined={finedBySession(fines)}
     />
   )
 }

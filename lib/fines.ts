@@ -200,6 +200,17 @@ export function computeFines({
   return fines.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
 }
 
+/** Unwaived fines per schedule entry ('training-<id>') and player — the attendance list marks them */
+export function finedBySession(fines: Fine[]) {
+  const by: Record<string, Record<string, FineReason[]>> = {}
+  for (const f of fines) {
+    if (f.waived || f.kind === 'poll') continue
+    const forEntry = (by[`${f.kind}-${f.itemId}`] ??= {})
+    ;(forEntry[f.playerId] ??= []).push(f.reason)
+  }
+  return by
+}
+
 /** 'YYYY-MM' (Singapore) a fine counts towards */
 export const fineMonth = (f: Pick<Fine, 'at'>) => sgYmd(f.at).slice(0, 7)
 
@@ -211,4 +222,25 @@ export function finesByPlayer(fines: Fine[]) {
     const count = list.filter((f) => !f.waived).length
     return { playerId, count, total: count * FINE_AMOUNT, fines: list }
   }).sort((a, b) => b.total - a.total)
+}
+
+/** Where a fine's entry lives in the app: the event on the schedule, or the Polls tab */
+export function fineHref(basePath: '/dashboard' | '/admin', f: { kind: FineKind; itemId: string }) {
+  return f.kind === 'poll' ? `${basePath}/polls` : `${basePath}/schedule?event=${f.kind}-${f.itemId}`
+}
+
+/** 'YYYY-MM' (Singapore) of an instant — the fines month it falls in */
+export const sgMonth = (d: Date) => sgYmd(d.toISOString()).slice(0, 7)
+
+/** 'October 2026' */
+export function monthLabel(month: string) {
+  const [y, m] = month.split('-').map(Number)
+  return new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(Date.UTC(y, m - 1, 1))
+}
+
+/** The month before / after 'YYYY-MM' */
+export function shiftMonth(month: string, by: number) {
+  const [y, m] = month.split('-').map(Number)
+  const d = new Date(Date.UTC(y, m - 1 + by, 1))
+  return d.toISOString().slice(0, 7)
 }

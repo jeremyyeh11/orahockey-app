@@ -6,6 +6,7 @@ import { EventDetailModal, type Game, type Training, type TeamEvent, type Attend
 import { EventRow, eventFinesEnabled, eventId, eventRespondBy, type EventItem, type MyStatus } from '@/components/EventRow'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import { RespondBy } from '@/components/RespondBy'
+import type { FineReason } from '@/lib/fines'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
@@ -28,6 +29,7 @@ export default function ScheduleClient({
   cardsByGame,
   potmByGame,
   initialEventKey,
+  fined,
 }: {
   /** The season being shown; a locked season is read-only */
   season: Season
@@ -47,6 +49,8 @@ export default function ScheduleClient({
   potmByGame: Record<string, PotmPlacing[]>
   /** Event to open on arrival — `game-<id>`, `training-<id>` or `event-<id>` */
   initialEventKey: string | null
+  /** Unwaived fines per entry ('training-<id>') and player */
+  fined: Record<string, Record<string, FineReason[]>>
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings' | 'events'>('all')
   const [isPending, startTransition] = useTransition()
@@ -151,6 +155,7 @@ export default function ScheduleClient({
       goalsByGame={goalsByGame}
       cardsByGame={cardsByGame}
       potmByGame={potmByGame}
+      fined={fined[eventKey(selectedItem)]}
       onClose={() => setSelectedItem(null)}
       onSaveGame={handleSaveGame}
       onSaveTraining={handleSaveTraining}

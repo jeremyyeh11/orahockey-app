@@ -6,7 +6,7 @@ import { preferredName } from './RosterList'
 import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
-import { FINE_AMOUNT } from '@/lib/fines'
+import { FINE_AMOUNT, type FineReason } from '@/lib/fines'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
@@ -100,7 +100,7 @@ const inputCls =
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
-type BreakdownGroup = { label: string; players: { name: string; at?: string }[] }
+type BreakdownGroup = { label: string; players: { id: string; name: string; at?: string }[] }
 
 function buildBreakdown(
   attendance: AttendanceRow[] | undefined,
@@ -128,10 +128,10 @@ function buildBreakdown(
   const noResponse = roster.filter((p) => !respondedIds.has(p.id))
 
   return [
-    { label: 'Attending', players: groups.attending.map((p) => ({ name: preferredName(p), at: p.at })) },
-    { label: 'Maybe', players: groups.maybe.map((p) => ({ name: preferredName(p), at: p.at })) },
-    { label: 'Not attending', players: groups.not_attending.map((p) => ({ name: preferredName(p), at: p.at })) },
-    { label: "Hasn't responded", players: noResponse.map((p) => ({ name: preferredName(p) })) },
+    { label: 'Attending', players: groups.attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
+    { label: 'Maybe', players: groups.maybe.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
+    { label: 'Not attending', players: groups.not_attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
+    { label: "Hasn't responded", players: noResponse.map((p) => ({ id: p.id, name: preferredName(p) })) },
   ].filter((g) => g.players.length > 0)
 }
 
@@ -148,6 +148,7 @@ export function EventDetailModal({
   goalsByGame,
   cardsByGame,
   potmByGame,
+  fined,
   onClose,
   onSaveGame,
   onSaveTraining,
@@ -169,6 +170,8 @@ export function EventDetailModal({
   goalsByGame: Record<string, GoalRow[]>
   cardsByGame: Record<string, CardRow[]>
   potmByGame: Record<string, PotmPlacing[]>
+  /** This event's unwaived fines by player — marked in the attendance list */
+  fined?: Record<string, FineReason[]>
   onClose: () => void
   onSaveGame: (id: string, data: GameInput) => void
   onSaveTraining: (id: string, data: TrainingInput) => void
@@ -516,9 +519,17 @@ export function EventDetailModal({
                       {group.label} ({group.players.length})
                     </div>
                     <div className="space-y-0.5">
-                      {group.players.map(({ name, at }) => (
-                        <div key={name} className="liga-breakdown-row flex items-baseline justify-between gap-3 text-[11px] text-slate-300">
-                          <span className="min-w-0 break-words">{name}</span>
+                      {group.players.map(({ id, name, at }) => (
+                        <div key={id} className="liga-breakdown-row flex items-baseline justify-between gap-3 text-[11px] text-slate-300">
+                          <span className="min-w-0 break-words">
+                            {name}
+                            {/* Fined (unwaived): a late or missing reply, or a change in the last 24h */}
+                            {fined?.[id]?.map((reason) => (
+                              <span key={reason} className="liga-fine-mark ml-1.5 rounded bg-red-900/50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-red-300">
+                                {reason === 'late_change' ? 'Late change' : 'Late'}
+                              </span>
+                            ))}
+                          </span>
                           {/* When they gave this answer — open seasons only (archived ones carry import times) */}
                           {at && !readOnly && <span className="liga-meta shrink-0 text-slate-500">{fmtDateTime(at)}</span>}
                         </div>

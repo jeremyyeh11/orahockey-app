@@ -35,15 +35,24 @@ The season's squad with each player's stats for that season: goals by type (**FG
 A list of the season's games, training sessions and team **events** (gatherings, meetings…), split into **Upcoming** and **Past**. Friendly games are tagged **Friendly** and don't count towards records or stats. Times show as a range when there's an end time (e.g. *Sat 10 Oct · 09:00 – 11:00*), with the time to report by underneath when there is one.
 
 - Use the **All / Games / Trainings / Events** filter chips to narrow the list.
-- For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance.
+- For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance. Until you reply, the card shows **Reply by …** - amber in the last 24 hours, red once overdue (see **Fines** below).
 - **Tap any event** to open its detail view. On a computer the details sit in a panel beside the list instead - it shows the next event to start with; click any event to switch. There you can:
   - see the full details (opponent, date/time, venue, home/away, type, result and score for played games),
   - set or change your attendance,
-  - see the **attendance breakdown** - Attending, Maybe, Not attending, Hasn't responded, in that order,
+  - see the **Reply by** deadline and whether fines apply,
+  - see the **attendance breakdown** - Attending, Maybe, Not attending, Hasn't responded, in that order - with when each person gave their answer, and a red **Late** / **Late change** tag on anyone fined for that event,
   - read the **Additional Information** note (added by coaches).
 
 ### Polls
-Open polls show voting options - pick one and tap **Vote**. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Closed polls are kept below for reference.
+Open polls show voting options - pick one and tap **Vote**. Until you vote, the poll shows its **Reply by** deadline. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Closed polls are kept below for reference.
+
+### Fines
+**$5** a time, collated at the end of each month. Open **Fines** from the row at the bottom of Home - everyone can see everyone's fines, one month at a time (tap a name to see what each fine was for).
+
+- **Late reply** - replying after the **Reply by** deadline, or not replying at all. Deadlines (Singapore time): weekend games and trainings - **Thursday 23:59** before; weekday training - **Sunday 23:59** before; weekday games - **72 hours** before; polls and team events - **72 hours** after they're posted. Your *first* reply is what counts.
+- **Late change** - changing your answer in the **24 hours before the start**. You must also PM a member of the coaching committee (Ish / Akash / Faris / Hiren / Jaspal); if you did, they'll waive the fine.
+- Some casual events and polls have fines switched off - their detail view says **No fines**. Team events start with fines off. Player-of-the-match voting never has fines.
+- Only players with an app account can be fined.
 
 
 ## Getting help
