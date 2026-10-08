@@ -82,7 +82,9 @@ The **Fines** tab (between Squad and Profile). Fines are worked out by the app f
 - Only active squad members with an app account are fined. Players see the same page without the waive buttons.
 
 ### Profile
-Your identity card - name, email, role, jersey number, and positions - plus a **Sign out** button.
+The same Profile tab every player has (see the [user manual](user-manual.md#profile)): your card, details you can edit, stats by season, and **Sign out**.
+
+**Player photos:** open a player in **Squad** → **Edit** → **Photo** → **Upload photo** (or **Replace** / **Remove**). It's saved straight away (separately from the form's Save) and shows immediately - portrait photos work best, the card crops to the top. Only admins can upload.
 
 
 ## Previewing the player experience

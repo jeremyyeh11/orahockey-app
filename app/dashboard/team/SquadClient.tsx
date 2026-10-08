@@ -17,7 +17,7 @@ import {
 } from '@/components/SeasonStats'
 import type { RosterPlayer } from '@/components/RosterList'
 import { LEAGUE } from '@/lib/constants'
-import { seasonTitle, type Season } from '@/lib/season'
+import { recordedStats, records, seasonTitle, type Season } from '@/lib/season'
 
 type Player = RosterPlayer & PlayerLite
 
@@ -62,6 +62,7 @@ export default function SquadClient({
       router.push(`/dashboard/team/${p.id}`, { scroll: false })
     },
     statsMap,
+    recorded: recordedStats(season),
   }
 
   return (
@@ -78,8 +79,19 @@ export default function SquadClient({
       {/* Top Scorers + Top Assists: side by side, stacked in a sticky side column next to the roster table at xl+ */}
       <div className="liga-squad-layout xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:items-start xl:gap-6">
         <aside className="mb-4 grid grid-cols-2 items-start gap-3 xl:sticky xl:top-24 xl:order-last xl:mb-0 xl:grid-cols-1">
-          <TopScorersCard groups={topScorerGroups} />
-          <TopAssistsCard groups={topAssistGroups} />
+          {records(season, 'goals') && <TopScorersCard groups={topScorerGroups} />}
+          {records(season, 'assists') && <TopAssistsCard groups={topAssistGroups} />}
+          {(!records(season, 'goals') || !records(season, 'assists')) && (
+            <div
+              className={`liga-panel liga-stats-not-recorded card px-3 py-3 text-xs text-slate-400 ${
+                records(season, 'goals') ? '' : 'col-span-2 xl:col-span-1'
+              }`}
+            >
+              {records(season, 'goals')
+                ? `Assists, goal types and cards weren't recorded for ${season.label}.`
+                : `Stats not recorded for ${season.label} — only appearances (Apps) and results were kept.`}
+            </div>
+          )}
         </aside>
 
         {/* Cards on touch layouts, a sortable table on desktop */}

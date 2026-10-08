@@ -105,7 +105,6 @@ export type PlayerDetailsInput = {
   /** Every position they play — per player, across seasons */
   position: string[] | null
   date_of_birth: string | null
-  joined_year: number | null
   is_active: boolean
   /** The selected season's number if they're in its squad, else their default for new seasons */
   jersey_number: number | null
@@ -126,9 +125,6 @@ export async function updatePlayer(id: string, data: PlayerDetailsInput) {
   if (!fullName) throw new Error('Full name is required.')
   if (data.jersey_number != null && (!Number.isInteger(data.jersey_number) || data.jersey_number < 0 || data.jersey_number > 99)) {
     throw new Error('Jersey number must be 0–99.')
-  }
-  if (data.joined_year != null && (!Number.isInteger(data.joined_year) || data.joined_year < 1950 || data.joined_year > 2100)) {
-    throw new Error('Year joined looks wrong.')
   }
 
   const [{ data: current, error: readError }, user, season] = await Promise.all([
@@ -169,7 +165,6 @@ export async function updatePlayer(id: string, data: PlayerDetailsInput) {
       role: data.role,
       position: data.position && data.position.length > 0 ? data.position : null,
       date_of_birth: data.date_of_birth || null,
-      joined_year: data.joined_year,
       is_active: data.is_active,
       ...(setDefaultJersey ? { jersey_number: data.jersey_number } : {}),
     })
@@ -322,4 +317,27 @@ export async function setPlayerEmail(playerId: string, email: string) {
   if (error) throw new Error(friendlyPlayerError(error.message, error.code))
 
   revalidateSquad()
+}
+
+/**
+ * Set (or clear) a player's photo — the path of an object the admin just
+ * uploaded to the player-photos bucket. The previous photo's object is deleted.
+ */
+export async function setPlayerPhoto(playerId: string, path: string | null) {
+  const supabase = createClient()
+  await requireAdmin(supabase)
+  if (path && !path.startsWith(`${playerId}/`)) throw new Error('That photo belongs to another player.')
+
+  const { data: current, error: readError } = await supabase.from('players').select('photo_path').eq('id', playerId).single()
+  if (readError) throw new Error(readError.message)
+
+  const { error } = await supabase.from('players').update({ photo_path: path }).eq('id', playerId)
+  if (error) throw new Error(error.message)
+
+  if (current.photo_path && current.photo_path !== path) {
+    await supabase.storage.from('player-photos').remove([current.photo_path])
+  }
+  revalidateSquad()
+  revalidatePath('/admin/profile')
+  revalidatePath('/dashboard/profile')
 }

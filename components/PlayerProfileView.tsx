@@ -1,16 +1,17 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { fetchAll } from '@/lib/supabase/fetch-all'
 import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus, type SquadStatus } from '@/components/PlayerProfilePage'
-import { computeSeason, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
+import { computeSeason, firstSeasonPlayed, yearsAtClub, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
 // Not from RosterList: that's a client module, and this server component calls it
 import { accountStatusOf } from '@/lib/account'
-import { getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
+import { getSeasons, getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import type { EditContext } from '@/app/admin/team/PlayerEditModal'
-import { seasonTitle } from '@/lib/season'
+import { recordedStats, seasonTitle } from '@/lib/season'
 
-const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year'
+const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path'
 // Admin view additionally exposes contact/role fields (+ auth link for account status).
 const ADMIN_FIELDS = `${BASE_FIELDS}, email, role, auth_user_id`
 
@@ -43,7 +44,7 @@ export async function PlayerProfileView({
   overlay?: boolean
 }) {
   const supabase = createClient()
-  const [season, user] = await Promise.all([getSelectedSeason(), includeAccount ? getRequestUser() : null])
+  const [season, user, seasons] = await Promise.all([getSelectedSeason(), includeAccount ? getRequestUser() : null, getSeasons()])
 
   const [
     { data: player, error: playerErr },
@@ -70,9 +71,9 @@ export async function PlayerProfileView({
           .eq('player_id', playerId)
           .maybeSingle(),
     supabase.from('games').select('id, game_date, result, goals_against, season_id, game_type').order('game_date', { ascending: false }),
-    supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
-    supabase.from('potm').select('game_id, player_id, place'),
-    supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending'),
+    fetchAll(() => supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, goals_untyped, assists').order('id')),
+    fetchAll(() => supabase.from('potm').select('game_id, player_id, place').order('id')),
+    fetchAll(() => supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending').order('id')),
     supabase.from('match_cards').select('player_id, game_id, card_type, created_at'),
   ])
 
@@ -156,6 +157,11 @@ export async function PlayerProfileView({
       seasonRow={seasonRow}
       careerRow={careerRow}
       seasonLabel={season.allTime ? null : seasonTitle(season)}
+      recorded={season.allTime ? undefined : recordedStats(season)}
+      yearsAtClub={yearsAtClub(
+        firstSeasonPlayed(profile.id, games ?? [], att ?? [], seasons),
+        seasons.find((s) => s.is_current)?.label
+      )}
       accountStatus={accountStatus}
       squadStatus={squadStatus}
       editContext={editContext}

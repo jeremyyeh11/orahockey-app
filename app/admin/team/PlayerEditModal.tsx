@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import { LEAGUE, POSITIONS } from '@/lib/constants'
 import { updatePlayer } from './actions'
+import { PlayerPhotoField } from '@/components/PlayerPhotoField'
 
 /** What the admin profile knows about how this player can be edited */
 export type EditContext = {
@@ -29,9 +30,9 @@ export type EditablePlayer = {
   role?: 'player' | 'admin'
   position: string[] | null
   date_of_birth?: string | null
-  joined_year?: number | null
   is_active: boolean
   jersey_number: number | null
+  photo_path?: string | null
 }
 
 const inputCls =
@@ -79,7 +80,6 @@ export default function PlayerEditModal({
           role: context.isSelf ? player.role ?? 'player' : (fd.get('role') as 'player' | 'admin'),
           position: positions,
           date_of_birth: (fd.get('date_of_birth') as string) || null,
-          joined_year: num('joined_year'),
           is_active: fd.get('is_active') === 'on',
           jersey_number: context.jerseyMode === 'archived' ? player.jersey_number : num('jersey_number'),
         })
@@ -97,6 +97,10 @@ export default function PlayerEditModal({
   return (
     <Modal onClose={onClose} layer="top" scrollable>
       <h2 className="mb-5 text-lg font-bold text-white">Edit player</h2>
+      {/* Saves on its own, straight away — not part of the form's Save */}
+      <div className="mb-4">
+        <PlayerPhotoField playerId={player.id} photoPath={player.photo_path ?? null} />
+      </div>
       <form onSubmit={handleSubmit} className="liga-player-edit space-y-4">
         <div>
           <label className={labelCls} htmlFor="edit-full-name">Full name *</label>
@@ -172,15 +176,10 @@ export default function PlayerEditModal({
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className={labelCls} htmlFor="edit-dob">Date of birth</label>
-            <input id="edit-dob" name="date_of_birth" type="date" defaultValue={player.date_of_birth ?? ''} className={`${inputCls} h-[42px]`} />
-          </div>
-          <div className="flex-1">
-            <label className={labelCls} htmlFor="edit-joined">Year joined</label>
-            <input id="edit-joined" name="joined_year" type="number" min="1950" max="2100" defaultValue={player.joined_year ?? ''} placeholder="e.g. 2019" className={inputCls} />
-          </div>
+        <div>
+          <label className={labelCls} htmlFor="edit-dob">Date of birth</label>
+          <input id="edit-dob" name="date_of_birth" type="date" defaultValue={player.date_of_birth ?? ''} className={`${inputCls} h-[42px]`} />
+          <p className={hintCls}>Years at ORA is worked out from their first season played.</p>
         </div>
 
         <label className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-surface-border px-3 py-2.5">

@@ -37,6 +37,8 @@ export type Game = {
   result: string | null
   notes: string | null
   team_list_status: 'draft' | 'published' | null
+  /** The opponent's full name (opponents table), e.g. "St Andrew's Alumni" for SAA */
+  opponent_name?: string | null
   ends_at?: string | null
   report_minutes?: number | null
   respond_by?: string | null
@@ -404,7 +406,10 @@ export function EventDetailModal({
             />
             {isGame && currentItem.kind === 'game' && (
               <>
-                <DetailRow label="Opponent" value={currentItem.game.opponent} />
+                <DetailRow
+                  label="Opponent"
+                  value={currentItem.game.opponent_name ? `${currentItem.game.opponent_name} (${currentItem.game.opponent})` : currentItem.game.opponent}
+                />
                 <DetailRow label="Home / Away" value={currentItem.game.home_away ? (currentItem.game.home_away === 'home' ? 'Home' : 'Away') : '—'} />
                 <DetailRow label="Type" value={competitionLabel(currentItem.game.game_type)} />
               </>

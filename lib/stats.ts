@@ -30,6 +30,8 @@ export type SeasonStat = {
   goals_fg: number
   goals_pc: number
   goals_ps: number
+  /** Goals whose type wasn't recorded (2024) — in `goals`, not FG/PC/PS */
+  goals_untyped?: number
   assists: number
 }
 
@@ -127,7 +129,7 @@ export function computeSeason({
     r.fg += s.goals_fg
     r.pc += s.goals_pc
     r.ps += s.goals_ps
-    r.goals += s.goals_fg + s.goals_pc + s.goals_ps
+    r.goals += s.goals_fg + s.goals_pc + s.goals_ps + (s.goals_untyped ?? 0)
     r.assists += s.assists
   }
 
@@ -222,4 +224,28 @@ export function rankedGroups(
     listed++
   }
   return groups
+}
+
+/**
+ * The first season (oldest) in which a player made a league appearance — an
+ * RSVP'd "I'm in" for a league game that has a result. Null if they haven't played.
+ */
+export function firstSeasonPlayed(
+  playerId: string,
+  games: GameLite[],
+  attendance: AttendanceRow[],
+  seasons: { id: string; label: string }[]
+): string | null {
+  const attended = new Set(attendance.filter((a) => a.player_id === playerId).map((a) => a.session_id))
+  const seasonIds = new Set(games.filter((g) => countsForRecord(g) && g.result && attended.has(g.id)).map((g) => g.season_id))
+  const labels = seasons.filter((s) => seasonIds.has(s.id)).map((s) => s.label)
+  return labels.sort()[0] ?? null
+}
+
+/** Years at the club: from the first season played to the current one, inclusive (2026 → 2027 = 2) */
+export function yearsAtClub(firstSeason: string | null, currentSeason: string | null | undefined): number | null {
+  const first = Number(firstSeason)
+  const current = Number(currentSeason)
+  if (!firstSeason || !Number.isFinite(first) || !Number.isFinite(current)) return null
+  return Math.max(1, current - first + 1)
 }

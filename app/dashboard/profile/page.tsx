@@ -3,7 +3,6 @@ import { MyProfileView } from '@/components/MyProfileView'
 
 export const metadata: Metadata = { title: 'Profile' }
 
-/** Admins get the same Profile tab as players (admins are players too) */
-export default function AdminProfilePage() {
+export default function PlayerProfileTabPage() {
   return <MyProfileView />
 }

@@ -172,15 +172,20 @@ test('season-derived roster stats wrap as 12px tabular value-label pairs while k
     }
     return textOf(card.match(/<div[^>]*class="[^"]*\bliga-roster-stats\b[^"]*"[^>]*>([\s\S]*?)<\/div>/)[1])
   }
-  assert.equal(statsText(cards[0]), '3FG1PC1PS3A1CS1POTM2APP')
+  // Headline stats: G, A, CS, POTM, APP — goal types as a quieter second line
+  assert.equal(statsText(cards[0]), '5G3A1CS1POTM2APP')
+  assert.match(cards[0], /liga-roster-goal-types[^>]*>3 FG · 1 PC · 1 PS</, 'goal types sit under the headline stats')
   assert.equal(statsText(cards.find((card) => textOf(card).includes('KEEPER ONLY'))), '1CS–POTM2APP')
-  assert.equal(statsText(cards.find((card) => textOf(card).includes('ALPHA OUTFIELD'))), '–FG2PC1PS4A–POTM1APP')
-  assert.equal(statsText(cards.find((card) => textOf(card).includes('UNKNOWN POSITION'))), '–POTM1APP')
+  const outfield = cards.find((card) => textOf(card).includes('ALPHA OUTFIELD'))
+  assert.equal(statsText(outfield), '3G4A–POTM1APP')
+  assert.match(outfield, /liga-roster-goal-types[^>]*>2 PC · 1 PS</, 'only the goal types they scored')
+  assert.equal(statsText(cards.find((card) => textOf(card).includes('UNKNOWN POSITION'))), '–G–A–POTM1APP')
+  assert.doesNotMatch(cards.find((card) => textOf(card).includes('KEEPER ONLY')), /liga-roster-goal-types/)
   assert.doesNotMatch(cards.find((card) => textOf(card).includes('NO RECORDED STATS')), /liga-roster-stats/)
   for (const tag of html.match(/<span\b[^>]*class="[^"]*\bliga-roster-stat\b[^>]*>/g) ?? []) {
     assert.match(classesOf(tag), /\bwhitespace-nowrap\b/, 'a number never wraps away from its label')
   }
-  assert.equal((html.match(/\bliga-roster-stat\b/g) ?? []).length, 18)
+  assert.equal((html.match(/\bliga-roster-stat\b/g) ?? []).length, 16, 'no position = outfield: goal columns show too')
   assert.match(textOf(cards[0]), /▲1■2●1/, 'all card shapes retain their exact counts, including one')
   for (const color of ['green', 'yellow', 'red']) assert.match(cards[0], new RegExp(`text-${color}-400`))
   assert.doesNotMatch(html, /FG  PC  PS/, 'inline labels do not need a duplicate table-style header')
@@ -407,14 +412,14 @@ test('desktop roster table: sortable stat columns, keeper rules, and the same ro
     accountMap: new Map([['me', 'active'], ['gk', 'invited'], ['top', 'none']]),
   })
   const headers = (html.match(/<th scope="col"[\s\S]*?<\/th>/g) ?? []).map(textOf)
-  assert.deepEqual(headers.map((h) => h.replace(/[↑↓]/g, '').trim()), ['#', 'Player', 'Pos', 'FG', 'PC', 'PS', 'A', 'CS', 'POTM', 'APP', 'Cards', 'Acct'])
+  assert.deepEqual(headers.map((h) => h.replace(/[↑↓]/g, '').trim()), ['#', 'Player', 'Pos', 'G', 'A', 'CS', 'POTM', 'APP', 'FG', 'PC', 'PS', 'Cards', 'Acct'])
   assert.match(html, /aria-sort="ascending"[^>]*>\s*<button[^>]*title="Name"/, 'defaults to name, ascending')
   const rows = html.match(/<tr class="liga-roster-row[\s\S]*?<\/tr>/g) ?? []
   assert.deepEqual(rows.map((r) => textOf(r.match(/<th scope="row"[\s\S]*?<\/th>/)[0])), ['ZULU MINE (you)', 'ALPHA SCORER', 'KEEPER ONLY'], 'your row first, then A–Z')
   const cells = (r) => (r.match(/<td\b[^>]*>[\s\S]*?<\/td>|<td\b[^>]*\/>/g) ?? []).map(textOf)
-  // # · Pos · FG PC PS A CS POTM APP (no attendance → no appearances or clean sheets) · Cards · Acct
-  assert.deepEqual(cells(rows[0]).slice(0, 9), ['9', 'FWD', '1', '–', '–', '2', '', '–', '–'], 'outfielder: CS blank (n/a)')
-  assert.deepEqual(cells(rows[2]).slice(0, 9), ['1', 'GK', '', '', '', '', '–', '–', '–'], 'keeper: goal columns blank, CS shown')
+  // # · Pos · G A CS POTM APP (no attendance → no appearances or clean sheets) · FG PC PS (muted) · Cards · Acct
+  assert.deepEqual(cells(rows[0]).slice(0, 10), ['9', 'FWD', '1', '2', '', '–', '–', '1', '–', '–'], 'outfielder: CS blank (n/a)')
+  assert.deepEqual(cells(rows[2]).slice(0, 10), ['1', 'GK', '', '', '–', '–', '–', '', '', ''], 'keeper: goal columns blank, CS shown')
   assert.match(rows[0], /bg-brand\/15/, 'your row is highlighted')
   assert.match(rows[1], /<span class="sr-only">No account yet<\/span>/, 'account dot has a text alternative')
 })
@@ -587,6 +592,8 @@ test('admin player edit: prefilled form, season-aware jersey, locked email/role 
   const boundaryLoad = createTsLoader({
     'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
     './actions': { updatePlayer: async (...args) => saved.push(args) },
+    '@/app/admin/team/actions': { setPlayerPhoto: async () => {} },
+    '@/lib/supabase/client': { createClient: () => ({}) },
   })
   const { default: PlayerEditModal } = boundaryLoad('app/admin/team/PlayerEditModal.tsx')
   const player = {
@@ -595,6 +602,7 @@ test('admin player edit: prefilled form, season-aware jersey, locked email/role 
   }
   const html = (context) => render(PlayerEditModal, { player, context, onClose() {} })
   const open = html({ seasonLabel: '2027', jerseyMode: 'season', hasAccount: false, isSelf: false })
+  assert.match(open, /liga-photo-field[\s\S]*Upload photo/, 'admins upload the photo from the edit dialog')
   assert.match(open, /value="SOME PLAYER"/)
   assert.match(open, /value="1999-04-05"/)
   assert.match(textOf(open), /Jersey # \(MHL1 2027\)/)

@@ -190,10 +190,11 @@ export function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean })
   )
 }
 
-const STAT_COLS = ['FG', 'PC', 'PS', 'A', 'CS', 'POTM', 'App'] as const
+const ALL_RECORDED = ['goals', 'goal_types', 'assists', 'cards', 'potm']
 
 export function statValue(row: LeaderboardRow, col: string): number {
   switch (col) {
+    case 'G': return row.goals
     case 'FG': return row.fg
     case 'PC': return row.pc
     case 'PS': return row.ps
@@ -205,28 +206,56 @@ export function statValue(row: LeaderboardRow, col: string): number {
   }
 }
 
-/** Stat columns that apply to a player's positions. */
-export function statColumns(positions: string[] | null): string[] {
-  const isGK = positions?.includes('GK') ?? false
-  const isOutfield = positions?.some((p) => p !== 'GK') ?? false
+// No positions set (e.g. past players imported from caps sheets): treat as outfield so goals still show
+const isOutfieldOf = (positions: string[] | null) => !positions?.length || positions.some((p) => p !== 'GK')
 
-  // GK-only: show CS, hide FG/PC/PS/A
-  // Outfield-only: show FG/PC/PS/A, hide CS
-  // Both (GK + outfield): show everything
+/**
+ * Headline stat columns for a player's positions and what the season recorded
+ * (`recorded`, see lib/season): G (goals), A, CS (keepers), POTM, APP — each
+ * only where it applies / was recorded. The goal-type breakdown is separate and
+ * quieter: goalTypeColumns.
+ */
+export function statColumns(positions: string[] | null, recorded: readonly string[] = ALL_RECORDED): string[] {
+  const isGK = positions?.includes('GK') ?? false
+  const has = (s: string) => recorded.includes(s)
+
+  // GK-only: CS, no goals/A. Outfield-only: goals/A, no CS. Both: everything.
   const cols: string[] = []
-  if (isOutfield) cols.push('FG', 'PC', 'PS', 'A')
+  if (isOutfieldOf(positions)) {
+    if (has('goals')) cols.push('G')
+    if (has('assists')) cols.push('A')
+  }
   if (isGK) cols.push('CS')
-  cols.push('POTM', 'APP')
+  if (has('potm')) cols.push('POTM')
+  cols.push('APP')
   return cols
 }
 
-function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean; positions: string[] | null }) {
+/** FG / PC / PS — the breakdown of G, shown as a lower tier; none where goal types weren't recorded */
+export function goalTypeColumns(positions: string[] | null, recorded: readonly string[] = ALL_RECORDED): string[] {
+  return isOutfieldOf(positions) && recorded.includes('goal_types') ? ['FG', 'PC', 'PS'] : []
+}
+
+function StatRow({
+  row,
+  isMe,
+  positions,
+  recorded,
+}: {
+  row: LeaderboardRow
+  isMe: boolean
+  positions: string[] | null
+  recorded?: readonly string[]
+}) {
   const valCls = (v: number) =>
     v > 0 ? (isMe ? 'text-white' : 'text-white') : 'text-slate-600'
   const labelCls = isMe ? 'text-white/50' : 'text-slate-500'
-  const cols = statColumns(positions)
+  const cols = statColumns(positions, recorded)
+  // Goal types as a quiet second line — only the ones they scored
+  const types = goalTypeColumns(positions, recorded).filter((c) => statValue(row, c) > 0)
 
   return (
+    <div className="min-w-0 flex-1">
     <div className="liga-roster-stats liga-meta min-w-0 flex flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 mt-1.5 text-xs tabular-nums">
       {cols.map((col) => {
         const v = statValue(row, col)
@@ -237,6 +266,12 @@ function StatRow({ row, isMe, positions }: { row: LeaderboardRow; isMe: boolean;
           </span>
         )
       })}
+    </div>
+    {types.length > 0 && (
+      <div className="liga-roster-goal-types liga-meta mt-0.5 text-[11px] tabular-nums text-slate-500">
+        {types.map((c) => `${statValue(row, c)} ${c}`).join(' · ')}
+      </div>
+    )}
     </div>
   )
 }
@@ -249,6 +284,7 @@ export default function RosterList<T extends RosterPlayer>({
   onSelect,
   statsMap,
   accountMap,
+  recorded,
 }: {
   players: T[]
   myPlayerId: string | null
@@ -256,6 +292,8 @@ export default function RosterList<T extends RosterPlayer>({
   statsMap?: Map<string, LeaderboardRow>
   /** Admin view only: player id → login-account status dot */
   accountMap?: Map<string, AccountStatus>
+  /** What the season recorded (lib/season recordedStats) — picks the stat columns */
+  recorded?: readonly string[]
 }) {
   const sorted = [...players].sort((a, b) => {
     // User's row always first
@@ -319,7 +357,7 @@ export default function RosterList<T extends RosterPlayer>({
 
             {stats && (
               <div className="liga-roster-details relative mt-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
-                <StatRow row={stats} isMe={isMe} positions={player.position} />
+                <StatRow row={stats} isMe={isMe} positions={player.position} recorded={recorded} />
                 <div className="liga-roster-sanctions liga-meta shrink-0">
                   <CardsCell row={stats} isMe={isMe} />
                 </div>

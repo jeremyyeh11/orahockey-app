@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { nameParts, preferredName, sortPositions } from './RosterList'
+import { goalTypeColumns, nameParts, preferredName, sortPositions, statColumns, statValue } from './RosterList'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
@@ -13,6 +13,7 @@ import { addPlayersToSeason, removePlayerFromSeason, setPlayerEmail, togglePlaye
 import type { AccountStatus } from './RosterList'
 import { PencilIcon } from './icons'
 import PlayerEditModal, { type EditContext } from '@/app/admin/team/PlayerEditModal'
+import { playerPhotoUrl } from '@/lib/photos'
 
 export type { AccountStatus }
 
@@ -53,29 +54,27 @@ export type ProfilePlayer = PlayerLite & {
   email?: string
   role?: 'player' | 'admin'
   date_of_birth?: string | null
-  joined_year?: number | null
+  photo_path?: string | null
 }
 
-// Inline stat row — same compact style as squad cards
-function StatLine({ row, positions }: { row: LeaderboardRow; positions: string[] | null }) {
-  const isGK = positions?.includes('GK') ?? false
-  const isOutfield = positions?.some((p) => p !== 'GK') ?? false
-
-  const showGoals = isOutfield
-  const showCS = isGK
-
+// Inline stat row — same compact style as squad cards: goals, assists, CS, POTM,
+// then the goal types they scored as a quieter tail. Follows what the season recorded.
+function StatLine({
+  row,
+  positions,
+  recorded,
+}: {
+  row: LeaderboardRow
+  positions: string[] | null
+  recorded?: readonly string[]
+}) {
   const valCls = (v: number) => v > 0 ? 'text-white' : 'text-slate-600'
   const lblCls = 'text-white/50'
 
-  const cols: { label: string; value: number }[] = []
-  if (showGoals) {
-    cols.push({ label: 'FG', value: row.fg })
-    cols.push({ label: 'PC', value: row.pc })
-    cols.push({ label: 'PS', value: row.ps })
-    cols.push({ label: 'A', value: row.assists })
-  }
-  if (showCS) cols.push({ label: 'CS', value: row.cleanSheets })
-  cols.push({ label: 'POTM', value: row.potmWins })
+  const cols = statColumns(positions, recorded)
+    .filter((c) => c !== 'APP')
+    .map((c) => ({ label: c, value: statValue(row, c) }))
+  const types = goalTypeColumns(positions, recorded).filter((c) => statValue(row, c) > 0)
 
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[11px]">
@@ -85,6 +84,9 @@ function StatLine({ row, positions }: { row: LeaderboardRow; positions: string[]
           <span className={lblCls}>{c.label}</span>
         </span>
       ))}
+      {types.length > 0 && (
+        <span className="text-[10px] text-white/40">{types.map((c) => `${statValue(row, c)} ${c}`).join(' · ')}</span>
+      )}
     </div>
   )
 }
@@ -129,6 +131,10 @@ type PlayerProfileProps = {
   careerRow: LeaderboardRow | undefined
   /** e.g. "MHL1 2027"; null for "All time" — then only the Career panel shows */
   seasonLabel: string | null
+  /** From their first season played to the current one (null = hasn't played) */
+  yearsAtClub?: number | null
+  /** What the selected season recorded (undefined = everything); empty = appearances only */
+  recorded?: readonly string[]
   /** Admin view only — enables the account/invite panel */
   accountStatus?: AccountStatus
   /** Admin view, open season only — enables the squad (add / remove / inactive) panel */
@@ -142,6 +148,8 @@ export function PlayerProfilePage({
   seasonRow,
   careerRow,
   seasonLabel,
+  yearsAtClub,
+  recorded,
   accountStatus,
   squadStatus,
   editContext,
@@ -288,6 +296,8 @@ export function PlayerProfilePage({
   const pathname = usePathname()
   const squadPath = pathname.replace(/\/[^/]+$/, '') // /admin/team/123 → /admin/team
 
+  const photoUrl = playerPhotoUrl(player.photo_path)
+
   // Photo, name and stat panels — shared by the full-screen and dialog layouts
   const body = (
     <>
@@ -303,23 +313,26 @@ export function PlayerProfilePage({
 
       {/* Player image — real photo scaled to cover, silhouette fallback */}
       <div className="liga-profile-image absolute inset-0 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`/players/${player.id}.png`}
-          alt={preferredName(player)}
-          className="h-full w-full object-cover object-top opacity-90"
-          onError={(e) => {
-            const img = e.currentTarget
-            img.style.display = 'none'
-            const fallback = img.nextElementSibling
-            if (fallback) (fallback as HTMLElement).style.display = 'flex'
-          }}
-        />
+        {/* Photo from Storage (admin-uploaded); silhouette when there's none or it fails */}
+        {photoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photoUrl}
+            alt={preferredName(player)}
+            className="h-full w-full object-cover object-top opacity-90"
+            onError={(e) => {
+              const img = e.currentTarget
+              img.style.display = 'none'
+              const fallback = img.nextElementSibling
+              if (fallback) (fallback as HTMLElement).style.display = 'flex'
+            }}
+          />
+        )}
         <svg
           viewBox="0 0 100 130"
           className="h-[55vh] w-auto opacity-25"
           fill="currentColor"
-          style={{ display: 'none', position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)' }}
+          style={{ display: photoUrl ? 'none' : 'flex', position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)' }}
         >
           <circle cx="50" cy="18" r="12" />
           <path d="M32 40 Q50 30 68 40 L68 72 L63 72 L63 48 L58 48 L58 130 L53 130 L53 72 L47 72 L47 130 L42 130 L42 48 L37 48 L37 72 L32 72 Z" />
@@ -359,9 +372,7 @@ export function PlayerProfilePage({
             {player.date_of_birth && (
               <StatCol value={`${calcAge(player.date_of_birth)}y`} label="Age" />
             )}
-            {player.joined_year && (
-              <StatCol value={`${new Date().getFullYear() - player.joined_year}y`} label="At ORA" />
-            )}
+            {yearsAtClub != null && <StatCol value={`${yearsAtClub}y`} label="At ORA" />}
             {careerRow && careerRow.caps > 0 && (
               <StatCol value={careerRow.caps} label="App" />
             )}
@@ -380,7 +391,14 @@ export function PlayerProfilePage({
         </div>
 
         {/* Translucent stat panel — the selected season first, career below */}
-        {seasonLabel === null ? null : seasonRow ? (
+        {seasonLabel === null ? null : seasonRow && recorded?.length === 0 ? (
+          <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{seasonLabel}</span>
+            <p className="mt-0.5 text-[11px] text-slate-300">
+              {seasonRow.caps} app{seasonRow.caps === 1 ? '' : 's'} · <span className="text-slate-500">stats not recorded for this season</span>
+            </p>
+          </div>
+        ) : seasonRow ? (
           <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
@@ -388,7 +406,7 @@ export function PlayerProfilePage({
               </span>
               <CardBadges row={seasonRow} />
             </div>
-            <StatLine row={seasonRow} positions={player.position} />
+            <StatLine row={seasonRow} positions={player.position} recorded={recorded} />
           </div>
         ) : careerRow ? (
           <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { fetchAll } from '@/lib/supabase/fetch-all'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { getSeasonSquad, getSelectedSeason, inSeason, type SquadMember } from '@/lib/season-server'
 import SquadClient from './SquadClient'
@@ -27,16 +28,10 @@ export default async function AdminSquadPage() {
   ] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     getSeasonSquad<AdminSquadMember>(season.id, 'email, role, auth_user_id').catch((e: Error) => e),
-    supabase
-      .from('player_stats')
-      .select('player_id, game_id, goals_fg, goals_pc, goals_ps, assists'),
+    fetchAll(() => supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, goals_untyped, assists').order('id')),
     inSeason(supabase.from('games').select('id, opponent, game_date, goals_for, goals_against, result, season_id, game_type'), season).order('game_date', { ascending: false }),
-    supabase.from('potm').select('game_id, player_id, place'),
-    supabase
-      .from('attendance')
-      .select('player_id, session_id')
-      .eq('session_type', 'game')
-      .eq('status', 'attending'),
+    fetchAll(() => supabase.from('potm').select('game_id, player_id, place').order('id')),
+    fetchAll(() => supabase.from('attendance').select('player_id, session_id').eq('session_type', 'game').eq('status', 'attending').order('id')),
     supabase.from('match_cards').select('player_id, game_id, card_type, created_at'),
     supabase.from('player_whitelist').select('email, invited_at, claimed_at'),
     // For "+ Existing Player": everyone on the books, minus this season's squad below

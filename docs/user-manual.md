@@ -10,7 +10,7 @@ For players using the ORA Hockey team app on a phone or in a browser. Coaches an
 - **Forgot your password?** Ask a coach/manager — they can send you a reset link the same way (that one expires after 1 hour).
 
 
-After setup, sign in with your roster email and chosen password. Players see **Home**, **Schedule**, **Polls**, **Squad**, and **Fines** - in the bar along the bottom on a phone, or in the top bar on a computer. A thin green line across the top of the screen means a page is loading.
+After setup, sign in with your roster email and chosen password. Players see **Home**, **Schedule**, **Polls**, **Squad**, **Fines**, and **Profile** - in the bar along the bottom on a phone, or in the top bar on a computer. A thin green line across the top of the screen means a page is loading.
 
 ## Using the app
 
@@ -18,6 +18,8 @@ After setup, sign in with your roster email and chosen password. Players see **H
 Home, Squad and Schedule all show **one season at a time** - the current season (e.g. MHL1 2027) when you open the app. To look back at a past season, use the season switcher: the row of season tabs just under the top bar on a phone, or the season dropdown next to **Logout** on a computer. Switching changes Home, Squad, Schedule and player profiles together.
 
 **All time** (always first in the switcher) shows every season combined: the all-time record and your all-time stats on Home, everyone who's played for the club with their career numbers on Squad, every game and training on Schedule, and career stats on profiles. It's view only - pick a season to change anything.
+
+Seasons up to **2025** only recorded who played each game (and the scores): they show **Apps** and results, and say **Stats not recorded** where goals, assists, cards and POTM would be.
 
 Past seasons are **archived** (marked with a lock icon) and **read-only** - you can look at results, stats, team lists and attendance, but nothing can be changed (not even by coaches). The app goes back to the current season the next time you open it.
 
@@ -45,6 +47,9 @@ A list of the season's games, training sessions and team **events** (gatherings,
 
 ### Polls
 Open polls show voting options - pick one and tap **Vote**. Until you vote, the poll shows a countdown to its reply deadline. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Tap the vote count on any poll (e.g. *12 voted · 18 haven't*) to see who has voted (and when) and who hasn't - not what anyone picked. Anyone fined for a late or missing vote is in red. Closed polls are kept below for reference.
+
+### Profile
+Your own page: your photo (taken and uploaded by the coaches), positions, career apps / goals / assists / POTM, per-appearance rates, your details, and your **stats by season** with a career total (league games only). **Edit profile** lets you change your **preferred name**, **date of birth** (shown to the whole team) and **positions** - your name, jersey number, email and photo are managed by the coaches. **Sign out** is at the bottom of your card. Your card in **Squad** still opens the public profile everyone sees.
 
 ### Fines
 **$5** a time, collated at the end of each month. The **Fines** tab shows everyone's fines, one month at a time: a card says whether the month is **Outstanding** or **Settled**, then each player with what each fine was for. Paid and waived fines are greyed out (a waived fine shows why).

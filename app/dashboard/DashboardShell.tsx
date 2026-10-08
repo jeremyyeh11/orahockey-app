@@ -6,7 +6,7 @@ import AppShell from '@/components/AppShell'
 import { startNavigationProgress } from '@/components/NavigationProgress'
 import { type NavItem } from '@/components/BottomNav'
 import { type SeasonNav } from '@/components/SeasonSwitcher'
-import { HomeIcon, UsersIcon, CalendarIcon, PollIcon, ReceiptIcon } from '@/components/icons'
+import { HomeIcon, UsersIcon, CalendarIcon, PollIcon, ReceiptIcon, UserIcon } from '@/components/icons'
 
 const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Home', Icon: HomeIcon, exact: true },
@@ -14,6 +14,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/polls', label: 'Polls', Icon: PollIcon },
   { href: '/dashboard/team', label: 'Squad', Icon: UsersIcon },
   { href: '/dashboard/fines', label: 'Fines', Icon: ReceiptIcon },
+  { href: '/dashboard/profile', label: 'Profile', Icon: UserIcon },
 ]
 
 export default function DashboardShell({

@@ -7,23 +7,28 @@ import {
   CardsCell,
   sortPositions,
   nameParts,
+  goalTypeColumns,
   statColumns,
   statValue,
   type AccountStatus,
   type RosterPlayer,
 } from './RosterList'
 
+// Headline stats first; the goal-type breakdown (FG/PC/PS) follows as a muted group
 const STATS = [
-  { key: 'FG', title: 'Field goals' },
-  { key: 'PC', title: 'Penalty corner goals' },
-  { key: 'PS', title: 'Penalty stroke goals' },
+  { key: 'G', title: 'Goals' },
   { key: 'A', title: 'Assists' },
   { key: 'CS', title: 'Clean sheets (keepers)' },
   { key: 'POTM', title: 'Player of the Match wins' },
   { key: 'APP', title: 'Appearances' },
 ] as const
+const GOAL_TYPES = [
+  { key: 'FG', title: 'Field goals' },
+  { key: 'PC', title: 'Penalty corner goals' },
+  { key: 'PS', title: 'Penalty stroke goals' },
+] as const
 
-type SortKey = 'name' | 'number' | (typeof STATS)[number]['key']
+type SortKey = 'name' | 'number' | (typeof STATS)[number]['key'] | (typeof GOAL_TYPES)[number]['key']
 type Sort = { key: SortKey; desc: boolean }
 
 /**
@@ -37,6 +42,7 @@ export default function RosterTable<T extends RosterPlayer>({
   onSelect,
   statsMap,
   accountMap,
+  recorded,
 }: {
   players: T[]
   myPlayerId: string | null
@@ -44,14 +50,21 @@ export default function RosterTable<T extends RosterPlayer>({
   statsMap?: Map<string, LeaderboardRow>
   /** Admin view only: player id → login-account status */
   accountMap?: Map<string, AccountStatus>
+  /** What the season recorded — picks the stat columns */
+  recorded?: readonly string[]
 }) {
+  // Only the columns this season has, for any position
+  const shown = STATS.filter((s) => statColumns(['MID', 'GK'], recorded).includes(s.key))
+  const types = GOAL_TYPES.filter((s) => goalTypeColumns(['MID'], recorded).includes(s.key))
+  const appliesTo = (p: T) => [...statColumns(p.position, recorded), ...goalTypeColumns(p.position, recorded)]
+  const showCards = !recorded || recorded.includes('cards')
   const [sort, setSort] = useState<Sort>({ key: 'name', desc: false })
 
   // -1 = doesn't apply (e.g. CS for outfielders, no jersey number): always sorted last
   const valueOf = (p: T, key: SortKey): number => {
     if (key === 'number') return p.jersey_number ?? -1
     const row = statsMap?.get(p.id)
-    if (!row || !statColumns(p.position).includes(key)) return -1
+    if (!row || !appliesTo(p).includes(key)) return -1
     return statValue(row, key)
   }
   const byName = (a: T, b: T) => a.full_name.toLowerCase().localeCompare(b.full_name.toLowerCase())
@@ -74,14 +87,14 @@ export default function RosterTable<T extends RosterPlayer>({
     setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: key !== 'name' && key !== 'number' }))
   }
 
-  const header = (key: SortKey, label: string, title: string, align: 'left' | 'right') => {
+  const header = (key: SortKey, label: string, title: string, align: 'left' | 'right', extra = '') => {
     const active = sort.key === key
     return (
       <th
         key={key}
         scope="col"
         aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : undefined}
-        className={`px-2 py-2 font-medium ${align === 'right' ? 'text-right' : 'text-left'}`}
+        className={`px-2 py-2 font-medium ${align === 'right' ? 'text-right' : 'text-left'} ${extra}`}
       >
         <button
           type="button"
@@ -110,10 +123,14 @@ export default function RosterTable<T extends RosterPlayer>({
             <th scope="col" className="px-2 py-2 text-left font-medium uppercase tracking-wide">
               Pos
             </th>
-            {STATS.map((s) => header(s.key, s.key, s.title, 'right'))}
-            <th scope="col" className="px-2 py-2 text-left font-medium uppercase tracking-wide">
-              Cards
-            </th>
+            {shown.map((s) => header(s.key, s.key, s.title, 'right'))}
+            {/* Goal types: the breakdown of G — smaller and greyer */}
+            {types.map((s, i) => header(s.key, s.key, s.title, 'right', `text-[10px] text-slate-500 ${i === 0 ? 'border-l border-surface-border' : ''}`))}
+            {showCards && (
+              <th scope="col" className="px-2 py-2 text-left font-medium uppercase tracking-wide">
+                Cards
+              </th>
+            )}
             {accountMap && (
               <th scope="col" className="px-2 py-2 text-center font-medium uppercase tracking-wide">
                 <span title="Login account">Acct</span>
@@ -125,7 +142,7 @@ export default function RosterTable<T extends RosterPlayer>({
           {rows.map((p) => {
             const isMe = p.id === myPlayerId
             const row = statsMap?.get(p.id)
-            const applies = statColumns(p.position)
+            const applies = appliesTo(p)
             const account = accountMap?.get(p.id)
             const name = (
               <>
@@ -167,7 +184,7 @@ export default function RosterTable<T extends RosterPlayer>({
                 <td className="liga-meta whitespace-nowrap px-2 py-3 text-xs text-slate-300">
                   {sortPositions(p.position).join(' ')}
                 </td>
-                {STATS.map((s) => {
+                {shown.map((s) => {
                   // Blank = doesn't apply to this player's positions; – = none yet
                   if (!applies.includes(s.key)) return <td key={s.key} className="px-2 py-3" />
                   const v = row ? statValue(row, s.key) : 0
@@ -180,7 +197,19 @@ export default function RosterTable<T extends RosterPlayer>({
                     </td>
                   )
                 })}
-                <td className="liga-meta px-2 py-3">{row && <CardsCell row={row} isMe={isMe} />}</td>
+                {types.map((s, i) => {
+                  if (!applies.includes(s.key)) return <td key={s.key} className={`px-2 py-3 ${i === 0 ? 'border-l border-surface-border' : ''}`} />
+                  const v = row ? statValue(row, s.key) : 0
+                  return (
+                    <td
+                      key={s.key}
+                      className={`px-2 py-3 text-right text-xs tabular-nums ${v > 0 ? 'text-slate-300' : 'text-slate-600'} ${i === 0 ? 'border-l border-surface-border' : ''}`}
+                    >
+                      {v > 0 ? v : '–'}
+                    </td>
+                  )
+                })}
+                {showCards && <td className="liga-meta px-2 py-3">{row && <CardsCell row={row} isMe={isMe} />}</td>}
                 {accountMap && (
                   <td className="px-2 py-3 text-center">
                     {account && (

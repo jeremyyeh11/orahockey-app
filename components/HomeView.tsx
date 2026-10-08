@@ -7,7 +7,7 @@ import { LEAGUE, competitionLabel, gameTitle } from '@/lib/constants'
 import { POST_SEASON_QUOTES, PRE_SEASON_QUOTES, pickQuote } from '@/lib/quotes'
 import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season-server'
 import { countsForRecord } from '@/lib/stats'
-import { PHASE_LABEL, seasonPhase, seasonTitle } from '@/lib/season'
+import { PHASE_LABEL, records, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
 import HomeRsvp from '@/components/HomeRsvp'
 import { RespondBy } from '@/components/RespondBy'
@@ -239,8 +239,9 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       <h2 className="liga-section-title mt-6 lg:mt-0">{season.allTime ? 'Your all-time stats' : `Your ${season.label} season`}</h2>
       <div className="liga-stat-grid mt-2 grid grid-cols-4 gap-3">
         <Tile value={mine.apps} label="Apps" />
-        <Tile value={mine.goals} label="Goals" />
-        <Tile value={mine.assists} label="Assists" />
+        {/* Older seasons kept fewer stats (lib/season records): — where not recorded */}
+        <Tile value={records(season, 'goals') ? mine.goals : '—'} label="Goals" />
+        <Tile value={records(season, 'assists') ? mine.assists : '—'} label="Assists" />
         <Tile value={`${attendancePct}%`} label="Attendance" />
       </div>
 

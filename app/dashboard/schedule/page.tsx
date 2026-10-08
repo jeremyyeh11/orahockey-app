@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { fetchAll } from '@/lib/supabase/fetch-all'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
@@ -11,6 +12,12 @@ import { finedBySession } from '@/lib/fines'
 import type { GoalRow, CardRow } from './resultActions'
 
 export const metadata: Metadata = { title: 'Schedule' }
+
+/** Adds each game's opponent full name (e.g. SAA → "St Andrew's Alumni") */
+function withOpponentNames<G extends { opponent: string }>(games: G[], opponents: { short_name: string; full_name: string }[]) {
+  const names = new Map(opponents.map((o) => [o.short_name, o.full_name]))
+  return games.map((g) => ({ ...g, opponent_name: names.get(g.opponent) ?? null }))
+}
 
 function groupByGame<T extends { game_id: string | null }>(rows: T[]): Record<string, T[]> {
   const byGame: Record<string, T[]> = {}
@@ -70,6 +77,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
     { data: cardRows },
     { data: potmRows },
     { fines },
+    { data: opponents },
   ] = await Promise.all([
     inSeason(
       supabase
@@ -82,24 +90,31 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
     inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled, created_at'), season)
       .order('event_date', { ascending: false }),
     supabase.from('attendance').select('session_id, status').eq('player_id', me?.id ?? ''),
-    supabase
-      .from('attendance')
-      .select('player_id, session_id, status, responded_at, player:players(full_name, preferred_name)'),
+    fetchAll(() =>
+      supabase
+        .from('attendance')
+        .select('player_id, session_id, status, responded_at, player:players(full_name, preferred_name)')
+        .order('id')
+    ),
     getSeasonSquad(season.id),
     // Admins see all team list selections; players only see published (RLS handles this)
     supabase
       .from('match_team_lists')
       .select('game_id, player_id, selected'),
-    supabase
-      .from('match_goals')
-      .select('id, game_id, goal_number, scorer_id, assist_kind, assist_player_id')
-      .order('goal_number', { ascending: true }),
+    fetchAll(() =>
+      supabase
+        .from('match_goals')
+        .select('id, game_id, goal_number, scorer_id, assist_kind, assist_player_id')
+        .order('goal_number', { ascending: true })
+        .order('id')
+    ),
     supabase
       .from('match_cards')
       .select('id, game_id, player_id, card_type')
       .not('game_id', 'is', null),
-    supabase.from('potm').select('game_id, player_id, place'),
+    fetchAll(() => supabase.from('potm').select('game_id, player_id, place').order('id')),
     loadFines(),
+    supabase.from('opponents').select('short_name, full_name'),
   ])
 
   const error = gamesError ?? trainingsError ?? eventsError
@@ -133,7 +148,7 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
   return (
     <ScheduleClient
       season={season}
-      games={games ?? []}
+      games={withOpponentNames(games ?? [], opponents ?? [])}
       trainings={trainings ?? []}
       events={events ?? []}
       myStatus={myStatus}

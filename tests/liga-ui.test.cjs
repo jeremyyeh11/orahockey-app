@@ -20,7 +20,7 @@ test('authenticated app typography, controls and shell are scoped to app routes'
   for (const file of [
     'app/dashboard/polls/PollsClient.tsx',
     'app/admin/polls/PollsClient.tsx',
-    'app/admin/profile/page.tsx',
+    'components/MyProfile.tsx',
     'components/HomeView.tsx',
   ]) assert.match(read(file), /liga-page/, `${file} exposes the shared page frame`)
   assert.match(read('app/dashboard/schedule/ScheduleClient.tsx'), /liga-event-list/)

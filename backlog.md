@@ -21,17 +21,6 @@ verified custom domain. If the club ever gets a domain (or routes via Gmail SMTP
 app password), wire `generateSetupLink`'s output into Supabase `inviteUserByEmail` /
 `resetPasswordForEmail` and add a self-serve "Forgot password?" flow on the login page.
 
-## 7. Live player photos
-
-Player photos are still not driven by live data (flagged during the July 2026 hardcoded-stats audit):
-
-- **Player photos:** the player profile page loads the trading-card photo from files committed to the
-  repo (`public/players/{playerId}.png` — only one photo exists). Adding a player's photo currently
-  means a git commit + deploy. Move photos to Supabase Storage with an in-app upload (admin edit mode
-  on the player profile), keeping the silhouette fallback for players without one.
-
-Must reference only UI-visible elements (player profile photo and admin edit mode).
-
 ## 8. Reason field for attendance
 
 When a player votes attendance on an event (event detail modal on the Schedule tab), let them
@@ -59,33 +48,6 @@ Open questions to resolve at build time:
 - Preferred names or full names? (WhatsApp @-mentions won't resolve from pasted text either way.)
 - Same button on the Polls tab "Yet to vote" list?
 
-## 11. Profile tab for every player (redesign + self-edit + stats by season)
-
-Today only admins have a **Profile** tab in the bottom/top nav (shows name, email, role, jersey,
-position, Sign out). Players have 4 tabs and no profile page. Redesign the Profile tab and give
-it to every player:
-
-- **Edit own personal info:** profile photo, date of birth, preferred name (add others at build
-  time if wanted). Admins keep their existing edit mode on any player's profile in the Squad tab.
-- **Profile photo upload:** players upload their own photo. Shares the Supabase Storage work
-  with #7 (live player photos) — build them together or do #7 first. Keep the silhouette
-  fallback.
-- **Stats by season:** view all their own stats broken down per season (plus career total),
-  reusing the season stats the Squad-tab player profile already computes.
-- Keep **Sign out** on the page.
-
-**Security (fixed Oct 2026, migration `017_players_self_update_guard.sql`):** the `players`
-RLS policy "Players can update their own record" let a player update *any* column of their own
-row, including `role`. A `BEFORE UPDATE` trigger now limits non-admin API callers to a
-whitelist (`preferred_name`, `date_of_birth`). When adding self-editable fields (e.g. a photo
-column), extend `self_editable` in `guard_player_self_update()` — anything not listed is rejected.
-
-Open questions to resolve at build time:
-- Which fields are self-editable beyond photo / DOB / preferred name (jersey? position? phone?)
-- Is DOB visible to teammates, or only to the player and admins?
-- Photo: any moderation/approval by admin, or live immediately? Crop to the trading-card ratio?
-- Does the player's Profile tab replace tapping their own card in Squad, or do both stay?
-
 ## 13. Finemaster role
 
 Fines can only be marked **Paid** or **Waived** by admins (RLS on `fine_payments` /
@@ -101,9 +63,40 @@ Open questions to resolve at build time:
 Needs: a role/flag column, `is_finemaster()` alongside `is_admin()` in the two tables' policies,
 and the Fines tab's Paid/Waive buttons shown to finemasters.
 
+## 14. Player card redesign (Squad)
+
+The Squad tab's player card (the public profile that opens over the list) becomes a **condensed
+card** — FIFA Ultimate Team / trading-card style: photo, preferred name, jersey, positions and a
+few headline numbers at a glance. The Profile tab (#11) is the comprehensive view; this card is
+the summary. Decided Oct 2026 while building #11; design to be worked out at build time.
+
+## 15. Profile stats visualisations
+
+The Profile tab (#11) shows stats as numbers and a per-season table. Add more interesting
+visualisations — e.g. a per-season trend chart (apps / goals / assists over seasons), form over
+recent games, goal-type breakdown (FG / PC / PS). Reference shared in Oct 2026: an NBA.com
+player stats page (shot zones, monthly trend line, side tiles with bars).
+
 ---
 
 ## Archived
+
+### 11. Profile tab for every player ✓ Oct 2026
+
+Built at build time as: a **Profile** tab for every player (admins' Profile became the same
+page) — identity panel (photo, name, positions, career apps/goals/assists/POTM, seasons, years at
+ORA, Edit profile, Sign out), per-appearance rates, details, stats by season + career (league
+games only). Players edit **preferred name, date of birth and positions** (migration
+`020_player_photos_self_edit.sql` adds `position` to the self-update guard and limits positions to
+FWD/MID/DEF/GK). Decided: photos are **not** self-uploaded (admins upload, see #7); DOB is visible
+to everyone; the Squad card stays as the public view (its redesign is #14).
+
+### 7. Live player photos ✓ Oct 2026
+
+Photos moved to Supabase Storage (public `player-photos` bucket, admin-only writes, migration 020;
+`players.photo_path`). Admins upload/replace/remove from **Squad → Edit player → Photo** — the
+image is downscaled to 1200px WebP in the browser and uploaded directly, live immediately. The one
+repo photo (`public/players/`) was moved over and the folder removed.
 
 ### 12. Respond-by deadlines and fines ✓ Oct 2026
 
