@@ -29,9 +29,11 @@ test('authenticated app typography, controls and shell are scoped to app routes'
   assert.equal(declarations('.liga-ui')['font-family'], 'var(--font-inter), ui-sans-serif, system-ui, sans-serif')
   assert.equal(declarations('.liga-ui .liga-event-card.card')['background-color'], 'transparent')
   assert.equal(declarations('.liga-ui .liga-event-card.card')['border-bottom'], '1px solid #323238')
-  assert.equal(declarations('.liga-ui .liga-event-actions .liga-button')['border'], '0')
-  assert.equal(declarations('.liga-ui .liga-event-actions .liga-button')['flex'], '0 1 6rem')
-  assert.equal(declarations('.liga-ui .liga-event-actions .liga-event-action-quiet')['background-color'], 'transparent')
+  // RSVP: one compact bordered group (Home cards and schedule rows), never spread across the row
+  assert.match(read('components/RsvpButtons.tsx'), /liga-rsvp flex gap-2 lg:max-w-sm/)
+  for (const area of ['admin', 'dashboard']) assert.match(read(`app/${area}/schedule/ScheduleClient.tsx`), /<RsvpButtons value=\{mine\}/)
+  assert.match(read('components/HomeRsvp.tsx'), /<RsvpButtons /)
+  assert.deepEqual(declarations('.liga-ui .liga-event-actions .liga-button'), {}, 'no spread-out action styles left')
   assert.equal(declarations('.liga-ui .liga-meta')['font-family'], 'var(--font-liga-mono), ui-monospace, monospace')
   assert.equal(declarations('.liga-ui .liga-button')['min-height'], '44px')
   assert.equal(declarations('.liga-ui .liga-page')['margin-inline'], 'auto')
@@ -253,7 +255,7 @@ test('locked seasons are read-only in the app, admins included', () => {
     const schedule = read(`app/${area}/schedule/ScheduleClient.tsx`)
     assert.match(schedule, /const readOnly = season\.locked/)
     assert.match(schedule, /readOnly=\{readOnly\}/, `${area} schedule passes read-only to event details`)
-    assert.match(schedule, /\{!readOnly && \(\s*<div className="liga-event-actions/, `${area} schedule hides RSVP buttons`)
+    assert.match(schedule, /\{!readOnly && \(\s*<RsvpButtons /, `${area} schedule hides RSVP buttons`)
   }
   assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /\{!readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
   for (const fn of ['addGame', 'addTraining']) {
