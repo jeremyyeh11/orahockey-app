@@ -512,7 +512,7 @@ function AllTime({
       <div className="liga-meta mt-3 border-t border-white/10 pt-3 text-center text-slate-400">
         Team · {gamesLabel(games)} · {record.w}W · {record.d}D · {record.l}L
         {/* Games imported from the caps sheets with no scoreline (result 'unrecorded') */}
-        {unrecorded > 0 && ` · ${unrecorded} no data`}
+        {unrecorded > 0 && ` (${unrecorded} no data)`}
       </div>
     </div>
   )
