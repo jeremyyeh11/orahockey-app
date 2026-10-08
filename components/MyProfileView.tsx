@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { getSeasons } from '@/lib/season-server'
+import { statsRecorded } from '@/lib/season'
 import { computeSeason, yearsAtClub, type LeaderboardRow, type MatchCardRow, type PlayerLite } from '@/lib/stats'
 import { playerPhotoUrl } from '@/lib/photos'
 import MyProfile, { type MyProfileData } from '@/components/MyProfile'
@@ -55,7 +56,7 @@ export async function MyProfileView() {
   const inSquad = new Map((squads ?? []).map((s) => [s.season_id, s.jersey_number as number | null]))
   const bySeason = seasons
     .filter((s) => inSquad.has(s.id))
-    .map((s) => ({ label: s.label, current: s.is_current, jersey: inSquad.get(s.id) ?? null, row: rowOf(s.label, s.id) }))
+    .map((s) => ({ label: s.label, current: s.is_current, jersey: inSquad.get(s.id) ?? null, statsRecorded: statsRecorded(s), row: rowOf(s.label, s.id) }))
   const current = seasons.find((s) => s.is_current)
   // First season with a league appearance (seasons come newest first)
   const firstSeason = [...bySeason].reverse().find((s) => (s.row?.caps ?? 0) > 0)?.label ?? null

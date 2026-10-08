@@ -8,7 +8,7 @@ import { accountStatusOf } from '@/lib/account'
 import { getSeasons, getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import type { EditContext } from '@/app/admin/team/PlayerEditModal'
-import { seasonTitle } from '@/lib/season'
+import { seasonTitle, statsRecorded } from '@/lib/season'
 
 const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path'
 // Admin view additionally exposes contact/role fields (+ auth link for account status).
@@ -156,6 +156,7 @@ export async function PlayerProfileView({
       seasonRow={seasonRow}
       careerRow={careerRow}
       seasonLabel={season.allTime ? null : seasonTitle(season)}
+      statsRecorded={statsRecorded(season)}
       yearsAtClub={yearsAtClub(
         firstSeasonPlayed(profile.id, games ?? [], att ?? [], seasons),
         seasons.find((s) => s.is_current)?.label

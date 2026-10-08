@@ -8,7 +8,7 @@ import { ALL_TIME, SEASON_COOKIE, lockedSeasonMessage, nextSeasonLabel, seasonPh
 export const getSeasons = cache(async (): Promise<Season[]> => {
   const { data, error } = await createClient()
     .from('seasons')
-    .select('id, label, starts_on, ends_on, is_current, locked')
+    .select('id, label, starts_on, ends_on, is_current, locked, stats_recorded')
     .order('starts_on', { ascending: false })
   if (error) throw new Error(`Error loading seasons: ${error.message}`)
   return (data ?? []) as Season[]

@@ -22,7 +22,7 @@ export type MyProfileData = {
     photoUrl: string | null
   }
   /** Seasons they've been in the squad for, newest first */
-  seasons: { label: string; current: boolean; jersey: number | null; row: LeaderboardRow | null }[]
+  seasons: { label: string; current: boolean; jersey: number | null; statsRecorded: boolean; row: LeaderboardRow | null }[]
   career: LeaderboardRow | null
   /** First season with a league appearance, e.g. '2026' */
   firstSeason: string | null
@@ -61,11 +61,16 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
   const assists = career?.assists ?? 0
   const potm = career?.potmWins ?? 0
 
-  const rate = (n: number) => (apps > 0 ? n / apps : 0)
+  // Rates: the average of each season's rate, over seasons with stats recorded
+  // and at least one appearance — appearances-only seasons (2025 and earlier)
+  // would otherwise dilute them
+  const rated = seasons.filter((s) => s.statsRecorded && (s.row?.caps ?? 0) > 0)
+  const avgRate = (of: (r: LeaderboardRow) => number) =>
+    rated.length ? rated.reduce((sum, s) => sum + of(s.row!) / s.row!.caps, 0) / rated.length : 0
   const rates = [
-    { label: 'Goals/app', value: rate(goals), max: 1 },
-    { label: 'Assists/app', value: rate(assists), max: 1 },
-    { label: 'POTM %', value: rate(potm), max: 1, pct: true },
+    { label: 'Goals/app', value: avgRate(goalsOf), max: 1 },
+    { label: 'Assists/app', value: avgRate((r) => r.assists), max: 1 },
+    { label: 'POTM %', value: avgRate((r) => r.potmWins), max: 1, pct: true },
   ]
 
   return (
@@ -159,6 +164,9 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                 <div className="mt-1 font-mono text-2xl font-bold tabular-nums text-white">
                   {r.pct ? `${Math.round(r.value * 100)}%` : r.value.toFixed(2)}
                 </div>
+                <div className="liga-meta mt-0.5 text-slate-500">
+                  {rated.length ? `avg of ${rated.length} season${rated.length === 1 ? '' : 's'}` : 'no recorded seasons'}
+                </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div className="h-full rounded-full bg-brand-light" style={{ width: `${Math.min(100, (r.value / r.max) * 100)}%` }} />
                 </div>
@@ -217,13 +225,21 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                           {s.current && <span className="liga-meta ml-1.5 font-normal text-brand-light">now</span>}
                         </td>
                         <td>{s.row?.caps ?? 0}</td>
-                        <td>{s.row?.fg ?? 0}</td>
-                        <td>{s.row?.pc ?? 0}</td>
-                        <td>{s.row?.ps ?? 0}</td>
-                        <td>{s.row?.assists ?? 0}</td>
-                        {isGK && <td>{s.row?.cleanSheets ?? 0}</td>}
-                        <td>{s.row?.potmWins ?? 0}</td>
-                        <td>{cardCount(s.row)}</td>
+                        {s.statsRecorded ? (
+                          <>
+                            <td>{s.row?.fg ?? 0}</td>
+                            <td>{s.row?.pc ?? 0}</td>
+                            <td>{s.row?.ps ?? 0}</td>
+                            <td>{s.row?.assists ?? 0}</td>
+                            {isGK && <td>{s.row?.cleanSheets ?? 0}</td>}
+                            <td>{s.row?.potmWins ?? 0}</td>
+                            <td>{cardCount(s.row)}</td>
+                          </>
+                        ) : (
+                          <td colSpan={isGK ? 7 : 6} className="liga-meta text-center text-slate-500">
+                            Stats not recorded for this season
+                          </td>
+                        )}
                       </tr>
                     ))}
                     <tr className="border-t-2 border-surface-border font-semibold text-white">
@@ -241,7 +257,9 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                 </table>
               </div>
             )}
-            <p className="liga-meta mt-2 text-slate-500">League games only — friendlies don&apos;t count.</p>
+            <p className="liga-meta mt-2 text-slate-500">
+              League games only — friendlies don&apos;t count. Seasons up to 2025 only recorded appearances; rates average the seasons with full stats.
+            </p>
           </section>
         </div>
       </div>

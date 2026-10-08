@@ -19,6 +19,8 @@ Home, Squad and Schedule all show **one season at a time** - the current season 
 
 **All time** (always first in the switcher) shows every season combined: the all-time record and your all-time stats on Home, everyone who's played for the club with their career numbers on Squad, every game and training on Schedule, and career stats on profiles. It's view only - pick a season to change anything.
 
+Seasons up to **2025** only recorded who played each game (and the scores): they show **Apps** and results, and say **Stats not recorded** where goals, assists, cards and POTM would be.
+
 Past seasons are **archived** (marked with a lock icon) and **read-only** - you can look at results, stats, team lists and attendance, but nothing can be changed (not even by coaches). The app goes back to the current season the next time you open it.
 
 ### Home

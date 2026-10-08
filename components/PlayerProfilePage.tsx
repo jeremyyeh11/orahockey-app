@@ -132,6 +132,8 @@ type PlayerProfileProps = {
   seasonLabel: string | null
   /** From their first season played to the current one (null = hasn't played) */
   yearsAtClub?: number | null
+  /** False for an appearances-only season: the season panel shows apps + "stats not recorded" */
+  statsRecorded?: boolean
   /** Admin view only — enables the account/invite panel */
   accountStatus?: AccountStatus
   /** Admin view, open season only — enables the squad (add / remove / inactive) panel */
@@ -146,6 +148,7 @@ export function PlayerProfilePage({
   careerRow,
   seasonLabel,
   yearsAtClub,
+  statsRecorded = true,
   accountStatus,
   squadStatus,
   editContext,
@@ -387,7 +390,14 @@ export function PlayerProfilePage({
         </div>
 
         {/* Translucent stat panel — the selected season first, career below */}
-        {seasonLabel === null ? null : seasonRow ? (
+        {seasonLabel === null ? null : seasonRow && !statsRecorded ? (
+          <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{seasonLabel}</span>
+            <p className="mt-0.5 text-[11px] text-slate-300">
+              {seasonRow.caps} app{seasonRow.caps === 1 ? '' : 's'} · <span className="text-slate-500">stats not recorded for this season</span>
+            </p>
+          </div>
+        ) : seasonRow ? (
           <div className="liga-profile-panel bg-black/50 backdrop-blur-sm px-6 py-3">
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">

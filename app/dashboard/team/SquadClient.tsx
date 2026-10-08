@@ -17,7 +17,7 @@ import {
 } from '@/components/SeasonStats'
 import type { RosterPlayer } from '@/components/RosterList'
 import { LEAGUE } from '@/lib/constants'
-import { seasonTitle, type Season } from '@/lib/season'
+import { seasonTitle, statsRecorded, type Season } from '@/lib/season'
 
 type Player = RosterPlayer & PlayerLite
 
@@ -78,8 +78,16 @@ export default function SquadClient({
       {/* Top Scorers + Top Assists: side by side, stacked in a sticky side column next to the roster table at xl+ */}
       <div className="liga-squad-layout xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:items-start xl:gap-6">
         <aside className="mb-4 grid grid-cols-2 items-start gap-3 xl:sticky xl:top-24 xl:order-last xl:mb-0 xl:grid-cols-1">
-          <TopScorersCard groups={topScorerGroups} />
-          <TopAssistsCard groups={topAssistGroups} />
+          {statsRecorded(season) ? (
+            <>
+              <TopScorersCard groups={topScorerGroups} />
+              <TopAssistsCard groups={topAssistGroups} />
+            </>
+          ) : (
+            <div className="liga-panel liga-stats-not-recorded card col-span-2 px-3 py-3 text-xs text-slate-400 xl:col-span-1">
+              Stats not recorded for {season.label} — only appearances (Apps) and results were kept.
+            </div>
+          )}
         </aside>
 
         {/* Cards on touch layouts, a sortable table on desktop */}

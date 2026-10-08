@@ -17,7 +17,12 @@ export type Season = {
   locked: boolean
   /** The "All time" view: every season combined (not a database row) */
   allTime?: boolean
+  /** False for seasons imported with appearances only (2025 and earlier): no goals/assists/cards/POTM */
+  stats_recorded?: boolean
 }
+
+/** Goals, assists, cards and POTM exist for this season (false = appearances only) */
+export const statsRecorded = (s: Pick<Season, 'stats_recorded'>) => s.stats_recorded !== false
 
 /**
  * Pseudo-season for the switcher's "All time" option: every season combined.
