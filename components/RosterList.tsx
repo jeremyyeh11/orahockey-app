@@ -215,7 +215,8 @@ export function statValue(row: LeaderboardRow, col: string): number {
  */
 export function statColumns(positions: string[] | null, recorded: readonly string[] = ALL_RECORDED, withTotal = false): string[] {
   const isGK = positions?.includes('GK') ?? false
-  const isOutfield = positions?.some((p) => p !== 'GK') ?? false
+  // No positions set (e.g. past players imported from caps sheets): treat as outfield so goals still show
+  const isOutfield = !positions?.length || positions.some((p) => p !== 'GK')
   const has = (s: string) => recorded.includes(s)
 
   // GK-only: show CS, hide goals/A. Outfield-only: goals/A, hide CS. Both: everything.

@@ -175,12 +175,12 @@ test('season-derived roster stats wrap as 12px tabular value-label pairs while k
   assert.equal(statsText(cards[0]), '3FG1PC1PS3A1CS1POTM2APP')
   assert.equal(statsText(cards.find((card) => textOf(card).includes('KEEPER ONLY'))), '1CS–POTM2APP')
   assert.equal(statsText(cards.find((card) => textOf(card).includes('ALPHA OUTFIELD'))), '–FG2PC1PS4A–POTM1APP')
-  assert.equal(statsText(cards.find((card) => textOf(card).includes('UNKNOWN POSITION'))), '–POTM1APP')
+  assert.equal(statsText(cards.find((card) => textOf(card).includes('UNKNOWN POSITION'))), '–FG–PC–PS–A–POTM1APP')
   assert.doesNotMatch(cards.find((card) => textOf(card).includes('NO RECORDED STATS')), /liga-roster-stats/)
   for (const tag of html.match(/<span\b[^>]*class="[^"]*\bliga-roster-stat\b[^>]*>/g) ?? []) {
     assert.match(classesOf(tag), /\bwhitespace-nowrap\b/, 'a number never wraps away from its label')
   }
-  assert.equal((html.match(/\bliga-roster-stat\b/g) ?? []).length, 18)
+  assert.equal((html.match(/\bliga-roster-stat\b/g) ?? []).length, 22, 'no position = outfield: goal columns show too')
   assert.match(textOf(cards[0]), /▲1■2●1/, 'all card shapes retain their exact counts, including one')
   for (const color of ['green', 'yellow', 'red']) assert.match(cards[0], new RegExp(`text-${color}-400`))
   assert.doesNotMatch(html, /FG  PC  PS/, 'inline labels do not need a duplicate table-style header')
