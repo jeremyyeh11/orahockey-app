@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
-import { fmtDateTime, fmtDateTimeRange, fmtReport, sgDayBounds } from '@/lib/format'
+import { dateBlock, fmtDateTime, fmtDateTimeRange, fmtRelativeDay, fmtReport, sgDayBounds } from '@/lib/format'
 import { getNow } from '@/lib/preview'
 import { LEAGUE, competitionLabel, gameTitle } from '@/lib/constants'
 import { POST_SEASON_QUOTES, PRE_SEASON_QUOTES, pickQuote } from '@/lib/quotes'
@@ -36,8 +36,8 @@ function recordOf(games: HomeGame[]) {
 
 /**
  * Home dashboard — the same for players and admins (admins are players too):
- * greeting, the selected season's record and your stats in it, then your
- * all-time stats, next event, last result and an active-polls prompt.
+ * greeting, the selected season's record, the next event (the featured card),
+ * your stats this season and all time, the last result and an active-polls prompt.
  * `basePath` points its links at the caller's own section
  * (/dashboard/schedule vs /admin/schedule).
  */
@@ -70,17 +70,17 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id')
       .order('game_date', { ascending: false }),
     // Next event: within the season — or across every season for "All time"
-    inSeason(supabase.from('games').select('opponent, game_date, location, ends_at, report_minutes, game_type'), season)
+    inSeason(supabase.from('games').select('id, opponent, game_date, location, ends_at, report_minutes, game_type'), season)
       .gte('game_date', now)
       .order('game_date')
       .limit(1)
       .maybeSingle(),
-    inSeason(supabase.from('training_sessions').select('session_date, location, ends_at, report_minutes'), season)
+    inSeason(supabase.from('training_sessions').select('id, session_date, location, ends_at, report_minutes'), season)
       .gte('session_date', now)
       .order('session_date')
       .limit(1)
       .maybeSingle(),
-    inSeason(supabase.from('team_events').select('title, event_date, location, ends_at, report_minutes'), season)
+    inSeason(supabase.from('team_events').select('id, title, event_date, location, ends_at, report_minutes'), season)
       .gte('event_date', now)
       .order('event_date')
       .limit(1)
@@ -172,55 +172,54 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   // The most recent result shown on Home can be a friendly (it's just not counted)
   const lastGame = finished.filter(inView)[0]
 
-  // Soonest of the next game, training and team event
+  // Soonest of the next game, training and team event. `key` matches the schedule's
+  // event keys (lib/useEventSelection) so "Open details" can open that event.
   const next =
     [
-      nextGame && { title: gameTitle(nextGame.opponent), tag: competitionLabel(nextGame.game_type), when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
-      nextTraining && { title: 'Team training', tag: null, when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
-      nextEvent && { title: nextEvent.title, tag: null, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
+      nextGame && { key: `game-${nextGame.id}`, title: gameTitle(nextGame.opponent), tag: competitionLabel(nextGame.game_type), when: nextGame.game_date, ends: nextGame.ends_at, report: nextGame.report_minutes, place: nextGame.location },
+      nextTraining && { key: `training-${nextTraining.id}`, title: 'Team training', tag: null, when: nextTraining.session_date, ends: nextTraining.ends_at, report: nextTraining.report_minutes, place: nextTraining.location },
+      nextEvent && { key: `event-${nextEvent.id}`, title: nextEvent.title, tag: null, when: nextEvent.event_date, ends: nextEvent.ends_at, report: nextEvent.report_minutes, place: nextEvent.location },
     ]
-      .filter(
-        (x): x is { title: string; tag: string | null; when: string; ends: string | null; report: number | null; place: string | null } => !!x
-      )
+      .filter((x): x is NextItem & { key: string } => !!x)
       .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime())[0] ?? null
 
-  // Next up / season complete — shown under the hero on phones, top right on desktop
+  // Next up / season complete — the featured card straight under the season record
   const nextUpTitle = season.locked && !season.allTime ? 'Season' : 'Next up'
   const nextUpCard =
     season.locked && !season.allTime ? (
-      <div className="liga-link-row card mt-2 p-4">
-        <div className="liga-link-title text-sm font-semibold text-white">Season finished</div>
-        <div className="liga-meta mt-0.5 text-slate-400">
-          {LEAGUE} {season.label} is a past season. Switch season to see what&apos;s next.
-        </div>
-      </div>
+      <NextUpNote title="Season finished">
+        {LEAGUE} {season.label} is a past season. Switch season to see what&apos;s next.
+      </NextUpNote>
     ) : next ? (
-      <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 block p-4 transition hover:border-white/15">
-        <div className="flex items-center gap-2">
-          <div className="liga-link-title text-sm font-semibold text-white">{next.title}</div>
-          {next.tag && <CompetitionTag label={next.tag} />}
-        </div>
-        <div className="liga-meta mt-0.5 text-slate-400">
-          {fmtDateTimeRange(next.when, next.ends)}
-          {next.place ? ` · ${next.place}` : ''}
-        </div>
-        {fmtReport(next.when, next.report) && (
-          <div className="liga-event-report mt-0.5 text-[11px] text-slate-500">{fmtReport(next.when, next.report)}</div>
-        )}
-      </Link>
+      <NextUpCard next={next} href={`${basePath}/schedule?event=${next.key}`} now={nowDate} />
     ) : played.length > 0 ? (
-      <div className="liga-link-row card mt-2 p-4">
-        <div className="liga-link-title text-sm font-semibold text-white">Season complete</div>
-        <div className="liga-meta mt-0.5 text-slate-400">Nothing scheduled — enjoy the off-season.</div>
-      </div>
+      <NextUpNote title="Season complete">Nothing scheduled — enjoy the off-season.</NextUpNote>
     ) : (
-      <div className="liga-link-row card mt-2 p-4">
-        <div className="liga-link-title text-sm font-semibold text-white">Nothing scheduled yet</div>
-        <div className="liga-meta mt-0.5 text-slate-400">
-          {season.allTime ? 'Upcoming' : seasonTitle(season)} fixtures and trainings will show here.
-        </div>
-      </div>
+      <NextUpNote title="Nothing scheduled yet">
+        {season.allTime ? 'Upcoming' : seasonTitle(season)} fixtures and trainings will show here.
+      </NextUpNote>
     )
+
+  // Your numbers — under Next up on phones, the right-hand column on desktop
+  const yourStats = (
+    <>
+      <h2 className="liga-section-title mt-6 lg:mt-0">{season.allTime ? 'Your all-time stats' : `Your ${season.label} season`}</h2>
+      <div className="liga-stat-grid mt-2 grid grid-cols-3 gap-3">
+        <Tile value={mine.goals} label="Goals" />
+        <Tile value={mine.assists} label="Assists" />
+        <Tile value={`${attendancePct}%`} label="Attendance" />
+      </div>
+
+      {/* All time — below the season, always open. Not shown when "All time" itself
+          is selected (the stats above are already that). */}
+      {!season.allTime && (
+        <div className="liga-all-time mt-6">
+          <h2 className="liga-section-title">All time</h2>
+          <AllTime totals={allTime} record={allTimeRecord} games={playedAll.length} />
+        </div>
+      )}
+    </>
+  )
 
   const RESULT_LABEL: Record<string, string> = { win: 'Win', loss: 'Loss', tie: 'Draw', ot_win: 'OT Win', ot_loss: 'OT Loss' }
 
@@ -237,7 +236,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
         {jersey != null && <span className="liga-meta shrink-0 pb-1 text-slate-500">#{jersey}</span>}
       </div>
 
-      {/* Desktop (lg+): season + your stats + all time on the left, what's next / last / polls on the right */}
+      {/* Desktop (lg+): season record, next up and recent activity on the left, your stats on the right */}
       <div className="liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
         <div className="min-w-0">
           {/* Season record hero */}
@@ -267,42 +266,18 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             )}
           </div>
 
-          {/* Next up — phones: straight under the season record */}
-          <div className="lg:hidden">
-            <h2 className="liga-section-title mt-6">{nextUpTitle}</h2>
-            {nextUpCard}
-          </div>
+          {/* Next up — the featured card, straight under the season record */}
+          <h2 className="liga-section-title mt-6">{nextUpTitle}</h2>
+          {nextUpCard}
 
-          {/* My stats tiles — this season */}
-          <h2 className="liga-section-title mt-6">{season.allTime ? 'Your all-time stats' : `Your ${season.label} season`}</h2>
-          <div className="liga-stat-grid mt-2 grid grid-cols-3 gap-3">
-            <Tile value={mine.goals} label="Goals" />
-            <Tile value={mine.assists} label="Assists" />
-            <Tile value={`${attendancePct}%`} label="Attendance" />
-          </div>
-
-          {/* All time — below the season, always open. Not shown when "All time" itself
-              is selected (the stats above are already that). */}
-          {!season.allTime && (
-            <div className="liga-all-time mt-6">
-              <h2 className="liga-section-title">All time</h2>
-              <AllTime totals={allTime} record={allTimeRecord} games={playedAll.length} />
-            </div>
-          )}
-        </div>
-
-        <div className="min-w-0">
-          {/* Next up — desktop: top of the right column, beside the season record */}
-          <div className="hidden lg:block">
-            <h2 className="liga-section-title">{nextUpTitle}</h2>
-            {nextUpCard}
-          </div>
+          {/* Your stats — phones: under Next up (desktop: right column) */}
+          <div className="lg:hidden">{yourStats}</div>
 
           {/* Last result */}
           {lastGame && (
             <>
               <h2 className="liga-section-title mt-6">Last game</h2>
-              <Link href={`${basePath}/schedule`} className="liga-link-row card mt-2 flex items-center gap-4 p-4 transition hover:border-white/15">
+              <Link href={`${basePath}/schedule?event=game-${lastGame.id}`} className="liga-link-row card mt-2 flex items-center gap-4 p-4 transition hover:border-white/15">
                 <div
                   className={`liga-result-mark flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
                     lastGame.result === 'win' || lastGame.result === 'ot_win'
@@ -343,6 +318,9 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             </Link>
           )}
         </div>
+
+        {/* Your stats — desktop: the right column, beside the season record */}
+        <div className="hidden min-w-0 lg:block">{yourStats}</div>
       </div>
 
       {/* Admins only: close the current season (multi-step confirmation) */}
@@ -367,6 +345,53 @@ function CompetitionTag({ label }: { label: string }) {
     >
       {label}
     </span>
+  )
+}
+
+type NextItem = { title: string; tag: string | null; when: string; ends: string | null; report: number | null; place: string | null }
+
+/**
+ * The next event, featured: a big date block, title, time and place, and an
+ * "Open details" call to action into the schedule (the details panel on desktop,
+ * the event modal on phones).
+ */
+function NextUpCard({ next, href, now }: { next: NextItem; href: string; now: Date }) {
+  const day = dateBlock(next.when)
+  const report = fmtReport(next.when, next.report)
+  return (
+    <Link href={href} className="liga-next-card card mt-2 block p-4 transition hover:border-white/15 lg:p-5">
+      <div className="flex items-start gap-4">
+        <div className="liga-next-date flex w-14 shrink-0 flex-col items-center border-r border-white/10 pr-4">
+          <span className="liga-next-date-day text-3xl font-bold leading-none text-white">{day.day}</span>
+          <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{day.mon}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="liga-meta font-semibold uppercase text-brand-light">{fmtRelativeDay(next.when, now)}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="liga-next-title break-words text-xl font-semibold leading-tight text-white lg:text-2xl">{next.title}</div>
+            {next.tag && <CompetitionTag label={next.tag} />}
+          </div>
+          <div className="liga-meta mt-2 text-slate-300">{fmtDateTimeRange(next.when, next.ends)}</div>
+          {next.place && <div className="liga-meta break-words text-slate-400">{next.place}</div>}
+          {report && <div className="liga-meta text-slate-500">{report}</div>}
+        </div>
+      </div>
+      <div className="mt-4 flex">
+        <span className="liga-button liga-button-primary bg-accent w-full rounded-lg px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 lg:ml-auto lg:w-auto">
+          Open details<span aria-hidden="true">&nbsp;→</span>
+        </span>
+      </div>
+    </Link>
+  )
+}
+
+/** Next up's empty states (season finished, nothing scheduled) */
+function NextUpNote({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="liga-next-card card mt-2 p-4 lg:p-5">
+      <div className="text-base font-semibold text-white">{title}</div>
+      <div className="liga-meta mt-1 text-slate-400">{children}</div>
+    </div>
   )
 }
 

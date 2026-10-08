@@ -26,6 +26,7 @@ export default function ScheduleClient({
   goalsByGame,
   cardsByGame,
   potmByGame,
+  initialEventKey,
 }: {
   /** The season being shown; a locked season is read-only */
   season: Season
@@ -43,6 +44,8 @@ export default function ScheduleClient({
   goalsByGame: Record<string, GoalRow[]>
   cardsByGame: Record<string, CardRow[]>
   potmByGame: Record<string, PotmPlacing[]>
+  /** Event to open on arrival — `game-<id>`, `training-<id>` or `event-<id>` */
+  initialEventKey: string | null
 }) {
   const [filter, setFilter] = useState<'all' | 'games' | 'trainings' | 'events'>('all')
   const [isPending, startTransition] = useTransition()
@@ -65,7 +68,7 @@ export default function ScheduleClient({
   const past = items
     .filter((i) => new Date(i.date).getTime() < nowMs)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  const { isDesktop, selected: selectedItem, select: setSelectedItem, isSelected } = useEventSelection(upcoming, past)
+  const { isDesktop, selected: selectedItem, select: setSelectedItem, isSelected } = useEventSelection(upcoming, past, initialEventKey)
   const readOnly = season.locked
 
   function respond(item: EventItem, status: MyStatus) {
