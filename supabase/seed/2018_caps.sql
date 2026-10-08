@@ -1,10 +1,11 @@
 -- =============================================================
 -- ORA Hockey — 2018 season (National Hockey League 1) from the caps sheet
 -- Source: "ORA caps - 2018 (done).csv" — who played each of the 10 league
--- games. Scores come from the league's weekend reviews, so far only four:
--- Khalsa 1–2 ORA (3–4 Mar), Tornados 2–6 ORA (24–25 Mar), Eagles-PV 3–3 ORA
--- (12–13 May), ORA 2–2 Tornados (19–20 May). The reviews also give home/away, and the fixture lists put ORA
--- at home to Eagles-PV (10 Mar) and Khalsa (8 Apr). Every other game has no
+-- games. Scores come from the league's weekend reviews, so far only five:
+-- Khalsa 1–2 ORA (3–4 Mar), Tornados 2–6 ORA (24–25 Mar), ORA 2–0 Khalsa
+-- (7–8 Apr), Eagles-PV 3–3 ORA (12–13 May), ORA 2–2 Tornados (19–20 May).
+-- The reviews also give home/away, and the fixture list puts ORA at home to
+-- Eagles-PV (10 Mar). Every other game has no
 -- scoreline (result 'unrecorded': counts as played for caps, no score or
 -- W-D-L — migration 025). Update the rows here as more reviews turn up. No goals / assists /
 -- cards / POTM / training attendance were recorded, and no kick-off times
@@ -55,7 +56,7 @@ begin
     ('2018-03-04 15:00+08', 'Khalsa', 'away', 2, 1, 'win', array['NICK', 'MARK CHEONG CHEE HAN', 'CHEE YONG', 'ISHWARPAL SINGH GREWAL', 'CALEB ANG', 'ALTON CHUA KAI CONG', 'FAZLY', 'AMIRUL AFIQ', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'BRENNEN', 'JASMEET SINGH', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'AKASH PREBHASH CHANDRA', 'AHMAD FARIS BIN MUHD JOHARI', 'IAN VANDERPUT', 'AMOS', 'RYAN JAY NAIDU', 'ADAM']),
     ('2018-03-10 15:00+08', 'Eagles-PV', 'home', null::smallint, null::smallint, 'unrecorded', array['TAY BOON KAI', 'ISHWARPAL SINGH GREWAL', 'FAZLY', 'CHEE YONG', 'ALTON CHUA KAI CONG', 'CALEB ANG', 'AQIL', 'AKASH PREBHASH CHANDRA', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'KEVIN K SAJI', 'HANIF', 'ZHYKRY', 'IAN VANDERPUT', 'MUHAMAD RAZIQ BIN MOHD NOOR', 'GOUTHAM', 'RYAN JAY NAIDU', 'ADAM']),
     ('2018-03-25 15:00+08', 'Tornados', 'away', 6, 2, 'win', array['TAY BOON KAI', 'CALEB ANG', 'JUSTIN', 'ZAKI', 'ISHWARPAL SINGH GREWAL', 'MARK CHEONG CHEE HAN', 'EASHWAR', 'AKASH PREBHASH CHANDRA', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'JASMEET SINGH', 'KEVIN K SAJI', 'RYAN JAY NAIDU', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'AHMAD FARIS BIN MUHD JOHARI', 'IAN VANDERPUT', 'ADAM', 'MUHAMAD RAZIQ BIN MOHD NOOR', 'GOUTHAM']),
-    ('2018-04-08 15:00+08', 'Khalsa', 'home', null::smallint, null::smallint, 'unrecorded', array['NICK', 'MARK CHEONG CHEE HAN', 'EASHWAR', 'ISHWARPAL SINGH GREWAL', 'ALTON CHUA KAI CONG', 'JUSTIN', 'FAZLY', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'HANIF', 'AKASH PREBHASH CHANDRA', 'KEVIN K SAJI', 'JASMEET SINGH', 'AHMAD FARIS BIN MUHD JOHARI', 'RYAN JAY NAIDU', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'ADIB', 'ZHYKRY']),
+    ('2018-04-08 15:00+08', 'Khalsa', 'home', 2, 0, 'win', array['NICK', 'MARK CHEONG CHEE HAN', 'EASHWAR', 'ISHWARPAL SINGH GREWAL', 'ALTON CHUA KAI CONG', 'JUSTIN', 'FAZLY', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'HANIF', 'AKASH PREBHASH CHANDRA', 'KEVIN K SAJI', 'JASMEET SINGH', 'AHMAD FARIS BIN MUHD JOHARI', 'RYAN JAY NAIDU', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'ADIB', 'ZHYKRY']),
     ('2018-05-05 15:00+08', 'SCC', null, null::smallint, null::smallint, 'unrecorded', array['NICK', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'ZAKI', 'ISHWARPAL SINGH GREWAL', 'JASMEET SINGH', 'IAN VANDERPUT', 'AMIRUL AFIQ', 'MARK CHEONG CHEE HAN', 'FAZLY', 'KEVIN K SAJI', 'AHMAD FARIS BIN MUHD JOHARI', 'EASHWAR', 'RYAN JAY NAIDU', 'MUHAMAD RAZIQ BIN MOHD NOOR', 'GOUTHAM', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'AKASH PREBHASH CHANDRA', 'ALTON CHUA KAI CONG']),
     ('2018-05-13 15:00+08', 'Eagles-PV', 'away', 3, 3, 'tie', array['NICK', 'ISHWARPAL SINGH GREWAL', 'MARK CHEONG CHEE HAN', 'CALEB ANG', 'FAZLY', 'EASHWAR', 'ZAKI', 'ALTON CHUA KAI CONG', 'JASMEET SINGH', 'AKASH PREBHASH CHANDRA', 'RYAN JAY NAIDU', 'AHMAD FARIS BIN MUHD JOHARI', 'IAN VANDERPUT', 'MUHAMAD RAZIQ BIN MOHD NOOR', 'ADAM', 'GOUTHAM', 'AMIRUL AFIQ', 'ADIB']),
     ('2018-05-19 15:00+08', 'Tornados', 'home', 2, 2, 'tie', array['TAY BOON KAI', 'JUSTIN', 'CALEB ANG', 'ISHWARPAL SINGH GREWAL', 'MARK CHEONG CHEE HAN', 'CHEE YONG', 'EASHWAR', 'MUHAMMAD HAFIZ BIN ABDUL RASED', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'ALTON CHUA KAI CONG', 'JASMEET SINGH', 'AKASH PREBHASH CHANDRA', 'GOUTHAM', 'ADAM', 'ADIB', 'IAN VANDERPUT', 'AHMAD FARIS BIN MUHD JOHARI', 'AMIRUL AFIQ']),
