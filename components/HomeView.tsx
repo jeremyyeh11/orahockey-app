@@ -69,7 +69,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     { data: pastTrainings },
     { data: pastEvents },
     { data: mySeason },
-    { count: activePolls },
+    { data: openPolls },
+    { data: myVotes },
   ] = await Promise.all([
     supabase
       .from('games')
@@ -106,7 +107,9 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
           .eq('season_id', season.id)
           .eq('player_id', me?.id ?? '')
           .maybeSingle(),
-    supabase.from('polls').select('*', { count: 'exact', head: true }).eq('is_active', true),
+    // Open polls and the ones you've voted in, for the "needs your vote" prompt
+    supabase.from('polls').select('id, closes_at').eq('is_active', true),
+    supabase.from('poll_votes').select('poll_id').eq('player_id', me?.id ?? ''),
   ])
 
   // Completed games on or before "now" — keeps date preview consistent
@@ -188,6 +191,12 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const attendancePct = pastSessions.size > 0 ? Math.round((attended / pastSessions.size) * 100) : 0
   const allTime = myTotals(playedAll)
   const allTimeRecord = recordOf(playedAll)
+
+  // Active polls still open (not past their close time) that you haven't voted in
+  const voted = new Set((myVotes ?? []).map((v) => v.poll_id))
+  const pollsToVote = me
+    ? (openPolls ?? []).filter((p) => (!p.closes_at || new Date(p.closes_at).getTime() > nowDate.getTime()) && !voted.has(p.id)).length
+    : 0
   const jersey = mySeason?.jersey_number ?? me?.jersey_number ?? null
 
   // The most recent result shown on Home can be a friendly (it's just not counted)
@@ -341,15 +350,15 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             </>
           )}
 
-          {/* Active polls prompt */}
-          {(activePolls ?? 0) > 0 && (
+          {/* Polls you haven't voted in yet */}
+          {pollsToVote > 0 && (
             <Link
               href={`${basePath}/polls`}
               className="liga-link-row card mt-6 flex items-center justify-between p-4 transition hover:border-white/15"
             >
               <div>
                 <div className="liga-link-title text-sm font-semibold text-white">
-                  {activePolls} active poll{activePolls === 1 ? '' : 's'}
+                  {pollsToVote} active poll{pollsToVote === 1 ? '' : 's'}
                 </div>
                 <div className="mt-0.5 text-xs text-slate-400">Your vote is needed</div>
               </div>
@@ -492,6 +501,7 @@ function AllTime({
   record: { w: number; d: number; l: number }
   games: number
 }) {
+  const unrecorded = games - record.w - record.d - record.l
   return (
     <div className="card mt-2 p-4">
       <div className="grid grid-cols-3 gap-3 text-center">
@@ -501,6 +511,8 @@ function AllTime({
       </div>
       <div className="liga-meta mt-3 border-t border-white/10 pt-3 text-center text-slate-400">
         Team · {gamesLabel(games)} · {record.w}W · {record.d}D · {record.l}L
+        {/* Games imported from the caps sheets with no scoreline (result 'unrecorded') */}
+        {unrecorded > 0 && ` · ${unrecorded} no data`}
       </div>
     </div>
   )
