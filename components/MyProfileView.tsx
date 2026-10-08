@@ -52,11 +52,20 @@ export async function MyProfileView() {
     }
   }
 
-  // One row per season they've been in the squad for, newest first
+  // Every season from their first squad season to now, newest first; seasons in
+  // between where they weren't in the squad stay as "didn't play" rows
   const inSquad = new Map((squads ?? []).map((s) => [s.season_id, s.jersey_number as number | null]))
+  const firstSquad = seasons.filter((s) => inSquad.has(s.id)).map((s) => s.starts_on).sort()[0]
   const bySeason = seasons
-    .filter((s) => inSquad.has(s.id))
-    .map((s) => ({ label: s.label, current: s.is_current, jersey: inSquad.get(s.id) ?? null, statsRecorded: statsRecorded(s), row: rowOf(s.label, s.id) }))
+    .filter((s) => firstSquad && s.starts_on >= firstSquad)
+    .map((s) => ({
+      label: s.label,
+      current: s.is_current,
+      jersey: inSquad.get(s.id) ?? null,
+      played: inSquad.has(s.id),
+      statsRecorded: statsRecorded(s),
+      row: inSquad.has(s.id) ? rowOf(s.label, s.id) : null,
+    }))
   const current = seasons.find((s) => s.is_current)
   // First season with a league appearance (seasons come newest first)
   const firstSeason = [...bySeason].reverse().find((s) => (s.row?.caps ?? 0) > 0)?.label ?? null

@@ -22,7 +22,8 @@ export type MyProfileData = {
     photoUrl: string | null
   }
   /** Seasons they've been in the squad for, newest first */
-  seasons: { label: string; current: boolean; jersey: number | null; statsRecorded: boolean; row: LeaderboardRow | null }[]
+  /** From their first squad season to now; `played` false = not in that season's squad */
+  seasons: { label: string; current: boolean; jersey: number | null; played: boolean; statsRecorded: boolean; row: LeaderboardRow | null }[]
   career: LeaderboardRow | null
   /** First season with a league appearance, e.g. '2026' */
   firstSeason: string | null
@@ -134,7 +135,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-white/[0.04] p-3 text-center">
                 <div className="liga-meta text-slate-400">Seasons</div>
-                <div className="mt-1 font-display text-4xl font-extrabold leading-none text-white">{seasons.length}</div>
+                <div className="mt-1 font-display text-4xl font-extrabold leading-none text-white">{seasons.filter((s) => s.played).length}</div>
               </div>
               <div className="rounded-lg bg-white/[0.04] p-3 text-center">
                 <div className="liga-meta text-slate-400">Years at ORA</div>
@@ -219,13 +220,17 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                   </thead>
                   <tbody>
                     {seasons.map((s) => (
-                      <tr key={s.label} className="border-t border-surface-border text-slate-200">
+                      <tr key={s.label} className={`border-t border-surface-border ${s.played ? 'text-slate-200' : 'text-slate-500'}`}>
                         <td className="py-2 text-left font-semibold text-white">
                           {s.label}
                           {s.current && <span className="liga-meta ml-1.5 font-normal text-brand-light">now</span>}
                         </td>
                         <td>{s.row?.caps ?? 0}</td>
-                        {s.statsRecorded ? (
+                        {!s.played ? (
+                          <td colSpan={isGK ? 7 : 6} className="liga-meta text-center text-slate-500">
+                            Didn&apos;t play this season
+                          </td>
+                        ) : s.statsRecorded ? (
                           <>
                             <td>{s.row?.fg ?? 0}</td>
                             <td>{s.row?.pc ?? 0}</td>
