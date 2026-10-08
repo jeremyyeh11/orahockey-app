@@ -156,19 +156,10 @@
   border-bottom-color: #5aa971;
 }
 
-/* Home's featured Next up card — a raised surface with the selected-event accent,
-   so it reads above the flat rows and stat tiles around it. */
+/* Home's featured Next up card — the green accent surface (bg-accent), so it
+   leads the grey season strip, rows and stat tiles around it. */
 .liga-ui .liga-next-card.card {
-  background-color: #1e1e21;
-  box-shadow: inset 3px 0 0 #5aa971;
-}
-
-.liga-ui a.liga-next-card.card:hover {
-  background-color: #232327;
-}
-
-.liga-ui .liga-next-date {
-  border-color: #323238;
+  border-color: transparent;
 }
 
 .liga-ui .liga-next-date-day {

@@ -255,30 +255,30 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       {/* Desktop (lg+): season record, next up and recent activity on the left, your stats on the right */}
       <div className="liga-home-layout lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
         <div className="min-w-0">
-          {/* Season strip — a compact sub-heading (record or phase, season, day label) so
-              Next up below leads the page */}
-          <div className="liga-hero bg-accent relative overflow-hidden rounded-lg px-4 py-3">
+          {/* Season strip — a compact grey sub-heading (record or phase, season, day label)
+              so the green Next up card below leads the page */}
+          <div className="liga-hero card relative overflow-hidden px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
                 <span className="liga-hero-record text-lg font-bold leading-tight text-white">
                   {preSeason ? PHASE_LABEL['pre-season'] : `${record.w}W · ${record.d}D · ${record.l}L`}
                 </span>
-                <span className="liga-meta text-white/70">
+                <span className="liga-meta text-slate-400">
                   {season.allTime ? `All time · ${LEAGUE}` : `Season ${season.label} · ${LEAGUE}`}
                   {season.locked && !season.allTime ? ' · Final' : ''}
                   {phase && !preSeason ? ` · ${PHASE_LABEL[phase]}` : ''}
                 </span>
               </div>
               {dayLabel && (
-                <span className="liga-day-label shrink-0 rounded bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                <span className="liga-day-label shrink-0 rounded bg-brand/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-light">
                   {dayLabel}
                 </span>
               )}
             </div>
-            <div className="liga-hero-sub mt-1 text-xs text-white/70">
+            <div className="liga-hero-sub mt-1 text-xs text-slate-400">
               {preSeason ? quote : `${gamesLabel(played.length)} · ${goalsFor} scored · ${goalsAgainst} conceded`}
             </div>
-            {phase === 'post-season' && <div className="liga-hero-quote mt-0.5 text-xs text-white/85">{quote}</div>}
+            {phase === 'post-season' && <div className="liga-hero-quote mt-0.5 text-xs text-slate-300">{quote}</div>}
           </div>
 
           {/* Next up — the featured card, straight under the season record */}
@@ -366,7 +366,7 @@ function CompetitionTag({ label }: { label: string }) {
 type NextItem = { title: string; tag: string | null; when: string; ends: string | null; report: number | null; place: string | null }
 
 /**
- * The next event, featured: a big date block, title, time and place, and an
+ * The next event, featured on the green accent: a big date block, title, time and place, and an
  * "Open details" call to action into the schedule (the details panel on desktop,
  * the event modal on phones).
  */
@@ -374,25 +374,25 @@ function NextUpCard({ next, href, now }: { next: NextItem; href: string; now: Da
   const day = dateBlock(next.when)
   const report = fmtReport(next.when, next.report)
   return (
-    <Link href={href} className="liga-next-card card mt-2 block p-4 transition hover:border-white/15 lg:p-5">
+    <Link href={href} className="liga-next-card bg-accent card mt-2 block p-4 transition hover:brightness-110 lg:p-5">
       <div className="flex items-start gap-4">
-        <div className="liga-next-date flex w-14 shrink-0 flex-col items-center border-r border-white/10 pr-4">
+        <div className="liga-next-date flex w-14 shrink-0 flex-col items-center border-r border-white/20 pr-4">
           <span className="liga-next-date-day text-3xl font-bold leading-none text-white">{day.day}</span>
-          <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{day.mon}</span>
+          <span className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-white/80">{day.mon}</span>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="liga-meta font-semibold uppercase text-brand-light">{fmtRelativeDay(next.when, now)}</div>
+          <div className="liga-meta font-semibold uppercase text-white/85">{fmtRelativeDay(next.when, now)}</div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
             <div className="liga-next-title break-words text-xl font-semibold leading-tight text-white lg:text-2xl">{next.title}</div>
             {next.tag && <CompetitionTag label={next.tag} />}
           </div>
-          <div className="liga-meta mt-2 text-slate-300">{fmtDateTimeRange(next.when, next.ends)}</div>
-          {next.place && <div className="liga-meta break-words text-slate-400">{next.place}</div>}
-          {report && <div className="liga-meta text-slate-500">{report}</div>}
+          <div className="liga-meta mt-2 text-white">{fmtDateTimeRange(next.when, next.ends)}</div>
+          {next.place && <div className="liga-meta break-words text-white/85">{next.place}</div>}
+          {report && <div className="liga-meta text-white/85">{report}</div>}
         </div>
       </div>
       <div className="mt-4 flex">
-        <span className="liga-button liga-button-primary bg-accent w-full rounded-lg px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 lg:ml-auto lg:w-auto">
+        <span className="liga-button w-full rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-brand-dark lg:ml-auto lg:w-auto">
           Open details<span aria-hidden="true">&nbsp;→</span>
         </span>
       </div>
@@ -403,7 +403,7 @@ function NextUpCard({ next, href, now }: { next: NextItem; href: string; now: Da
 /** Next up's empty states (season finished, nothing scheduled) */
 function NextUpNote({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="liga-next-card card mt-2 p-4 lg:p-5">
+    <div className="card mt-2 p-4 lg:p-5">
       <div className="text-base font-semibold text-white">{title}</div>
       <div className="liga-meta mt-1 text-slate-400">{children}</div>
     </div>
