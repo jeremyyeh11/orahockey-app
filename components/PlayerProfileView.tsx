@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerProfileOverlay, PlayerProfilePage, type ProfilePlayer, type AccountStatus, type SquadStatus } from '@/components/PlayerProfilePage'
-import { computeSeason, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
+import { computeSeason, firstSeasonPlayed, yearsAtClub, type PlayerLite, type MatchCardRow, type LeaderboardRow } from '@/lib/stats'
 import type { RosterPlayer } from '@/components/RosterList'
 // Not from RosterList: that's a client module, and this server component calls it
 import { accountStatusOf } from '@/lib/account'
-import { getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
+import { getSeasons, getSelectedSeason, hasSeasonRecord } from '@/lib/season-server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import type { EditContext } from '@/app/admin/team/PlayerEditModal'
 import { seasonTitle } from '@/lib/season'
 
-const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year, photo_path'
+const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path'
 // Admin view additionally exposes contact/role fields (+ auth link for account status).
 const ADMIN_FIELDS = `${BASE_FIELDS}, email, role, auth_user_id`
 
@@ -43,7 +43,7 @@ export async function PlayerProfileView({
   overlay?: boolean
 }) {
   const supabase = createClient()
-  const [season, user] = await Promise.all([getSelectedSeason(), includeAccount ? getRequestUser() : null])
+  const [season, user, seasons] = await Promise.all([getSelectedSeason(), includeAccount ? getRequestUser() : null, getSeasons()])
 
   const [
     { data: player, error: playerErr },
@@ -156,6 +156,10 @@ export async function PlayerProfileView({
       seasonRow={seasonRow}
       careerRow={careerRow}
       seasonLabel={season.allTime ? null : seasonTitle(season)}
+      yearsAtClub={yearsAtClub(
+        firstSeasonPlayed(profile.id, games ?? [], att ?? [], seasons),
+        seasons.find((s) => s.is_current)?.label
+      )}
       accountStatus={accountStatus}
       squadStatus={squadStatus}
       editContext={editContext}

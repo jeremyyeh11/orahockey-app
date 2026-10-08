@@ -105,7 +105,6 @@ export type PlayerDetailsInput = {
   /** Every position they play — per player, across seasons */
   position: string[] | null
   date_of_birth: string | null
-  joined_year: number | null
   is_active: boolean
   /** The selected season's number if they're in its squad, else their default for new seasons */
   jersey_number: number | null
@@ -126,9 +125,6 @@ export async function updatePlayer(id: string, data: PlayerDetailsInput) {
   if (!fullName) throw new Error('Full name is required.')
   if (data.jersey_number != null && (!Number.isInteger(data.jersey_number) || data.jersey_number < 0 || data.jersey_number > 99)) {
     throw new Error('Jersey number must be 0–99.')
-  }
-  if (data.joined_year != null && (!Number.isInteger(data.joined_year) || data.joined_year < 1950 || data.joined_year > 2100)) {
-    throw new Error('Year joined looks wrong.')
   }
 
   const [{ data: current, error: readError }, user, season] = await Promise.all([
@@ -169,7 +165,6 @@ export async function updatePlayer(id: string, data: PlayerDetailsInput) {
       role: data.role,
       position: data.position && data.position.length > 0 ? data.position : null,
       date_of_birth: data.date_of_birth || null,
-      joined_year: data.joined_year,
       is_active: data.is_active,
       ...(setDefaultJersey ? { jersey_number: data.jersey_number } : {}),
     })

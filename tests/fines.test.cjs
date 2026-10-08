@@ -181,3 +181,19 @@ test('paid and waived fines stop being outstanding; a player is settled once eve
   assert.deepEqual(totals.a, [0, 0, 1, 1, true], 'a: one paid, one waived — settled')
   assert.deepEqual(totals.b, [1, FINE_AMOUNT, 1, 0, false], 'b: one paid, one still owed')
 })
+
+test('years at ORA: from the first season with a league appearance to the current one', () => {
+  const { firstSeasonPlayed, yearsAtClub } = load('lib/stats.ts')
+  const seasons = [{ id: 's27', label: '2027' }, { id: 's26', label: '2026' }, { id: 's25', label: '2025' }]
+  const games = [
+    { id: 'g1', season_id: 's25', result: 'win', game_type: 'exhibition', game_date: '', goals_against: 0 },
+    { id: 'g2', season_id: 's26', result: null, game_type: 'regular', game_date: '', goals_against: 0 },
+    { id: 'g3', season_id: 's26', result: 'loss', game_type: 'regular', game_date: '', goals_against: 2 },
+  ]
+  const att = [{ player_id: 'p', session_id: 'g1' }, { player_id: 'p', session_id: 'g2' }, { player_id: 'p', session_id: 'g3' }]
+  assert.equal(firstSeasonPlayed('p', games, att, seasons), '2026', 'friendlies and unplayed games do not count')
+  assert.equal(firstSeasonPlayed('q', games, att, seasons), null)
+  assert.equal(yearsAtClub('2026', '2027'), 2)
+  assert.equal(yearsAtClub('2027', '2027'), 1)
+  assert.equal(yearsAtClub(null, '2027'), null)
+})

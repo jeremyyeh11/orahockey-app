@@ -54,7 +54,6 @@ export type ProfilePlayer = PlayerLite & {
   email?: string
   role?: 'player' | 'admin'
   date_of_birth?: string | null
-  joined_year?: number | null
   photo_path?: string | null
 }
 
@@ -131,6 +130,8 @@ type PlayerProfileProps = {
   careerRow: LeaderboardRow | undefined
   /** e.g. "MHL1 2027"; null for "All time" — then only the Career panel shows */
   seasonLabel: string | null
+  /** From their first season played to the current one (null = hasn't played) */
+  yearsAtClub?: number | null
   /** Admin view only — enables the account/invite panel */
   accountStatus?: AccountStatus
   /** Admin view, open season only — enables the squad (add / remove / inactive) panel */
@@ -144,6 +145,7 @@ export function PlayerProfilePage({
   seasonRow,
   careerRow,
   seasonLabel,
+  yearsAtClub,
   accountStatus,
   squadStatus,
   editContext,
@@ -366,9 +368,7 @@ export function PlayerProfilePage({
             {player.date_of_birth && (
               <StatCol value={`${calcAge(player.date_of_birth)}y`} label="Age" />
             )}
-            {player.joined_year && (
-              <StatCol value={`${new Date().getFullYear() - player.joined_year}y`} label="At ORA" />
-            )}
+            {yearsAtClub != null && <StatCol value={`${yearsAtClub}y`} label="At ORA" />}
             {careerRow && careerRow.caps > 0 && (
               <StatCol value={careerRow.caps} label="App" />
             )}

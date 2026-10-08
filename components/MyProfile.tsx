@@ -17,7 +17,6 @@ export type MyProfileData = {
     jersey_number: number | null
     position: string[] | null
     date_of_birth: string | null
-    joined_year: number | null
     email: string | null
     role: 'player' | 'admin'
     photoUrl: string | null
@@ -25,6 +24,10 @@ export type MyProfileData = {
   /** Seasons they've been in the squad for, newest first */
   seasons: { label: string; current: boolean; jersey: number | null; row: LeaderboardRow | null }[]
   career: LeaderboardRow | null
+  /** First season with a league appearance, e.g. '2026' */
+  firstSeason: string | null
+  /** From the first season played to the current one, inclusive */
+  yearsAtClub: number | null
 }
 
 function age(dob: string) {
@@ -49,7 +52,7 @@ const cardCount = (r: LeaderboardRow | null) => (r ? r.cards.green + r.cards.yel
  * only. The Squad card stays the condensed public view.
  */
 export default function MyProfile({ data }: { data: MyProfileData }) {
-  const { player, seasons, career } = data
+  const { player, seasons, career, firstSeason, yearsAtClub } = data
   const [editing, setEditing] = useState(false)
   const positions = sortPositions(player.position ?? [])
   const isGK = positions.includes('GK')
@@ -57,7 +60,6 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
   const goals = goalsOf(career)
   const assists = career?.assists ?? 0
   const potm = career?.potmWins ?? 0
-  const yearsAtClub = player.joined_year ? new Date().getFullYear() - player.joined_year : null
 
   const rate = (n: number) => (apps > 0 ? n / apps : 0)
   const rates = [
@@ -174,7 +176,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                   ['Date of birth', player.date_of_birth ? `${fmtDob(player.date_of_birth)} (${age(player.date_of_birth)})` : '—'],
                   ['Positions', positions.join(', ') || '—'],
                   ['Jersey', player.jersey_number != null ? `#${player.jersey_number}` : '—'],
-                  ['Joined', player.joined_year ? String(player.joined_year) : '—'],
+                  ['First season', firstSeason ?? '—'],
                   ['Email', player.email ?? '—'],
                 ] as const
               ).map(([k, v]) => (

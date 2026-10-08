@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { getSeasons } from '@/lib/season-server'
-import { computeSeason, type LeaderboardRow, type MatchCardRow, type PlayerLite } from '@/lib/stats'
+import { computeSeason, yearsAtClub, type LeaderboardRow, type MatchCardRow, type PlayerLite } from '@/lib/stats'
 import { playerPhotoUrl } from '@/lib/photos'
 import MyProfile, { type MyProfileData } from '@/components/MyProfile'
 
@@ -17,7 +17,7 @@ export async function MyProfileView() {
 
   const { data: player } = await supabase
     .from('players')
-    .select('id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, joined_year, photo_path, email, role')
+    .select('id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path, email, role')
     .eq('auth_user_id', user?.id ?? '')
     .maybeSingle()
 
@@ -57,6 +57,8 @@ export async function MyProfileView() {
     .filter((s) => inSquad.has(s.id))
     .map((s) => ({ label: s.label, current: s.is_current, jersey: inSquad.get(s.id) ?? null, row: rowOf(s.label, s.id) }))
   const current = seasons.find((s) => s.is_current)
+  // First season with a league appearance (seasons come newest first)
+  const firstSeason = [...bySeason].reverse().find((s) => (s.row?.caps ?? 0) > 0)?.label ?? null
 
   const data: MyProfileData = {
     player: {
@@ -67,13 +69,14 @@ export async function MyProfileView() {
       jersey_number: (current && inSquad.get(current.id)) ?? player.jersey_number,
       position: player.position,
       date_of_birth: player.date_of_birth,
-      joined_year: player.joined_year,
       email: player.email,
       role: player.role,
       photoUrl: playerPhotoUrl(player.photo_path),
     },
     seasons: bySeason,
     career: rowOf('all'),
+    firstSeason,
+    yearsAtClub: yearsAtClub(firstSeason, current?.label),
   }
   return <MyProfile data={data} />
 }

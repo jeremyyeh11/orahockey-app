@@ -30,7 +30,6 @@ export type EditablePlayer = {
   role?: 'player' | 'admin'
   position: string[] | null
   date_of_birth?: string | null
-  joined_year?: number | null
   is_active: boolean
   jersey_number: number | null
   photo_path?: string | null
@@ -81,7 +80,6 @@ export default function PlayerEditModal({
           role: context.isSelf ? player.role ?? 'player' : (fd.get('role') as 'player' | 'admin'),
           position: positions,
           date_of_birth: (fd.get('date_of_birth') as string) || null,
-          joined_year: num('joined_year'),
           is_active: fd.get('is_active') === 'on',
           jersey_number: context.jerseyMode === 'archived' ? player.jersey_number : num('jersey_number'),
         })
@@ -178,15 +176,10 @@ export default function PlayerEditModal({
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className={labelCls} htmlFor="edit-dob">Date of birth</label>
-            <input id="edit-dob" name="date_of_birth" type="date" defaultValue={player.date_of_birth ?? ''} className={`${inputCls} h-[42px]`} />
-          </div>
-          <div className="flex-1">
-            <label className={labelCls} htmlFor="edit-joined">Year joined</label>
-            <input id="edit-joined" name="joined_year" type="number" min="1950" max="2100" defaultValue={player.joined_year ?? ''} placeholder="e.g. 2019" className={inputCls} />
-          </div>
+        <div>
+          <label className={labelCls} htmlFor="edit-dob">Date of birth</label>
+          <input id="edit-dob" name="date_of_birth" type="date" defaultValue={player.date_of_birth ?? ''} className={`${inputCls} h-[42px]`} />
+          <p className={hintCls}>Years at ORA is worked out from their first season played.</p>
         </div>
 
         <label className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-surface-border px-3 py-2.5">
