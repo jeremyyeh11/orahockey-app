@@ -63,6 +63,7 @@ export async function MyProfileView() {
       current: s.is_current,
       jersey: inSquad.get(s.id) ?? null,
       played: inSquad.has(s.id),
+      cancelled: s.cancelled_reason ?? null,
       recorded: recordedStats(s),
       row: inSquad.has(s.id) ? rowOf(s.label, s.id) : null,
     }))
