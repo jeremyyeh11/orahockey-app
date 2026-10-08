@@ -11,7 +11,7 @@
 -- Creates: a locked 2016 season (recorded_stats = appearances only), one
 -- opponent (Jansenites A — the sheet's "Jans A", kept apart from plain
 -- Jansenites), 10 past players not yet in the app (Hari Shoran, Hari.R,
--- Hakiim, Iliya, Siva, Eugene, Acap, Benjamin Ang, Benjy, Dylan Wang —
+-- Hakiim, Iliya, Siva, Eugene, Ashraf, Benjamin Ang, Benjy, Dylan Wang —
 -- inactive, first names / sheet names only; Dylan Wang is also created by
 -- the 2017 seed, whichever runs first), the 14 games, the 2016 squad and 219 caps (RSVP
 -- 'attending' on each game). Sheet names mapped to players by hand (Boon is
@@ -47,14 +47,14 @@ begin
   -- Past players not yet in the app: inactive, so they don't join the current squad
   insert into players (team_id, full_name, preferred_name, is_active, role)
   select v_team, n.full_name, n.preferred, false, 'player'
-  from (values ('HARI SHORAN', null), ('HARI.R', null), ('HAKIIM', null), ('ILIYA', null), ('SIVA', null), ('EUGENE', null), ('ACAP', null), ('BENJAMIN ANG', null), ('BENJY', null), ('DYLAN WANG', null)) as n(full_name, preferred)
+  from (values ('HARI SHORAN', null), ('HARI.R', null), ('HAKIIM', null), ('ILIYA', null), ('SIVA', null), ('EUGENE', null), ('ASHRAF', null), ('BENJAMIN ANG', null), ('BENJY', null), ('DYLAN WANG', null)) as n(full_name, preferred)
   where not exists (select 1 from players p where p.full_name = n.full_name);
 
   for g in
     select * from (values
     ('2016-04-23 15:00+08', 'Tornados', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['FAZLY', 'HARI SHORAN', 'NICK', 'MARK CHEONG CHEE HAN', 'HAKIIM', 'ILIYA', 'HANIF', 'JEREMY YEH BO HSIEN', 'YONG HOW ZHI', 'HAO DUAN', 'KEANE', 'BRENNEN', 'MARCUS', 'RYAN JAY NAIDU', 'HARI.R']),
-    ('2016-05-07 15:00+08', 'Hollandse', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MARK CHEONG CHEE HAN', 'SIVA', 'KEANE', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'YONG HOW ZHI', 'JEREMY YEH BO HSIEN', 'HAO DUAN', 'BRENNEN', 'HARI SHORAN', 'ADIB', 'HANIF', 'FAZLY', 'ZAKI', 'EUGENE', 'ILIYA', 'ACAP', 'MARCUS', 'NICK']),
-    ('2016-05-14 15:00+08', 'Jansenites A', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MARK CHEONG CHEE HAN', 'JEREMY YEH BO HSIEN', 'EUGENE', 'KEANE', 'HARI SHORAN', 'HAO DUAN', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'BRENNEN', 'ADIB', 'BENJAMIN ANG', 'MARCUS', 'FAZLY', 'HARI.R', 'ACAP', 'NICK', 'ZAKI', 'HANIF', 'BENJY']),
+    ('2016-05-07 15:00+08', 'Hollandse', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MARK CHEONG CHEE HAN', 'SIVA', 'KEANE', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'YONG HOW ZHI', 'JEREMY YEH BO HSIEN', 'HAO DUAN', 'BRENNEN', 'HARI SHORAN', 'ADIB', 'HANIF', 'FAZLY', 'ZAKI', 'EUGENE', 'ILIYA', 'ASHRAF', 'MARCUS', 'NICK']),
+    ('2016-05-14 15:00+08', 'Jansenites A', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MARK CHEONG CHEE HAN', 'JEREMY YEH BO HSIEN', 'EUGENE', 'KEANE', 'HARI SHORAN', 'HAO DUAN', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'BRENNEN', 'ADIB', 'BENJAMIN ANG', 'MARCUS', 'FAZLY', 'HARI.R', 'ASHRAF', 'NICK', 'ZAKI', 'HANIF', 'BENJY']),
     ('2016-06-19 15:00+08', 'Khalsa', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['YONG HOW ZHI', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'NICK', 'HARI.R', 'JEREMY YEH BO HSIEN', 'ZAKI', 'HANIF', 'ADIB', 'MARK CHEONG CHEE HAN', 'ASHWIN UNNITHAN', 'HARI SHORAN', 'MARCUS', 'BENJAMIN ANG', 'FAZLY']),
     ('2016-06-26 15:00+08', 'Jansenites', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'NICK', 'ETHAN TAN', 'ADIB', 'FAZLY', 'ZAKI', 'HARI.R', 'HARI SHORAN', 'ALTON CHUA KAI CONG', 'AKASH PREBHASH CHANDRA', 'HAKIIM']),
     ('2016-07-03 15:00+08', 'SCC', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['DYLAN WANG', 'JEREMY YEH BO HSIEN', 'MARCUS', 'HAO DUAN', 'FAZLY', 'KEANE', 'BRENNEN', 'ASHWIN UNNITHAN', 'NICK', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'ZAKI', 'HARI.R', 'ADIB', 'HANIF', 'RYAN JAY NAIDU']),
@@ -64,7 +64,7 @@ begin
     ('2016-07-31 15:00+08', 'Unknown', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — opponent, scoreline and kick-off time not recorded', array['ZAKI', 'YONG HOW ZHI', 'MARK CHEONG CHEE HAN', 'HAKIIM', 'ADIB', 'BRENNEN', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'HANIF', 'ILIYA', 'NICK', 'KEANE', 'MARCUS']),
     ('2016-08-13 15:00+08', 'Khalsa', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'ADIB', 'MARK CHEONG CHEE HAN', 'HAKIIM', 'NICK', 'ILIYA', 'YONG HOW ZHI', 'JEREMY YEH BO HSIEN', 'HAO DUAN', 'BENJAMIN ANG', 'BENJY', 'KEANE', 'MARCUS', 'BRENNEN', 'FAZLY', 'HANIF']),
     ('2016-08-20 15:00+08', 'Hollandse', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['JEREMY YEH BO HSIEN', 'SIVA', 'MARK CHEONG CHEE HAN', 'ADIB', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'NICK', 'KEANE', 'ZAKI', 'ILIYA', 'MARCUS', 'HAO DUAN', 'HANIF', 'BRENNEN', 'FAZLY', 'HARI.R', 'BENJAMIN ANG']),
-    ('2016-08-27 15:00+08', 'SCC', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MARK CHEONG CHEE HAN', 'YONG HOW ZHI', 'MARCUS', 'JEREMY YEH BO HSIEN', 'KEANE', 'NICK', 'HAO DUAN', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'FAZLY', 'ADIB', 'HAKIIM', 'HARI.R', 'BENJY', 'BRENNEN', 'ACAP']),
+    ('2016-08-27 15:00+08', 'SCC', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MARK CHEONG CHEE HAN', 'YONG HOW ZHI', 'MARCUS', 'JEREMY YEH BO HSIEN', 'KEANE', 'NICK', 'HAO DUAN', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'FAZLY', 'ADIB', 'HAKIIM', 'HARI.R', 'BENJY', 'BRENNEN', 'ASHRAF']),
     ('2016-09-03 15:00+08', 'Jansenites A', null::smallint, null::smallint, 'unrecorded', 'Imported from the 2016 caps sheet — scoreline and kick-off time not recorded', array['MARK CHEONG CHEE HAN', 'KEANE', 'YONG HOW ZHI', 'BENJAMIN ANG', 'HANIF', 'MOHAMED RIFQI BIN MOHAMED RAFIK ALKHATIB', 'FAZLY', 'ADIB', 'JEREMY YEH BO HSIEN', 'NICK', 'ZAKI', 'BRENNEN', 'BENJY', 'MARCUS', 'EUGENE', 'HAKIIM', 'HARI.R', 'ILIYA'])
     ) as t(game_date, opponent, goals_for, goals_against, result, notes, played)
   loop
