@@ -40,7 +40,8 @@ export type TeamListSelection = {
   selected: boolean
 }
 
-export default async function PlayerSchedulePage() {
+/** `?event=game-<id>` (Home's "Open details") opens that event's details */
+export default async function PlayerSchedulePage({ searchParams }: { searchParams: { event?: string | string[] } }) {
   const supabase = createClient()
 
   const [user, season] = await Promise.all([getRequestUser(), getSelectedSeason()])
@@ -139,6 +140,7 @@ export default async function PlayerSchedulePage() {
       goalsByGame={groupByGame((goalRows ?? []) as GoalRow[])}
       cardsByGame={groupByGame((cardRows ?? []) as CardRow[])}
       potmByGame={groupByGame((potmRows ?? []) as { game_id: string; player_id: string; place: number }[])}
+      initialEventKey={typeof searchParams.event === 'string' ? searchParams.event : null}
     />
   )
 }

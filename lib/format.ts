@@ -105,6 +105,12 @@ export function fmtReport(startIso: string, minutes: number | null | undefined) 
   return `Report ${fmtTime(at)} · ${minutes} min early`
 }
 
+/** 'Today' / 'Tomorrow' / 'In 5 days' — counted in Singapore calendar days from `now` */
+export function fmtRelativeDay(iso: string, now: Date) {
+  const days = Math.round((Date.parse(sgDay(iso)) - Date.parse(sgDay(now.toISOString()))) / (24 * 60 * 60 * 1000))
+  return days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`
+}
+
 /** Start and end (exclusive) of the Singapore day containing `now`, as ISO */
 export function sgDayBounds(now: Date) {
   const start = new Date(`${sgDay(now.toISOString())}T00:00:00+08:00`)

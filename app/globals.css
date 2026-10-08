@@ -156,6 +156,17 @@
   border-bottom-color: #5aa971;
 }
 
+/* Home's featured Next up card — the green accent surface (bg-accent), so it
+   leads the grey season strip, rows and stat tiles around it. */
+.liga-ui .liga-next-card.card {
+  border-color: transparent;
+}
+
+.liga-ui .liga-next-date-day {
+  font-family: var(--font-liga-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 .liga-ui .liga-result-mark {
   border-radius: 4px;
   font-family: var(--font-liga-mono), ui-monospace, monospace;

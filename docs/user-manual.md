@@ -10,7 +10,7 @@ For players using the ORA Hockey team app on a phone or in a browser. Coaches an
 - **Forgot your password?** Ask a coach/manager — they can send you a reset link the same way (that one expires after 1 hour).
 
 
-After setup, sign in with your roster email and chosen password. Players see **Home**, **Squad**, **Schedule**, and **Polls** - in the bar along the bottom on a phone, or in the top bar on a computer. A thin green line across the top of the screen means a page is loading.
+After setup, sign in with your roster email and chosen password. Players see **Home**, **Schedule**, **Polls**, and **Squad** - in the bar along the bottom on a phone, or in the top bar on a computer. A thin green line across the top of the screen means a page is loading.
 
 ## Using the app
 
@@ -22,7 +22,7 @@ Home, Squad and Schedule all show **one season at a time** - the current season 
 Past seasons are **archived** (marked with a lock icon) and **read-only** - you can look at results, stats, team lists and attendance, but nothing can be changed (not even by coaches). The app goes back to the current season the next time you open it.
 
 ### Home
-Your landing screen. Shows the season record (W - D - L) and where the season is - **Pre-season** (before the first fixture), **Season**, or **Post-season** (after the last), your own stats for that season (Goals, Assists, Attendance %), the next scheduled game or training, the last result, and a prompt if there are active polls awaiting your vote. Below your season stats is **All time** - your appearances, goals and assists across every season (tap to expand on a phone). On a computer, the season and your stats sit on the left and what's coming up on the right.
+Your landing screen. Shows the season record (W - D - L) and where the season is - **Pre-season** (before the first fixture), **Season**, or **Post-season** (after the last), **Next up** - the next game, training or team event, right under the season card, with **Open details** to jump to it on the Schedule (its details open straight away) - then your own stats for that season (**Apps** - league games you played, friendlies don't count; Goals; Assists; **Attendance %** - how many of the season's games, friendlies, trainings and team events so far you said **I'm in** to), the last result (tap it for that game's details), and a prompt if there are active polls awaiting your vote. Below your season stats is **All time** - your appearances, goals and assists across every season. On a computer, the season, Next up and recent results sit on the left and your stats on the right.
 
 ### Squad
 The season's squad with each player's stats for that season: goals by type (**FG** field goal, **PC** penalty corner, **PS** penalty stroke), assists (**A**), clean sheets for keepers (**CS**), Player of the Match wins (**POTM**) and appearances (**APP**). On a phone each player is a card; on a computer the roster is a table - click any column heading to sort by it. Jersey numbers are the ones from that season.
