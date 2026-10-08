@@ -35,6 +35,10 @@ export type MyProfileData = {
     row: LeaderboardRow | null
   }[]
   career: LeaderboardRow | null
+  /** ORA cap number: the Nth player to debut for the club; null = no game yet */
+  capNumber: number | null
+  /** Debut game, e.g. '7 May 2016 vs Hollandse'; null = no game yet */
+  debut: string | null
   /** First season with a league appearance, e.g. '2026' */
   firstSeason: string | null
   /** From the first season played to the current one, inclusive */
@@ -67,7 +71,7 @@ const cardCount = (r: LeaderboardRow | null) => (r ? r.cards.green + r.cards.yel
  * only. The Squad card stays the condensed public view.
  */
 export default function MyProfile({ data }: { data: MyProfileData }) {
-  const { player, seasons, career, firstSeason, yearsAtClub } = data
+  const { player, seasons, career, capNumber, debut, firstSeason, yearsAtClub } = data
   const [editing, setEditing] = useState(false)
   const positions = sortPositions(player.position ?? [])
   const isGK = positions.includes('GK')
@@ -203,6 +207,8 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                   ['Date of birth', player.date_of_birth ? `${fmtDob(player.date_of_birth)} (${age(player.date_of_birth)})` : '—'],
                   ['Positions', positions.join(', ') || '—'],
                   ['Jersey', player.jersey_number != null ? `#${player.jersey_number}` : '—'],
+                  ['Cap', capNumber != null ? `#${capNumber}` : '—'],
+                  ['Debut', debut ?? '—'],
                   ['First season', firstSeason ?? '—'],
                   ['Email', player.email ?? '—'],
                 ] as const

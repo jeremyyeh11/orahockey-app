@@ -26,6 +26,12 @@ export function fmtDate(iso: string) {
   return `${p.weekday} ${p.day} ${p.month}`
 }
 
+/** '7 May 2016' */
+export function fmtDayMonthYear(iso: string) {
+  const p = parts(iso)
+  return `${p.day} ${p.month} ${p.year}`
+}
+
 /** '18:00' */
 export function fmtTime(iso: string) {
   const p = parts(iso)

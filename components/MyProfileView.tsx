@@ -4,6 +4,7 @@ import { getSeasons } from '@/lib/season-server'
 import { recordedStats } from '@/lib/season'
 import { computeSeason, yearsAtClub, type LeaderboardRow, type MatchCardRow, type PlayerLite } from '@/lib/stats'
 import { playerPhotoUrl } from '@/lib/photos'
+import { fmtDayMonthYear } from '@/lib/format'
 import MyProfile, { type MyProfileData } from '@/components/MyProfile'
 
 /**
@@ -18,7 +19,7 @@ export async function MyProfileView() {
 
   const { data: player } = await supabase
     .from('players')
-    .select('id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path, email, role')
+    .select('id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path, email, role, cap_number, debut:games!players_debut_game_id_fkey(game_date, opponent)')
     .eq('auth_user_id', user?.id ?? '')
     .maybeSingle()
 
@@ -71,6 +72,9 @@ export async function MyProfileView() {
   // First season with a league appearance (seasons come newest first)
   const firstSeason = [...bySeason].reverse().find((s) => (s.row?.caps ?? 0) > 0)?.label ?? null
 
+  // The game they debuted in (set with their cap number — migration 031)
+  const debutGame = player.debut as unknown as { game_date: string; opponent: string } | null
+
   const data: MyProfileData = {
     player: {
       id: player.id,
@@ -86,6 +90,8 @@ export async function MyProfileView() {
     },
     seasons: bySeason,
     career: rowOf('all'),
+    capNumber: player.cap_number,
+    debut: debutGame ? `${fmtDayMonthYear(debutGame.game_date)} vs ${debutGame.opponent}` : null,
     firstSeason,
     yearsAtClub: yearsAtClub(firstSeason, current?.label),
   }

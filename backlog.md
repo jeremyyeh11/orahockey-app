@@ -70,6 +70,12 @@ card** — FIFA Ultimate Team / trading-card style: photo, preferred name, jerse
 few headline numbers at a glance. The Profile tab (#11) is the comprehensive view; this card is
 the summary. Decided Oct 2026 while building #11; design to be worked out at build time.
 
+Include the player's **cap number** ("Cap #17" — the Nth player to debut for ORA, permanent) and
+**debut game** ("7 May 2016 vs Hollandse") on the card — TCG-style, like a card's set number.
+Stored on `players.cap_number` / `players.debut_game_id` (migrations 028–031); the Profile tab
+already shows both in Details. Until this redesign the Squad card deliberately doesn't show them
+(decided Oct 2026).
+
 ## 15. Profile stats visualisations
 
 The Profile tab (#11) shows stats as numbers and a per-season table. Add more interesting
