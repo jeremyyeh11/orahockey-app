@@ -24,7 +24,11 @@ export function countsForRecord(g: { game_type?: string | null }) {
   return g.game_type !== 'exhibition'
 }
 
-/** A game with a real scoreline. 'unrecorded' games count as played (caps) but have no score or W/D/L. */
+/**
+ * A game with a real result (win / draw / loss). 'unrecorded' games count as played (caps) but have
+ * no W/D/L. The goals can still be missing (result known from a league table, score not): check
+ * goals_for / goals_against before showing a scoreline.
+ */
 export function hasScore(g: { result?: string | null }) {
   return !!g.result && g.result !== 'unrecorded'
 }

@@ -157,6 +157,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   // Seasons imported from caps with no scores: games count as played, but there's no record to show
   const noScores = played.length > 0 && !played.some(hasScore)
   const record = recordOf(played)
+  // Goals only add up when every game has a scoreline (some seasons have a result but no score)
+  const allScored = played.every((g) => g.goals_for != null && g.goals_against != null)
   const goalsFor = played.reduce((s, g) => s + (g.goals_for ?? 0), 0)
   const goalsAgainst = played.reduce((s, g) => s + (g.goals_against ?? 0), 0)
 
@@ -297,7 +299,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
               )}
             </div>
             <div className="liga-hero-sub mt-1 text-xs text-slate-400">
-              {preSeason ? quote : noScores ? gamesLabel(played.length) : `${gamesLabel(played.length)} · ${goalsFor} scored · ${goalsAgainst} conceded`}
+              {preSeason ? quote : noScores || !allScored ? gamesLabel(played.length) : `${gamesLabel(played.length)} · ${goalsFor} scored · ${goalsAgainst} conceded`}
             </div>
             {phase === 'post-season' && <div className="liga-hero-quote mt-0.5 text-xs text-slate-300">{quote}</div>}
           </div>
@@ -323,7 +325,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
                       : 'bg-red-900/50 text-red-300'
                   }`}
                 >
-                  {hasScore(lastGame) ? `${lastGame.goals_for}–${lastGame.goals_against}` : '–'}
+                  {lastGame.goals_for != null && lastGame.goals_against != null ? `${lastGame.goals_for}–${lastGame.goals_against}` : '–'}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -331,7 +333,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
                     <CompetitionTag label={competitionLabel(lastGame.game_type)} />
                   </div>
                   <div className="liga-meta mt-0.5 text-slate-400">
-                    {RESULT_LABEL[lastGame.result ?? ''] ?? ''} · {fmtDateTime(lastGame.game_date)}
+                    {RESULT_LABEL[lastGame.result ?? ''] ?? ''}
+                    {hasScore(lastGame) && (lastGame.goals_for == null || lastGame.goals_against == null) ? ' · No scoreline recorded' : ''} · {fmtDateTime(lastGame.game_date)}
                   </div>
                 </div>
               </Link>

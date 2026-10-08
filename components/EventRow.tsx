@@ -134,7 +134,7 @@ export function EventRow({
               <span className={`liga-result-badge rounded px-1.5 py-0.5 text-xs font-bold ${RESULT_BADGE[result]?.cls ?? 'bg-slate-700 text-slate-300'}`}>
                 {RESULT_BADGE[result]?.label ?? result}
               </span>
-              {result !== 'unrecorded' && (
+              {item.game.goals_for != null && item.game.goals_against != null && (
                 <span className="liga-event-score text-sm font-semibold text-white">
                   {item.game.goals_for}–{item.game.goals_against}
                 </span>

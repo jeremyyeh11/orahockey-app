@@ -220,7 +220,8 @@ export function EventDetailModal({
   // Update result — matches only, enabled once the match date/time has passed
   const hasStarted = new Date(dateStr).getTime() <= new Date(now).getTime()
   const effectiveScore = localScore ?? (
-    isGame && currentItem.kind === 'game' && currentItem.game.result && currentItem.game.result !== 'unrecorded'
+    isGame && currentItem.kind === 'game' && currentItem.game.result && currentItem.game.result !== 'unrecorded' &&
+    currentItem.game.goals_for != null && currentItem.game.goals_against != null
       ? {
           gf: currentItem.game.goals_for ?? 0,
           ga: currentItem.game.goals_against ?? 0,
