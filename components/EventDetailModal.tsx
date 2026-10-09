@@ -8,6 +8,7 @@ import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
 import { FINE_AMOUNT, FINE_KIND_NOUN, type FineReason } from '@/lib/fines'
 import { RespondBy } from './RespondBy'
+import { inputCls, labelCls } from './form'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
@@ -98,10 +99,6 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   ot_loss: { label: 'L·OT', cls: 'bg-red-900/60 text-red-300' },
 }
 
-const inputCls =
-  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
-const dateInputCls = `${inputCls} h-[42px]`
-const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 type BreakdownGroup = { label: string; players: { id: string; name: string; at?: string }[] }
 
@@ -591,7 +588,7 @@ export function EventDetailModal({
               </div>
               <div>
                 <label className={labelCls}>Date &amp; time *</label>
-                <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={dateInputCls} />
+                <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={inputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <FinesFields
@@ -636,7 +633,7 @@ export function EventDetailModal({
               </div>
               <div>
                 <label className={labelCls}>Date &amp; time *</label>
-                <input name="event_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.event.event_date)} className={dateInputCls} />
+                <input name="event_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.event.event_date)} className={inputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <FinesFields
@@ -659,7 +656,7 @@ export function EventDetailModal({
             <>
               <div>
                 <label className={labelCls}>Date &amp; time *</label>
-                <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={dateInputCls} />
+                <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={inputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <FinesFields

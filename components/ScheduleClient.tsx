@@ -31,11 +31,7 @@ import { GameTypeSwitch } from '@/components/GameTypeSwitch'
 import { ScheduleTimeFields, readTimeFields } from '@/components/ScheduleTimeFields'
 import { FinesFields, readFinesFields } from '@/components/FinesFields'
 import { countsForRecord, hasScore } from '@/lib/stats'
-
-const inputCls =
-  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
-const dateInputCls = `${inputCls} h-[42px]`
-const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
+import { FormButtons, FormError, inputCls, labelCls } from '@/components/form'
 
 /**
  * The Schedule tab for both areas (ScheduleView loads it). Everyone RSVPs and
@@ -443,7 +439,7 @@ export default function ScheduleClient({
             <GameTypeSwitch />
             <div>
               <label className={labelCls}>Date &amp; time *</label>
-              <input name="game_date" type="datetime-local" required className={dateInputCls} />
+              <input name="game_date" type="datetime-local" required className={inputCls} />
             </div>
             <ScheduleTimeFields />
             <FinesFields kind="game" startName="game_date" />
@@ -465,8 +461,8 @@ export default function ScheduleClient({
               <label className={labelCls}>Notes</label>
               <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-            <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
+            <FormError error={error} />
+            <FormButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
         </FormModal>
       )}
@@ -477,7 +473,7 @@ export default function ScheduleClient({
           <form onSubmit={submitAddTraining} className="space-y-4">
             <div>
               <label className={labelCls}>Date &amp; time *</label>
-              <input name="session_date" type="datetime-local" required className={dateInputCls} />
+              <input name="session_date" type="datetime-local" required className={inputCls} />
             </div>
             <ScheduleTimeFields />
             <FinesFields kind="training" startName="session_date" />
@@ -489,8 +485,8 @@ export default function ScheduleClient({
               <label className={labelCls}>Notes</label>
               <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-            <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
+            <FormError error={error} />
+            <FormButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
         </FormModal>
       )}
@@ -505,7 +501,7 @@ export default function ScheduleClient({
             </div>
             <div>
               <label className={labelCls}>Date &amp; time *</label>
-              <input name="event_date" type="datetime-local" required className={dateInputCls} />
+              <input name="event_date" type="datetime-local" required className={inputCls} />
             </div>
             <ScheduleTimeFields />
             <FinesFields kind="event" startName="event_date" />
@@ -517,8 +513,8 @@ export default function ScheduleClient({
               <label className={labelCls}>Notes</label>
               <input name="notes" type="text" className={inputCls} placeholder="Optional" />
             </div>
-            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-            <ModalButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
+            <FormError error={error} />
+            <FormButtons isPending={isPending} onCancel={() => { setAddModal(null); setError(null) }} />
           </form>
         </FormModal>
       )}
@@ -532,26 +528,5 @@ function FormModal({ title, onClose, children }: { title: string; onClose: () =>
       <h2 className="mb-5 text-lg font-bold text-white">{title}</h2>
       {children}
     </Modal>
-  )
-}
-
-function ModalButtons({ isPending, onCancel }: { isPending: boolean; onCancel: () => void }) {
-  return (
-    <div className="flex gap-3 pt-1">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        disabled={isPending}
-        className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-      >
-        {isPending ? 'Saving…' : 'Save'}
-      </button>
-    </div>
   )
 }

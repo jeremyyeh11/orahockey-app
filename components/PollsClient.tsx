@@ -12,11 +12,7 @@ import { FinesFields, readFinesFields } from '@/components/FinesFields'
 import { RespondBy } from '@/components/RespondBy'
 import { PollVoters } from '@/components/PollVoters'
 import type { FineReason } from '@/lib/fines'
-
-const inputCls =
-  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
-const dateInputCls = `${inputCls} h-[42px]`
-const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
+import { FormButtons, FormError, inputCls, labelCls } from '@/components/form'
 
 type Roster = { id: string; full_name: string; preferred_name: string | null }[]
 
@@ -205,29 +201,14 @@ export default function PollsClient({
 
             <div>
               <label className={labelCls}>Closes at (optional)</label>
-              <input name="closes_at" type="datetime-local" className={dateInputCls} />
+              <input name="closes_at" type="datetime-local" className={inputCls} />
             </div>
 
             <FinesFields kind="poll" closesName="closes_at" />
 
-            {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+            <FormError error={error} />
 
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-              >
-                {isPending ? 'Creating…' : 'Create'}
-              </button>
-            </div>
+            <FormButtons isPending={isPending} onCancel={() => setShowModal(false)} label="Create" pendingLabel="Creating…" />
           </form>
         </Modal>
       )}

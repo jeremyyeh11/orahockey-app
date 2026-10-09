@@ -20,8 +20,9 @@ import {
   type MatchCardRow,
 } from '@/components/SeasonStats'
 import { accountStatusOf, type RosterPlayer, type AccountStatus } from '@/components/RosterList'
-import { LEAGUE, POSITIONS } from '@/lib/constants'
+import { LEAGUE } from '@/lib/constants'
 import { recordedStats, records, seasonTitle, type Season } from '@/lib/season'
+import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
 
 /** A squad member; the account fields are only loaded for admins */
 export type SquadPlayer = RosterPlayer & PlayerLite & {
@@ -130,12 +131,6 @@ export default function SquadClient({
     setShowAddModal(true)
   }
 
-  function togglePosition(pos: string) {
-    setSelectedPositions((prev) =>
-      prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]
-    )
-  }
-
   function parseForm(form: HTMLFormElement): NewPlayer {
     const fd = new FormData(form)
     const jerseyRaw = fd.get('jersey_number') as string
@@ -163,10 +158,6 @@ export default function SquadClient({
       }
     })
   }
-
-  const inputCls =
-    'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
-  const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
   return (
     <div className="liga-page p-4">
@@ -279,22 +270,7 @@ export default function SquadClient({
               </div>
               <div className="flex-1">
                 <label className={labelCls}>Position</label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {POSITIONS.map((pos) => (
-                    <button
-                      key={pos}
-                      type="button"
-                      onClick={() => togglePosition(pos)}
-                      className={`liga-button rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
-                        selectedPositions.includes(pos)
-                          ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
-                          : 'border-surface-border text-slate-400 hover:text-white hover:border-slate-500'
-                      }`}
-                    >
-                      {pos}
-                    </button>
-                  ))}
-                </div>
+                <PositionPicker value={selectedPositions} onChange={setSelectedPositions} />
               </div>
             </div>
             <div>
@@ -318,25 +294,8 @@ export default function SquadClient({
                 </span>
               </span>
             </label>
-            {error && (
-              <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
-            )}
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => { setShowAddModal(false); setError(null) }}
-                className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-              >
-                {isPending ? 'Saving…' : 'Save'}
-              </button>
-            </div>
+            <FormError error={error} />
+            <FormButtons isPending={isPending} onCancel={() => { setShowAddModal(false); setError(null) }} />
           </form>
         </Modal>
       )}

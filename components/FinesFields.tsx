@@ -3,10 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fromDatetimeLocal, toDatetimeLocal } from '@/lib/format'
 import { FINE_AMOUNT, defaultFinesEnabled, defaultRespondBy, type FineKind } from '@/lib/fines'
-
-const inputCls =
-  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand h-[42px] [color-scheme:dark]'
-const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
+import { inputCls, labelCls } from '@/components/form'
 
 const RULE: Record<FineKind, string> = {
   game: 'Club rule: Thu 23:59 before a weekend game, 72h before a weekday one.',

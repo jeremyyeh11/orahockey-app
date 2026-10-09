@@ -6,6 +6,7 @@ import Modal from '@/components/Modal'
 import { preferredName } from '@/components/RosterList'
 import { LEAGUE } from '@/lib/constants'
 import { addPlayersToSeason } from './actions'
+import { FormButtons } from '@/components/form'
 
 export type OutsidePlayer = {
   id: string
@@ -110,23 +111,14 @@ export default function ExistingPlayerPicker({
         <p className="liga-alert liga-alert-error mb-3 rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
       )}
 
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={submit}
-          disabled={isPending || picked.length === 0}
-          className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-        >
-          {isPending ? 'Adding…' : picked.length > 0 ? `Add ${picked.length} to ${seasonLabel}` : `Add to ${seasonLabel}`}
-        </button>
-      </div>
+      <FormButtons
+        isPending={isPending}
+        disabled={picked.length === 0}
+        onCancel={onClose}
+        onConfirm={submit}
+        label={picked.length > 0 ? `Add ${picked.length} to ${seasonLabel}` : `Add to ${seasonLabel}`}
+        pendingLabel="Adding…"
+      />
     </Modal>
   )
 }
