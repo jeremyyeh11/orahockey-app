@@ -4,22 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getSelectedSeason, hasSeasonRecord, requireOpenSeason } from '@/lib/season-server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { getNow } from '@/lib/preview'
-import { revalidatePath } from 'next/cache'
+import { requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
 
 // Squad changes are admin-only: /admin routes are gated in middleware, these
 // actions check is_admin() themselves, and RLS allows season_players writes to
 // admins only (and the season_lock trigger blocks archived seasons).
-async function requireAdmin(supabase: ReturnType<typeof createClient>) {
-  const { data, error } = await supabase.rpc('is_admin')
-  if (error || data !== true) throw new Error('Only admins can change the squad.')
-}
-
-function revalidateSquad() {
-  revalidatePath('/admin/team', 'layout')
-  revalidatePath('/dashboard/team', 'layout')
-  revalidatePath('/admin/schedule')
-  revalidatePath('/dashboard/schedule')
-}
 
 type PlayerInput = {
   full_name: string
@@ -57,13 +46,6 @@ export async function addPlayer(data: PlayerInput, joinSeason = true) {
   await requireAdmin(supabase)
   const season = await requireOpenSeason()
 
-  // Assign to the first (only) team if one exists
-  const { data: team } = await supabase
-    .from('teams')
-    .select('id')
-    .limit(1)
-    .single()
-
   const { data: player, error } = await supabase
     .from('players')
     .insert({
@@ -72,14 +54,14 @@ export async function addPlayer(data: PlayerInput, joinSeason = true) {
       email: normalizeEmail(data.email),
       // Inactive players don't auto-join the current season (DB trigger)
       is_active: joinSeason,
-      team_id: team?.id ?? null,
+      team_id: await teamId(supabase),
     })
     .select('id')
     .single()
 
   if (error) throw new Error(friendlyPlayerError(error.message, error.code))
   if (!joinSeason) {
-    revalidateSquad()
+    revalidateTabs('team', 'schedule')
     return
   }
 
@@ -93,7 +75,7 @@ export async function addPlayer(data: PlayerInput, joinSeason = true) {
     )
   if (squadError) throw new Error(squadError.message)
 
-  revalidateSquad()
+  revalidateTabs('team', 'schedule')
 }
 
 export type PlayerDetailsInput = {
@@ -180,7 +162,7 @@ export async function updatePlayer(id: string, data: PlayerDetailsInput) {
     if (squadError) throw new Error(squadError.message)
   }
 
-  revalidateSquad()
+  revalidateTabs('team', 'schedule')
 }
 
 export async function togglePlayerActive(id: string, is_active: boolean) {
@@ -194,7 +176,7 @@ export async function togglePlayerActive(id: string, is_active: boolean) {
     .eq('id', id)
 
   if (error) throw new Error(error.message)
-  revalidateSquad()
+  revalidateTabs('team', 'schedule')
 }
 
 /**
@@ -227,7 +209,7 @@ export async function addPlayersToSeason(playerIds: string[]) {
   const { error: activeError } = await supabase.from('players').update({ is_active: true }).in('id', playerIds)
   if (activeError) throw new Error(activeError.message)
 
-  revalidateSquad()
+  revalidateTabs('team', 'schedule')
 }
 
 /**
@@ -262,7 +244,7 @@ export async function removePlayerFromSeason(playerId: string) {
     .eq('player_id', playerId)
   if (error) throw new Error(error.message)
 
-  revalidateSquad()
+  revalidateTabs('team', 'schedule')
 }
 
 /**
@@ -288,7 +270,7 @@ export async function setPlayerEmail(playerId: string, email: string) {
   const { error } = await supabase.from('players').update({ email: normalized }).eq('id', playerId)
   if (error) throw new Error(friendlyPlayerError(error.message, error.code))
 
-  revalidateSquad()
+  revalidateTabs('team', 'schedule')
 }
 
 /**
@@ -309,7 +291,5 @@ export async function setPlayerPhoto(playerId: string, path: string | null) {
   if (current.photo_path && current.photo_path !== path) {
     await supabase.storage.from('player-photos').remove([current.photo_path])
   }
-  revalidateSquad()
-  revalidatePath('/admin/profile')
-  revalidatePath('/dashboard/profile')
+  revalidateTabs('team', 'schedule', 'profile')
 }

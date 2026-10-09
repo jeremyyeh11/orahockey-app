@@ -1,14 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-
-function revalidate() {
-  revalidatePath('/admin/polls')
-  revalidatePath('/admin/dashboard')
-  revalidatePath('/dashboard/polls')
-  revalidatePath('/dashboard')
-}
+import { requireAdmin, requirePlayerId, revalidateTabs, teamId } from '@/lib/action-helpers'
 
 export async function createPoll(
   question: string,
@@ -20,21 +13,15 @@ export async function createPoll(
   if (fines.respond_by && Number.isNaN(new Date(fines.respond_by).getTime())) throw new Error('Respond by is not a valid date.')
 
   const supabase = createClient()
+  await requireAdmin(supabase)
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const [{ data: team }, { data: me }] = await Promise.all([
-    supabase.from('teams').select('id').limit(1).single(),
-    supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
-  ])
+  const [team, me] = await Promise.all([teamId(supabase), requirePlayerId(supabase)])
 
   const { data: poll, error } = await supabase
     .from('polls')
     .insert({
-      team_id: team?.id ?? null,
-      created_by: me?.id ?? null,
+      team_id: team,
+      created_by: me,
       question,
       closes_at: closesAt,
       multiple_choice: multipleChoice,
@@ -51,23 +38,25 @@ export async function createPoll(
   )
 
   if (optError) throw new Error(optError.message)
-  revalidate()
+  revalidateTabs('polls', 'home')
 }
 
 export async function setPollActive(id: string, isActive: boolean) {
   const supabase = createClient()
+  await requireAdmin(supabase)
 
   const { error } = await supabase.from('polls').update({ is_active: isActive }).eq('id', id)
 
   if (error) throw new Error(error.message)
-  revalidate()
+  revalidateTabs('polls', 'home')
 }
 
 export async function deletePoll(id: string) {
   const supabase = createClient()
+  await requireAdmin(supabase)
 
   const { error } = await supabase.from('polls').delete().eq('id', id)
 
   if (error) throw new Error(error.message)
-  revalidate()
+  revalidateTabs('polls', 'home')
 }

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { revalidatePath } from 'next/cache'
+import { requireAdmin, revalidateTabs } from '@/lib/action-helpers'
 
 // Where invite links point. The app builds these links itself (they are
 // hand-delivered via WhatsApp/DM, not emailed), so this must be the real
@@ -30,21 +30,10 @@ export type SetupLink = {
  * DM to the player — nothing is emailed.
  */
 export async function generateSetupLink(playerId: string): Promise<SetupLink> {
-  const supabase = createClient()
-
   // Caller must be a signed-in admin — the service-role client below
   // bypasses RLS, so this check is the actual gate.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not signed in')
-
-  const { data: caller } = await supabase
-    .from('players')
-    .select('role')
-    .eq('auth_user_id', user.id)
-    .single()
-  if (caller?.role !== 'admin') throw new Error('Only admins can send invites')
+  const supabase = createClient()
+  await requireAdmin(supabase)
 
   const { data: player } = await supabase
     .from('players')
@@ -109,8 +98,7 @@ export async function generateSetupLink(playerId: string): Promise<SetupLink> {
     .update({ invited_at: new Date().toISOString() })
     .eq('email', player.email)
 
-  revalidatePath('/admin/team')
-  revalidatePath(`/admin/team/${playerId}`)
+  revalidateTabs('team')
 
   return {
     url,

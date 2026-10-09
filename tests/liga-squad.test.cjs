@@ -720,7 +720,7 @@ test('close season: admin-only Danger zone with three confirmations', () => {
   assert.match(panel, /disabled=\{typed !== CONFIRM_WORD \|\| isPending\}/, '3. final button only once CLOSE is typed exactly')
   const action = read('app/admin/dashboard/seasonActions.ts')
   assert.match(action, /if \(confirmation !== 'CLOSE'\) throw/, 'server re-checks the typed word')
-  assert.match(action, /rpc\('is_admin'\)[\s\S]*rpc\('close_current_season'\)/)
+  assert.match(action, /await requireAdmin\(supabase\)[\s\S]*rpc\('close_current_season'\)/)
   const home = read('components/HomeView.tsx')
   assert.match(home, /basePath === '\/admin' && season\.is_current && !season\.locked \? await getCloseSeasonSummary\(season\)/, 'admin Home, current season only')
   const migration = read('supabase/migrations/014_close_season.sql')
@@ -914,4 +914,35 @@ test('names: every preferred word is highlighted where it sits in the full name,
   // Rendered in the Squad card: highlighted words plain, the rest muted
   const card = render(RosterList, { players: [player('m', 'MAK RUI AN RYAN', ['MID'], { preferred_name: 'MAK RYAN' })], myPlayerId: null })
   assert.match(card, /<span>MAK<\/span><span class="[^"]*text-slate-400[^"]*"> RUI AN <\/span><span>RYAN<\/span>/)
+})
+
+test('every admin server action checks is_admin() before doing anything', () => {
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const dirs = fs.readdirSync(path.join(root, 'app/admin'), { withFileTypes: true }).filter((d) => d.isDirectory())
+  const files = dirs.flatMap((d) =>
+    fs.readdirSync(path.join(root, 'app/admin', d.name)).filter((f) => /^(actions|\w+Actions)\.ts$/.test(f)).map((f) => `app/admin/${d.name}/${f}`)
+  )
+  assert.ok(files.length >= 7, 'found the admin action files')
+  for (const file of files) {
+    const src = read(file)
+    assert.match(src, /^'use server'/, `${file} is a server action module`)
+    const actions = src.split(/(?=^export async function )/m).slice(1)
+    assert.ok(actions.length > 0, `${file} has actions`)
+    for (const fn of actions) {
+      const name = fn.match(/^export async function (\w+)/)[1]
+      assert.match(fn, /^[^{]*\{[\s\S]*?const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/, `${file}: ${name} calls requireAdmin first`)
+    }
+  }
+  // The helpers are a plain module: a 'use server' file would make them callable endpoints
+  assert.doesNotMatch(read('lib/action-helpers.ts'), /^['"]use server['"]/m)
+
+  // revalidateTabs refreshes each tab in both areas
+  const calls = []
+  const { revalidateTabs } = createTsLoader({ 'next/cache': { revalidatePath: (...args) => calls.push(args.join(' ')) } })('lib/action-helpers.ts')
+  revalidateTabs('home', 'team', 'polls')
+  assert.deepEqual(calls, [
+    '/admin/dashboard', '/dashboard',
+    '/admin/team layout', '/dashboard/team layout',
+    '/admin/polls', '/dashboard/polls',
+  ])
 })

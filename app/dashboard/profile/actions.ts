@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidateTabs } from '@/lib/action-helpers'
 import { POSITIONS } from '@/lib/constants'
 
 /**
@@ -33,7 +33,5 @@ export async function updateMyProfile(data: { preferred_name: string | null; dat
   if (error) throw new Error(error.message)
   if (!updated?.length) throw new Error('No player record is linked to this account.')
 
-  for (const path of ['/dashboard/profile', '/admin/profile', '/dashboard/team', '/admin/team', '/dashboard', '/admin/dashboard']) {
-    revalidatePath(path, path.endsWith('/team') ? 'layout' : 'page')
-  }
+  revalidateTabs('profile', 'team', 'home')
 }

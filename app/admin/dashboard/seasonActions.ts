@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/action-helpers'
 
 /**
  * Admin Danger zone: archive the current season and make the next one current
@@ -12,8 +13,7 @@ export async function closeSeason(confirmation: string): Promise<{ newLabel: str
   if (confirmation !== 'CLOSE') throw new Error('Type CLOSE to confirm.')
 
   const supabase = createClient()
-  const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
-  if (adminError || isAdmin !== true) throw new Error('Only admins can close a season.')
+  await requireAdmin(supabase)
 
   const { data, error } = await supabase.rpc('close_current_season')
   if (error) throw new Error(error.message)

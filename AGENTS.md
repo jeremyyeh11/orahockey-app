@@ -144,7 +144,10 @@ Do not skip this step. Every session that modifies code must end with a commit +
 ## Conventions
 - Dates are stored timestamptz and always displayed in Singapore time via `lib/format.ts`
 - Page pattern: server `page.tsx` fetches → passes to a `'use client'` component; mutations
-  are server actions in a sibling `actions.ts` that `revalidatePath` affected routes
+  are server actions in a sibling `actions.ts`, using `lib/action-helpers.ts`: every admin
+  action starts `const supabase = createClient()` + `await requireAdmin(supabase)` (a test
+  enforces it), `requirePlayerId()` for "me", and `revalidateTabs('schedule', 'home', …)` to
+  refresh a tab in both areas
 - Admin and player routes render one shared server view per tab (`components/*View.tsx`, e.g.
   `<HomeView basePath="/admin" />`); `basePath="/admin"` turns on the admin controls. Keep route
   `page.tsx` files as thin wrappers and put new tab features in the shared view/client

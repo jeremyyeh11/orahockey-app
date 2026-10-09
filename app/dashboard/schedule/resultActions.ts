@@ -6,7 +6,7 @@
 // player_stats stays in sync via the match_goals trigger.
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidateTabs } from '@/lib/action-helpers'
 
 export type GoalRow = {
   id: string
@@ -24,15 +24,8 @@ export type CardRow = {
   card_type: 'green' | 'yellow' | 'red'
 }
 
-function revalidate() {
-  revalidatePath('/admin/schedule')
-  revalidatePath('/dashboard/schedule')
-  revalidatePath('/admin/dashboard')
-  revalidatePath('/dashboard')
-  // Squad pages derive stats/cards from these rows
-  revalidatePath('/admin/team')
-  revalidatePath('/dashboard/team')
-}
+// Squad pages derive stats/cards from these rows too
+const revalidate = () => revalidateTabs('schedule', 'home', 'team')
 
 export async function setMatchScore(gameId: string, goalsFor: number, goalsAgainst: number) {
   const supabase = createClient()

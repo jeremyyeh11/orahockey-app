@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { requireAdmin, revalidateTabs } from '@/lib/action-helpers'
 
 export type TeamListEntry = {
   player_id: string
@@ -18,17 +18,7 @@ export async function saveTeamList(
   status: 'draft' | 'published'
 ) {
   const supabase = createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not signed in')
-
-  const { data: me } = await supabase
-    .from('players')
-    .select('id, role')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (!me || me.role !== 'admin') throw new Error('Admin only')
+  await requireAdmin(supabase)
 
   // Delete existing entries
   await supabase.from('match_team_lists').delete().eq('game_id', gameId)
@@ -55,10 +45,7 @@ export async function saveTeamList(
 
   if (gameErr) throw new Error(gameErr.message)
 
-  revalidatePath('/admin/schedule')
-  revalidatePath('/dashboard/schedule')
-  revalidatePath('/admin/dashboard')
-  revalidatePath('/dashboard')
+  revalidateTabs('schedule', 'home')
 }
 
 /**
@@ -66,17 +53,7 @@ export async function saveTeamList(
  */
 export async function unpublishTeamList(gameId: string) {
   const supabase = createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not signed in')
-
-  const { data: me } = await supabase
-    .from('players')
-    .select('id, role')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (!me || me.role !== 'admin') throw new Error('Admin only')
+  await requireAdmin(supabase)
 
   const { error } = await supabase
     .from('games')
@@ -85,8 +62,5 @@ export async function unpublishTeamList(gameId: string) {
 
   if (error) throw new Error(error.message)
 
-  revalidatePath('/admin/schedule')
-  revalidatePath('/dashboard/schedule')
-  revalidatePath('/admin/dashboard')
-  revalidatePath('/dashboard')
+  revalidateTabs('schedule', 'home')
 }

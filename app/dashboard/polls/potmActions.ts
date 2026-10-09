@@ -5,7 +5,7 @@
 // definer functions — this just forwards the ranked pick and revalidates.
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidateTabs } from '@/lib/action-helpers'
 
 export async function castPotmVote(
   pollId: string,
@@ -24,11 +24,6 @@ export async function castPotmVote(
 
   if (error) throw new Error(error.message)
 
-  revalidatePath('/dashboard/polls')
-  revalidatePath('/admin/polls')
-  // A poll may have auto-closed and written placings the match views read.
-  revalidatePath('/dashboard/schedule')
-  revalidatePath('/admin/schedule')
-  revalidatePath('/dashboard/team')
-  revalidatePath('/admin/team')
+  // A poll may have auto-closed and written placings the match and squad views read.
+  revalidateTabs('polls', 'schedule', 'team')
 }

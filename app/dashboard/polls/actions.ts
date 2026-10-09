@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidateTabs } from '@/lib/action-helpers'
 
 /**
  * Set your picks on an open poll to exactly `optionIds` — tap-to-vote, switch,
@@ -14,6 +14,5 @@ export async function setPollVote(pollId: string, optionIds: string[]) {
   const { error } = await supabase.rpc('set_poll_vote', { p_poll_id: pollId, p_option_ids: optionIds })
   if (error) throw new Error(error.message)
 
-  revalidatePath('/dashboard/polls')
-  revalidatePath('/admin/polls')
+  revalidateTabs('polls')
 }
