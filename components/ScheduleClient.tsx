@@ -14,7 +14,7 @@ import {
   type EventInput,
   type GameInput,
   type TrainingInput,
-} from './actions'
+} from '@/app/admin/schedule/actions'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
@@ -37,6 +37,11 @@ const inputCls =
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
+/**
+ * The Schedule tab for both areas (ScheduleView loads it). Everyone RSVPs and
+ * opens event details; admins also add, edit and delete events, see headcounts
+ * on each row and the season's W/D/L record.
+ */
 export default function ScheduleClient({
   season,
   games,
@@ -62,7 +67,8 @@ export default function ScheduleClient({
   trainings: Training[]
   /** Titled team events — gatherings, meetings… */
   events: TeamEvent[]
-  attending: Record<string, number>
+  /** Headcount per event (admin rows only) */
+  attending?: Record<string, number>
   myStatus: Record<string, MyStatus>
   now: string
   roster: PlayerLite[]
@@ -253,6 +259,7 @@ export default function ScheduleClient({
     })
   }
 
+  // EventDetailModal only offers edit/delete to admins, in an open season
   const detail = selectedItem && (
     <EventDetailModal
       key={eventKey(selectedItem)}
@@ -281,10 +288,10 @@ export default function ScheduleClient({
 
   return (
     <div className="liga-page p-4">
-      {/* Header */}
+      {/* Header + add buttons (admins, open seasons only) */}
       <div className="liga-page-header mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="liga-page-title text-xl text-white">Schedule</h1>
-        {!readOnly && (
+        {isAdmin && !readOnly && (
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setAddModal('event')}
@@ -308,8 +315,8 @@ export default function ScheduleClient({
         )}
       </div>
 
-      {/* Season record */}
-      {played.length > 0 && (
+      {/* Season record (admins) */}
+      {isAdmin && played.length > 0 && (
         <div className="liga-meta mb-4 flex gap-4 text-sm text-slate-400">
           <span>
             <span className="font-semibold text-white">{record.w}W</span> ·{' '}
@@ -348,7 +355,7 @@ export default function ScheduleClient({
             ))}
           </div>
 
-          {/* Upcoming */}
+          {/* Upcoming — with attendance buttons */}
           {upcoming.length > 0 && (
             <>
               <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">Upcoming</h2>
@@ -384,25 +391,35 @@ export default function ScheduleClient({
             </>
           )}
 
-          {/* Past */}
+          {/* Past — admins see the headcount, players their own status */}
           <h2 className="liga-section-title mb-2 text-sm font-semibold text-white">
             {upcoming.length > 0 ? 'Past' : season.allTime ? 'All time' : `Season ${season.label}`}
           </h2>
           <div className="liga-event-list">
             {past.length === 0 && upcoming.length === 0 && (
               <p className="py-4 text-center text-sm text-slate-500">
-                {readOnly ? 'No events in this season.' : 'Nothing scheduled yet. Add a game or training above.'}
+                {readOnly ? 'No events in this season.' : isAdmin ? 'Nothing scheduled yet. Add a game or training above.' : 'Nothing scheduled yet.'}
               </p>
             )}
-            {past.map((item) => (
-              <EventCard
-                key={`${item.kind}-${eventId(item)}`}
-                item={item}
-                attending={attending}
-                selected={isSelected(item)}
-                onClick={() => setSelectedItem(item)}
-              />
-            ))}
+            {past.map((item) => {
+              const id = eventId(item)
+              // A div, not a <button>: on desktop rows bleed 0.75rem past the column for
+              // their highlight, and a button's fixed width would leave it short on the right
+              return (
+                <div
+                  key={`${item.kind}-${id}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-current={isSelected(item) || undefined}
+                  data-selected={isSelected(item) || undefined}
+                  onClick={() => setSelectedItem(item)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') setSelectedItem(item) }}
+                  className="liga-event-card card flex cursor-pointer items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
+                >
+                  {isAdmin ? <EventRow item={item} attending={attending} past /> : <EventRow item={item} mine={myStatus[id]} />}
+                </div>
+              )
+            })}
           </div>
 
         </div>
@@ -505,35 +522,6 @@ export default function ScheduleClient({
           </form>
         </FormModal>
       )}
-    </div>
-  )
-}
-
-function EventCard({
-  item,
-  attending,
-  selected,
-  onClick,
-}: {
-  item: EventItem
-  attending: Record<string, number>
-  /** Showing in the desktop details panel */
-  selected: boolean
-  onClick: () => void
-}) {
-  // A div, not a <button>: on desktop rows bleed 0.75rem past the column for
-  // their highlight, and a button's fixed width would leave it short on the right
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter') onClick() }}
-      aria-current={selected || undefined}
-      data-selected={selected || undefined}
-      className="liga-event-card card flex cursor-pointer items-center gap-3 px-4 py-3 text-left transition hover:border-white/15"
-    >
-      <EventRow item={item} attending={attending} past />
     </div>
   )
 }

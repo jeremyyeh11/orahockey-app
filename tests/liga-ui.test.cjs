@@ -27,15 +27,14 @@ test('authenticated app typography, controls and shell are scoped to app routes'
     'components/MyProfile.tsx',
     'components/HomeView.tsx',
   ]) assert.match(read(file), /liga-page/, `${file} exposes the shared page frame`)
-  assert.match(read('app/dashboard/schedule/ScheduleClient.tsx'), /liga-event-list/)
-  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /liga-event-list/)
+  assert.match(read('components/ScheduleClient.tsx'), /liga-event-list/)
   assert.match(read('components/EventRow.tsx'), /liga-event-row/)
   assert.equal(declarations('.liga-ui')['font-family'], 'var(--font-inter), ui-sans-serif, system-ui, sans-serif')
   assert.equal(declarations('.liga-ui .liga-event-card.card')['background-color'], 'transparent')
   assert.equal(declarations('.liga-ui .liga-event-card.card')['border-bottom'], '1px solid #323238')
   // RSVP: one compact bordered group (Home cards and schedule rows), never spread across the row
   assert.match(read('components/RsvpButtons.tsx'), /liga-rsvp flex gap-2 lg:max-w-sm/)
-  for (const area of ['admin', 'dashboard']) assert.match(read(`app/${area}/schedule/ScheduleClient.tsx`), /<RsvpButtons value=\{mine\}/)
+  assert.match(read('components/ScheduleClient.tsx'), /<RsvpButtons value=\{mine\}/)
   assert.match(read('components/HomeRsvp.tsx'), /<RsvpButtons /)
   assert.deepEqual(declarations('.liga-ui .liga-event-actions .liga-button'), {}, 'no spread-out action styles left')
   assert.equal(declarations('.liga-ui .liga-meta')['font-family'], 'var(--font-liga-mono), ui-monospace, monospace')
@@ -127,7 +126,7 @@ test('every modal uses the shared dialog shell (Esc, focus, labelling, desktop w
   assert.match(modal, /useModalScrollLock\(\)/)
   for (const file of [
     'app/admin/polls/PollsClient.tsx',
-    'app/admin/schedule/ScheduleClient.tsx',
+    'components/ScheduleClient.tsx',
     'app/admin/team/SquadClient.tsx',
     'components/AdminControlPanel.tsx',
     'components/MatchResultModal.tsx',
@@ -245,13 +244,12 @@ test('locked seasons are read-only in the app, admins included', () => {
   const detail = read('components/EventDetailModal.tsx')
   assert.match(detail, /const isAdmin = isAdminUser && !readOnly/, 'admin controls switch off in a locked season')
   assert.match(detail, /isGame && !editMode && !readOnly \?/, 'no result entry')
-  for (const area of ['admin', 'dashboard']) {
-    const schedule = read(`app/${area}/schedule/ScheduleClient.tsx`)
-    assert.match(schedule, /const readOnly = season\.locked/)
-    assert.match(schedule, /readOnly=\{readOnly\}/, `${area} schedule passes read-only to event details`)
-    assert.match(schedule, /\{!readOnly && \(\s*<RsvpButtons /, `${area} schedule hides RSVP buttons`)
-  }
-  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /\{!readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
+  // One ScheduleClient serves both areas
+  const schedule = read('components/ScheduleClient.tsx')
+  assert.match(schedule, /const readOnly = season\.locked/)
+  assert.match(schedule, /readOnly=\{readOnly\}/, 'schedule passes read-only to event details')
+  assert.match(schedule, /\{!readOnly && \(\s*<RsvpButtons /, 'schedule hides RSVP buttons')
+  assert.match(schedule, /\{isAdmin && !readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
   for (const fn of ['addGame', 'addTraining']) {
     assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export async function ${fn}[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
   }

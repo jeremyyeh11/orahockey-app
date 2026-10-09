@@ -462,18 +462,19 @@ test('schedule master–detail: inline details panel on desktop, modal on touch 
 
   const selection = fs.readFileSync(path.join(root, 'lib/useEventSelection.ts'), 'utf8')
   assert.match(selection, /picked \?\? \(isDesktop \? upcoming\[0\] \?\? past\[0\] \?\? null : null\)/, 'desktop defaults to the next event, else the latest')
+  // One ScheduleView/ScheduleClient serves both areas
   for (const area of ['admin', 'dashboard']) {
-    const src = fs.readFileSync(path.join(root, `app/${area}/schedule/ScheduleClient.tsx`), 'utf8')
-    assert.match(src, /useEventSelection\(upcoming, past, initialEventKey\)/, '?event= opens that event (Home links)')
-    assert.match(fs.readFileSync(path.join(root, `app/${area}/schedule/page.tsx`), 'utf8'), /initialEventKey=\{typeof searchParams\.event === 'string' \? searchParams\.event : null\}/)
-    assert.match(src, /key=\{eventKey\(selectedItem\)\}\s+inline=\{isDesktop\}/, 'panel remounts per event so local state never leaks across events')
-    assert.match(src, /\{isDesktop && detail\}/)
-    assert.match(src, /\{!isDesktop && detail\}/)
-    assert.match(src, /lg:grid lg:grid-cols-\[minmax\(0,1fr\)_26rem\]/)
-    assert.match(src, /data-selected=\{isSelected\(item\) \|\| undefined\}/)
+    assert.match(fs.readFileSync(path.join(root, `app/${area}/schedule/page.tsx`), 'utf8'), /<ScheduleView basePath="\/[a-z]+" event=\{typeof searchParams\.event === 'string' \? searchParams\.event : undefined\} \/>/)
   }
-  // Only admins edit events
-  assert.match(fs.readFileSync(path.join(root, 'app/admin/schedule/ScheduleClient.tsx'), 'utf8'), /if \(!isDesktop\) setSelectedItem\(null\)/, 'saving keeps the desktop panel on the edited event')
+  assert.match(fs.readFileSync(path.join(root, 'components/ScheduleView.tsx'), 'utf8'), /initialEventKey=\{event \?\? null\}/)
+  const src = fs.readFileSync(path.join(root, 'components/ScheduleClient.tsx'), 'utf8')
+  assert.match(src, /useEventSelection\(upcoming, past, initialEventKey\)/, '?event= opens that event (Home links)')
+  assert.match(src, /key=\{eventKey\(selectedItem\)\}\s+inline=\{isDesktop\}/, 'panel remounts per event so local state never leaks across events')
+  assert.match(src, /\{isDesktop && detail\}/)
+  assert.match(src, /\{!isDesktop && detail\}/)
+  assert.match(src, /lg:grid lg:grid-cols-\[minmax\(0,1fr\)_26rem\]/)
+  assert.match(src, /data-selected=\{isSelected\(item\) \|\| undefined\}/)
+  assert.match(src, /if \(!isDesktop\) setSelectedItem\(null\)/, 'saving keeps the desktop panel on the edited event')
 })
 
 test('season squad membership: admins add existing players and remove players without a season record', () => {
@@ -738,13 +739,11 @@ test('schedule events: titled entries with their own tag, filter, form and seaso
   assert.match(row, /Hawker centre/)
 
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
-  const admin = read('app/admin/schedule/ScheduleClient.tsx')
+  const admin = read('components/ScheduleClient.tsx')
   assert.match(admin, /onClick=\{\(\) => setAddModal\('event'\)\}[\s\S]*?\+ Event/, '+ Event next to + Training / + Game')
   assert.match(admin, /<FormModal title="Add Event"[\s\S]*?name="title" type="text" required/, 'events need a title')
-  for (const area of ['admin', 'dashboard']) {
-    assert.match(read(`app/${area}/schedule/ScheduleClient.tsx`), /\['events', 'Events'\]/, `${area}: Events filter`)
-    assert.match(read(`app/${area}/schedule/page.tsx`), /inSeason\(supabase\.from\('team_events'\)/, `${area}: events are season-scoped`)
-  }
+  assert.match(admin, /\['events', 'Events'\]/, 'Events filter (both areas share ScheduleClient)')
+  assert.match(read('components/ScheduleView.tsx'), /inSeason\(supabase\.from\('team_events'\)/, 'events are season-scoped')
   const actions = read('app/admin/schedule/actions.ts')
   assert.match(actions, /export async function addEvent[\s\S]*?requireOpenSeason\(\)[\s\S]*?season_id: season\.id/)
   assert.match(actions, /if \(!title\) throw new Error\('Give the event a title\.'\)/)
@@ -778,7 +777,7 @@ test('games: League / Friendly switch replaces the type dropdown', () => {
   assert.doesNotMatch(textOf(render(EventRow, { item: game('regular') })), /League|Regular/, 'league games stay untagged')
 
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
-  for (const f of ['app/admin/schedule/ScheduleClient.tsx', 'components/EventDetailModal.tsx']) {
+  for (const f of ['components/ScheduleClient.tsx', 'components/EventDetailModal.tsx']) {
     assert.doesNotMatch(read(f), /<option value="exhibition">/, `${f}: no old Regular/Playoff/Exhibition dropdown`)
     assert.match(read(f), /<GameTypeSwitch/)
   }
@@ -816,7 +815,7 @@ test('friendlies never count towards records or stats', () => {
   const home = read('components/HomeView.tsx')
   assert.match(home, /const playedAll = finished\.filter\(countsForRecord\)/, 'Home record + your stats: league only')
   assert.match(home, /const lastGame = finished\.filter\(inView\)\[0\]/, 'the last result shown can still be a friendly')
-  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /games\.filter\(\(g\) => hasScore\(g\) && countsForRecord\(g\)\)/)
+  assert.match(read('components/ScheduleClient.tsx'), /games\.filter\(\(g\) => hasScore\(g\) && countsForRecord\(g\)\)/)
   for (const f of ['app/dashboard/team/page.tsx', 'app/admin/team/page.tsx', 'components/PlayerProfileView.tsx']) {
     assert.match(read(f), /from\('games'\)[^\n]*game_type/, `${f} loads game_type so friendlies can be left out`)
   }
@@ -847,7 +846,7 @@ test('schedule times: optional end (same-day ranges stay short), report-early su
   assert.ok(textOf(html).indexOf('09:00 – 11:00') < textOf(html).indexOf('Report 08:45'))
 
   const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
-  const admin = read('app/admin/schedule/ScheduleClient.tsx')
+  const admin = read('components/ScheduleClient.tsx')
   assert.ok(admin.indexOf("setAddModal('event')") < admin.indexOf("setAddModal('training')"), '+ Event first')
   assert.ok(admin.indexOf("setAddModal('training')") < admin.indexOf("setAddModal('game')"))
   assert.equal((admin.match(/<ScheduleTimeFields \/>/g) ?? []).length, 3, 'add forms: game, training, event')
