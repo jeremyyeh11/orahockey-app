@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { createPoll, setPollActive, deletePoll } from './actions'
+import { createPoll, setPollActive, deletePoll } from '@/app/admin/polls/actions'
 import { fmtDateTime, fromDatetimeLocal } from '@/lib/format'
 import PotmPolls from '@/components/PotmPolls'
 import { PollOptions } from '@/components/PollOptions'
@@ -18,6 +18,13 @@ const inputCls =
 const dateInputCls = `${inputCls} h-[42px]`
 const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
+type Roster = { id: string; full_name: string; preferred_name: string | null }[]
+
+/**
+ * The Polls tab for both areas (PollsView loads it). Everyone votes and sees
+ * who voted; admins also create, close/reopen and delete polls, always see the
+ * results, and group polls by their Active flag rather than by open/closed.
+ */
 export default function PollsClient({
   polls,
   potmPolls,
@@ -25,23 +32,28 @@ export default function PollsClient({
   now,
   roster,
   fined,
+  isAdmin,
 }: {
   polls: Poll[]
   potmPolls: PotmPoll[]
   myPlayerId: string | null
   now: string
   /** Who should vote: the current season's active squad */
-  roster: { id: string; full_name: string; preferred_name: string | null }[]
+  roster: Roster
   /** Unwaived fines per entry ('poll-<id>') and player */
   fined: Record<string, Record<string, FineReason[]>>
+  isAdmin: boolean
 }) {
   const [showModal, setShowModal] = useState(false)
   const [options, setOptions] = useState<string[]>(['', ''])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const active = polls.filter((p) => p.is_active)
-  const closed = polls.filter((p) => !p.is_active)
+  const nowMs = new Date(now).getTime()
+  // Admins manage polls by their Active flag (Close poll / Reopen); players see what they can still vote on
+  const isCurrent = (p: Poll) => (isAdmin ? p.is_active : isPollOpen(p, nowMs))
+  const current = polls.filter(isCurrent)
+  const closed = polls.filter((p) => !isCurrent(p))
 
   function openModal() {
     setOptions(['', ''])
@@ -85,64 +97,50 @@ export default function PollsClient({
     })
   }
 
+  const card = (poll: Poll) => (
+    <PollCard
+      key={poll.id}
+      poll={poll}
+      myPlayerId={myPlayerId}
+      now={now}
+      roster={roster}
+      fined={fined[`poll-${poll.id}`]}
+      admin={isAdmin ? { isPending, onToggle: () => handleToggle(poll), onDelete: () => handleDelete(poll) } : null}
+    />
+  )
+
   return (
     <div className="liga-page liga-polls p-4">
-      {/* Header */}
+      {/* Header + new poll (admins) */}
       <div className="liga-page-header mb-4 flex items-end justify-between gap-3">
         <h1 className="liga-page-title text-white">Polls</h1>
-        <button
-          onClick={openModal}
-          className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
-        >
-          + New Poll
-        </button>
+        {isAdmin && (
+          <button
+            onClick={openModal}
+            className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
+          >
+            + New Poll
+          </button>
+        )}
       </div>
 
       <PotmPolls polls={potmPolls} myPlayerId={myPlayerId} />
 
       {polls.length === 0 && potmPolls.length === 0 && (
-        <p className="py-4 text-center text-sm text-slate-500">No polls yet. Create one above.</p>
+        <p className="py-4 text-center text-sm text-slate-500">{isAdmin ? 'No polls yet. Create one above.' : 'No polls yet.'}</p>
       )}
 
-      {active.length > 0 && (
+      {current.length > 0 && (
         <>
-          <h2 className="liga-section-title mb-2">Active</h2>
-          <div className="liga-poll-list mb-6 space-y-0">
-            {active.map((poll) => (
-              <PollCard
-                key={poll.id}
-                poll={poll}
-                myPlayerId={myPlayerId}
-                now={now}
-                roster={roster}
-                fined={fined[`poll-${poll.id}`]}
-                isPending={isPending}
-                onToggle={() => handleToggle(poll)}
-                onDelete={() => handleDelete(poll)}
-              />
-            ))}
-          </div>
+          <h2 className="liga-section-title mb-2">{isAdmin ? 'Active' : 'Open'}</h2>
+          <div className="liga-poll-list mb-6 space-y-0">{current.map(card)}</div>
         </>
       )}
 
       {closed.length > 0 && (
         <>
           <h2 className="liga-section-title mb-2">Closed</h2>
-          <div className="liga-poll-list space-y-0">
-            {closed.map((poll) => (
-              <PollCard
-                key={poll.id}
-                poll={poll}
-                myPlayerId={myPlayerId}
-                now={now}
-                roster={roster}
-                fined={fined[`poll-${poll.id}`]}
-                isPending={isPending}
-                onToggle={() => handleToggle(poll)}
-                onDelete={() => handleDelete(poll)}
-              />
-            ))}
-          </div>
+          <div className="liga-poll-list space-y-0">{closed.map(card)}</div>
         </>
       )}
 
@@ -243,23 +241,19 @@ function PollCard({
   now,
   roster,
   fined,
-  isPending,
-  onToggle,
-  onDelete,
+  admin,
 }: {
   poll: Poll
   myPlayerId: string | null
   now: string
-  roster: { id: string; full_name: string; preferred_name: string | null }[]
+  roster: Roster
   fined?: Record<string, FineReason[]>
-  isPending: boolean
-  onToggle: () => void
-  onDelete: () => void
+  /** Admin controls; null for players */
+  admin: { isPending: boolean; onToggle: () => void; onDelete: () => void } | null
 }) {
   const total = voterCount(poll.poll_votes)
   const open = isPollOpen(poll, new Date(now).getTime())
   const voted = myPlayerId != null && poll.poll_votes.some((v) => v.player_id === myPlayerId)
-  const canVote = open && !voted
 
   return (
     <div className="liga-poll-card card p-4">
@@ -269,41 +263,49 @@ function PollCard({
           <div className="liga-meta mt-0.5 text-slate-500">
             {total} vote{total === 1 ? '' : 's'}
             {poll.multiple_choice && ' · multiple answers'}
-            {poll.closes_at && ` · ${poll.is_active ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
+            {poll.closes_at && ` · ${open ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
           </div>
-          {canVote && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
+          {open && !voted && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
         </div>
-        {poll.is_active && (
+        {admin && poll.is_active && (
           <span className="liga-status-label shrink-0 text-[10px] font-semibold uppercase text-green-300">
             Active
           </span>
         )}
       </div>
 
-      {/* Results, and your own vote — tap an option (admins are players too) */}
-      <PollOptions poll={poll} myPlayerId={myPlayerId} open={open} alwaysShowResults mutedBarClass="bg-brand-light/80" />
+      {/* Results, and your own vote — tap an option (admins are players too, and always see results) */}
+      <PollOptions
+        poll={poll}
+        myPlayerId={myPlayerId}
+        open={open}
+        alwaysShowResults={!!admin}
+        mutedBarClass={admin ? 'bg-brand-light/80' : 'bg-brand-light/50'}
+      />
 
       <PollVoters
         votes={poll.poll_votes}
         roster={roster}
         fined={fined}
         actions={
-          <>
-            <button
-              onClick={onToggle}
-              disabled={isPending}
-              className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
-            >
-              {poll.is_active ? 'Close poll' : 'Reopen'}
-            </button>
-            <button
-              onClick={onDelete}
-              disabled={isPending}
-              className="liga-button liga-button-danger rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-40"
-            >
-              Delete
-            </button>
-          </>
+          admin && (
+            <>
+              <button
+                onClick={admin.onToggle}
+                disabled={admin.isPending}
+                className="liga-button liga-button-secondary rounded-lg border border-surface-border px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-40"
+              >
+                {poll.is_active ? 'Close poll' : 'Reopen'}
+              </button>
+              <button
+                onClick={admin.onDelete}
+                disabled={admin.isPending}
+                className="liga-button liga-button-danger rounded-lg border border-red-900/60 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-40"
+              >
+                Delete
+              </button>
+            </>
+          )
         }
       />
     </div>

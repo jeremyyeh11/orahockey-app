@@ -22,8 +22,7 @@ test('authenticated app typography, controls and shell are scoped to app routes'
     assert.doesNotMatch(read(page), /AppShell|liga-ui/, `${page} stays outside the app shell`)
   }
   for (const file of [
-    'app/dashboard/polls/PollsClient.tsx',
-    'app/admin/polls/PollsClient.tsx',
+    'components/PollsClient.tsx',
     'components/MyProfile.tsx',
     'components/HomeView.tsx',
   ]) assert.match(read(file), /liga-page/, `${file} exposes the shared page frame`)
@@ -125,7 +124,7 @@ test('every modal uses the shared dialog shell (Esc, focus, labelling, desktop w
   assert.match(modal, /md: 'sm:max-w-md lg:max-w-lg'/)
   assert.match(modal, /useModalScrollLock\(\)/)
   for (const file of [
-    'app/admin/polls/PollsClient.tsx',
+    'components/PollsClient.tsx',
     'components/ScheduleClient.tsx',
     'app/admin/team/SquadClient.tsx',
     'components/AdminControlPanel.tsx',
