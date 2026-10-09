@@ -478,6 +478,14 @@ test('schedule master–detail: inline details panel on desktop, modal on touch 
   assert.match(src, /lg:grid lg:grid-cols-\[minmax\(0,1fr\)_26rem\]/)
   assert.match(src, /data-selected=\{isSelected\(item\) \|\| undefined\}/)
   assert.match(src, /if \(!isDesktop\) setSelectedItem\(null\)/, 'saving keeps the desktop panel on the edited event')
+  // A rejected admin save stays in edit mode with the error in the form (not in a later Add form)
+  const detail = fs.readFileSync(path.join(root, 'components/EventDetailModal.tsx'), 'utf8')
+  for (const fn of ['onSaveGame', 'onSaveEvent', 'onSaveTraining']) {
+    assert.match(detail, new RegExp(String.raw`runAdminAction\(\(\) => ${fn}\?\.\(sessionId, data\), \(\) => setEditMode\(false\)\)`), `${fn}: edit mode ends only after a successful save`)
+  }
+  assert.doesNotMatch(detail, /\n    \}\n    setEditMode\(false\)\n  \}/, 'no unconditional exit from edit mode')
+  assert.match(detail, /<FormError error=\{saveError\} \/>\s*<\/form>/, 'save errors show in the edit form')
+  assert.match(src, /async function handleSaveGame\(id: string, data: GameInput\) \{\s*await updateGame\(id, data\)/, 'errors reach the panel (no catch in ScheduleClient)')
 })
 
 test('season squad membership: admins add existing players and remove players without a season record', () => {

@@ -131,55 +131,35 @@ export default function ScheduleClient({
     })
   }
 
-  function handleSaveGame(id: string, data: GameInput) {
-    startTransition(async () => {
-      try {
-        await updateGame(id, data)
-        // The modal closes after saving; the desktop panel stays on the edited event
-        if (!isDesktop) setSelectedItem(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      }
-    })
+  // Edits and deletes from the event details. EventDetailModal awaits these and
+  // shows any error in its edit form, which stays open.
+  function afterSave() {
+    // The modal closes after saving; the desktop panel stays on the edited event
+    if (!isDesktop) setSelectedItem(null)
   }
 
-  function handleSaveTraining(id: string, data: TrainingInput) {
-    startTransition(async () => {
-      try {
-        await updateTraining(id, data)
-        // The modal closes after saving; the desktop panel stays on the edited event
-        if (!isDesktop) setSelectedItem(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      }
-    })
+  async function handleSaveGame(id: string, data: GameInput) {
+    await updateGame(id, data)
+    afterSave()
   }
 
-  function handleSaveEvent(id: string, data: EventInput) {
-    startTransition(async () => {
-      try {
-        await updateEvent(id, data)
-        // The modal closes after saving; the desktop panel stays on the edited event
-        if (!isDesktop) setSelectedItem(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      }
-    })
+  async function handleSaveTraining(id: string, data: TrainingInput) {
+    await updateTraining(id, data)
+    afterSave()
   }
 
-  function handleDelete() {
+  async function handleSaveEvent(id: string, data: EventInput) {
+    await updateEvent(id, data)
+    afterSave()
+  }
+
+  async function handleDelete() {
     if (!selectedItem) return
     if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
-    startTransition(async () => {
-      try {
-        if (selectedItem.kind === 'game') await deleteGame(selectedItem.game.id)
-        if (selectedItem.kind === 'training') await deleteTraining(selectedItem.training.id)
-        if (selectedItem.kind === 'event') await deleteEvent(selectedItem.event.id)
-        setSelectedItem(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      }
-    })
+    if (selectedItem.kind === 'game') await deleteGame(selectedItem.game.id)
+    if (selectedItem.kind === 'training') await deleteTraining(selectedItem.training.id)
+    if (selectedItem.kind === 'event') await deleteEvent(selectedItem.event.id)
+    setSelectedItem(null)
   }
 
   function submitAddGame(e: React.FormEvent<HTMLFormElement>) {
@@ -273,12 +253,11 @@ export default function ScheduleClient({
       cardsByGame={cardsByGame}
       potmByGame={potmByGame}
       fined={fined[eventKey(selectedItem)]}
-      onClose={() => { setSelectedItem(null); setError(null) }}
+      onClose={() => setSelectedItem(null)}
       onSaveGame={handleSaveGame}
       onSaveTraining={handleSaveTraining}
       onSaveEvent={handleSaveEvent}
       onDelete={handleDelete}
-      isPending={isPending}
     />
   )
 

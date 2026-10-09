@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { ReadEditModal } from './ReadEditModal'
 import { preferredName } from './RosterList'
 import { fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
@@ -8,7 +8,7 @@ import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
 import { FINE_AMOUNT, FINE_KIND_NOUN, type FineReason } from '@/lib/fines'
 import { RespondBy } from './RespondBy'
-import { inputCls, labelCls } from './form'
+import { FormError, inputCls, labelCls } from './form'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
@@ -153,7 +153,6 @@ export function EventDetailModal({
   onSaveTraining,
   onSaveEvent,
   onDelete,
-  isPending,
   inline = false,
 }: {
   item: EventItem | null
@@ -172,18 +171,23 @@ export function EventDetailModal({
   /** This event's unwaived fines by player — marked in the attendance list */
   fined?: Record<string, FineReason[]>
   onClose: () => void
-  /** Admin edits — only reachable in edit mode, which needs isAdmin */
-  onSaveGame?: (id: string, data: GameInput) => void
-  onSaveTraining?: (id: string, data: TrainingInput) => void
-  onSaveEvent?: (id: string, data: EventInput) => void
-  onDelete?: () => void
-  isPending: boolean
+  /**
+   * Admin edits — only reachable in edit mode, which needs isAdmin. Awaited:
+   * a rejected save keeps edit mode open with the error shown.
+   */
+  onSaveGame?: (id: string, data: GameInput) => Promise<void>
+  onSaveTraining?: (id: string, data: TrainingInput) => Promise<void>
+  onSaveEvent?: (id: string, data: EventInput) => Promise<void>
+  onDelete?: () => Promise<void>
   /** Desktop master–detail: render as the Schedule page's side panel instead of a modal */
   inline?: boolean
 }) {
   // Admin controls only apply while the event's season is open
   const isAdmin = isAdminUser && !readOnly
   const [editMode, setEditMode] = useState(false)
+  // Admin save/delete: wait for the server, and on failure stay in edit mode with the error shown
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, startSaving] = useTransition()
   const [respondingId, setRespondingId] = useState<string | null>(null)
   const [showTeamList, setShowTeamList] = useState(false)
   const [showResult, setShowResult] = useState(false)
@@ -277,6 +281,18 @@ export function EventDetailModal({
     setAttendance(sessionId, kind, status).finally(() => setRespondingId(null))
   }
 
+  function runAdminAction(action: () => Promise<void> | undefined, onDone?: () => void) {
+    setSaveError(null)
+    startSaving(async () => {
+      try {
+        await action()
+        onDone?.()
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
+  }
+
   function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -296,7 +312,7 @@ export function EventDetailModal({
         ...readTimeFields(fd, gameDate),
         ...readFinesFields(fd),
       }
-      onSaveGame?.(sessionId, data)
+      runAdminAction(() => onSaveGame?.(sessionId, data), () => setEditMode(false))
     } else if (kind === 'event') {
       const eventDate = fromDatetimeLocal(fd.get('event_date') as string)
       const data: EventInput = {
@@ -307,7 +323,7 @@ export function EventDetailModal({
         ...readTimeFields(fd, eventDate),
         ...readFinesFields(fd),
       }
-      onSaveEvent?.(sessionId, data)
+      runAdminAction(() => onSaveEvent?.(sessionId, data), () => setEditMode(false))
     } else {
       const sessionDate = fromDatetimeLocal(fd.get('session_date') as string)
       const data: TrainingInput = {
@@ -317,9 +333,8 @@ export function EventDetailModal({
         ...readTimeFields(fd, sessionDate),
         ...readFinesFields(fd),
       }
-      onSaveTraining?.(sessionId, data)
+      runAdminAction(() => onSaveTraining?.(sessionId, data), () => setEditMode(false))
     }
-    setEditMode(false)
   }
 
   // If result entry modal is open, render it instead
@@ -388,9 +403,9 @@ export function EventDetailModal({
         const form = document.getElementById('event-edit-form') as HTMLFormElement | null
         form?.requestSubmit()
       }}
-      onDiscard={() => setEditMode(false)}
-      isPending={isPending}
-      onDelete={isAdmin && editMode ? onDelete : undefined}
+      onDiscard={() => { setEditMode(false); setSaveError(null) }}
+      isPending={saving}
+      onDelete={isAdmin && editMode && onDelete ? () => runAdminAction(onDelete) : undefined}
     >
       {/* READ MODE */}
       {!editMode && (
@@ -674,6 +689,7 @@ export function EventDetailModal({
               </div>
             </>
           )}
+          <FormError error={saveError} />
         </form>
       )}
     </ReadEditModal>
