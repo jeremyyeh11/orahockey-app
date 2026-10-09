@@ -35,7 +35,7 @@ export type MyProfileData = {
     row: LeaderboardRow | null
   }[]
   career: LeaderboardRow | null
-  /** ORA cap number: the Nth player to debut for the club; null = no game yet */
+  /** ORA cap number: #2 = first recorded debutant (#1 is the honorary cap for everyone before 2016); null = no game yet */
   capNumber: number | null
   /** Debut game, e.g. '7 May 2016 vs Hollandse'; null = no game yet */
   debut: string | null
