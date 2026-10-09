@@ -209,7 +209,7 @@ export default function RosterTable<T extends RosterPlayer>({
                     </td>
                   )
                 })}
-                {showCards && <td className="liga-meta px-2 py-3">{row && <CardsCell row={row} isMe={isMe} />}</td>}
+                {showCards && <td className="liga-meta px-2 py-3">{row && <CardsCell row={row} />}</td>}
                 {accountMap && (
                   <td className="px-2 py-3 text-center">
                     {account && (

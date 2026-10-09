@@ -4,8 +4,6 @@ import { fetchAll } from '@/lib/supabase/fetch-all'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import ScheduleClient from './ScheduleClient'
 import { getNow } from '@/lib/preview'
-import { cookies } from 'next/headers'
-import { VIEW_COOKIE } from '@/lib/preview'
 import { getSeasonSquad, getSelectedSeason, inSeason, seasonRoster } from '@/lib/season-server'
 import { loadFines } from '@/lib/fines-server'
 import { finedBySession } from '@/lib/fines'
@@ -37,14 +35,6 @@ export type AttendanceRow = {
   player: { full_name: string; preferred_name: string | null }
 }
 
-export type RosterPlayer = {
-  id: string
-  full_name: string
-  preferred_name: string | null
-  position: string[] | null
-  jersey_number: number | null
-}
-
 export type TeamListSelection = {
   game_id: string
   player_id: string
@@ -59,11 +49,9 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
 
   const { data: me } = await supabase
     .from('players')
-    .select('id, role')
+    .select('id')
     .eq('auth_user_id', user?.id ?? '')
     .single()
-
-  const isAdmin = me?.role === 'admin' && cookies().get(VIEW_COOKIE)?.value !== 'player'
 
   const [
     { data: games, error: gamesError },
@@ -156,7 +144,6 @@ export default async function PlayerSchedulePage({ searchParams }: { searchParam
       roster={seasonRoster(squad, season.locked)}
       attendanceBySession={attendanceBySession}
       myPlayerId={me?.id ?? ''}
-      isAdmin={isAdmin}
       teamListByGame={teamListByGame}
       goalsByGame={groupByGame((goalRows ?? []) as GoalRow[])}
       cardsByGame={groupByGame((cardRows ?? []) as CardRow[])}

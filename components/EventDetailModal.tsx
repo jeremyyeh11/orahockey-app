@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ReadEditModal } from './ReadEditModal'
 import { preferredName } from './RosterList'
-import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
+import { fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
 import { FINE_AMOUNT, FINE_KIND_NOUN, type FineReason } from '@/lib/fines'
@@ -107,8 +107,7 @@ type BreakdownGroup = { label: string; players: { id: string; name: string; at?:
 
 function buildBreakdown(
   attendance: AttendanceRow[] | undefined,
-  roster: PlayerLite[],
-  myPlayerId: string
+  roster: PlayerLite[]
 ): BreakdownGroup[] {
   const groups: Record<string, (PlayerLite & { at?: string })[]> = {
     attending: [],
@@ -176,10 +175,11 @@ export function EventDetailModal({
   /** This event's unwaived fines by player — marked in the attendance list */
   fined?: Record<string, FineReason[]>
   onClose: () => void
-  onSaveGame: (id: string, data: GameInput) => void
-  onSaveTraining: (id: string, data: TrainingInput) => void
-  onSaveEvent: (id: string, data: EventInput) => void
-  onDelete: () => void
+  /** Admin edits — only reachable in edit mode, which needs isAdmin */
+  onSaveGame?: (id: string, data: GameInput) => void
+  onSaveTraining?: (id: string, data: TrainingInput) => void
+  onSaveEvent?: (id: string, data: EventInput) => void
+  onDelete?: () => void
   isPending: boolean
   /** Desktop master–detail: render as the Schedule page's side panel instead of a modal */
   inline?: boolean
@@ -213,7 +213,7 @@ export function EventDetailModal({
   const title = eventTitle(currentItem)
   const endIso = eventEnd(currentItem)
   const editEnd = endIso ? toTimeLocal(endIso) : ''
-  const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
+  const breakdown = buildBreakdown(attendanceBySession[sessionId], roster)
   // Reply times: open seasons only (archived ones carry import times)
   const showTimes = !readOnly && breakdown.some((g) => g.players.some((p) => p.at))
 
@@ -299,7 +299,7 @@ export function EventDetailModal({
         ...readTimeFields(fd, gameDate),
         ...readFinesFields(fd),
       }
-      onSaveGame(sessionId, data)
+      onSaveGame?.(sessionId, data)
     } else if (kind === 'event') {
       const eventDate = fromDatetimeLocal(fd.get('event_date') as string)
       const data: EventInput = {
@@ -310,7 +310,7 @@ export function EventDetailModal({
         ...readTimeFields(fd, eventDate),
         ...readFinesFields(fd),
       }
-      onSaveEvent(sessionId, data)
+      onSaveEvent?.(sessionId, data)
     } else {
       const sessionDate = fromDatetimeLocal(fd.get('session_date') as string)
       const data: TrainingInput = {
@@ -320,7 +320,7 @@ export function EventDetailModal({
         ...readTimeFields(fd, sessionDate),
         ...readFinesFields(fd),
       }
-      onSaveTraining(sessionId, data)
+      onSaveTraining?.(sessionId, data)
     }
     setEditMode(false)
   }

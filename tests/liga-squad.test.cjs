@@ -278,13 +278,13 @@ test('schedule roster is the season squad: everyone for a past season, active pl
 })
 
 test('season summaries render quiet ranked divider rows with complete tied names and unchanged totals', () => {
-  const { computeSeason, PotsCard, TopScorersCard } = load('components/SeasonStats.tsx')
+  const { computeSeason, TopScorersCard } = load('components/SeasonStats.tsx')
   const players = [
     player('multi', 'Peh Yu Tay', ['FWD'], { preferred_name: 'Peh Yu' }),
     player('hyphen', 'Keaen-Seth Lim', ['MID'], { preferred_name: 'Keaen' }),
     player('fallback', 'Long Original Name', ['DEF'], { preferred_name: 'Extraordinarylongpreferredname' }),
   ]
-  const { pots, topScorerGroups } = computeSeason({
+  const { topScorerGroups } = computeSeason({
     players, season: '2026', cards: [], attendance: [],
     games: [{ id: 'game', game_date: '2026-05-01T12:00:00Z', result: 'win', goals_against: 0 }],
     stats: [
@@ -298,20 +298,15 @@ test('season summaries render quiet ranked divider rows with complete tied names
       { player_id: 'fallback', game_id: 'game', place: 3 },
     ],
   })
-  const potsHtml = render(PotsCard, { pots })
   const scorersHtml = render(TopScorersCard, { groups: topScorerGroups })
-  for (const html of [potsHtml, scorersHtml]) {
-    assert.match(openingWithClass(html, 'liga-panel-heading'), /^<h2\b/)
-    assert.match(classesOf(openingWithClass(html, 'liga-panel-row')), /\bborder-b\b/)
-    assert.match(classesOf(openingWithClass(html, 'liga-panel-name')), /\bbreak-words\b/)
-    assert.match(classesOf(openingWithClass(html, 'liga-panel-value')), /\btabular-nums\b/)
-    assert.match(classesOf(openingWithClass(html, 'liga-panel-value')), /\btext-brand-light\b/)
-    assert.match(classesOf(openingWithClass(html, 'liga-rank')), /\btabular-nums\b/)
-    assert.doesNotMatch(html, /truncate|🥇|🥈|🥉/)
-  }
-  assert.equal(textOf(potsHtml), 'POTS Race1PEH YU3 pts2KEAEN2 pts3EXTRAORDINARYLONGPREFERREDNAME1 pts')
+  assert.match(openingWithClass(scorersHtml, 'liga-panel-heading'), /^<h2\b/)
+  assert.match(classesOf(openingWithClass(scorersHtml, 'liga-panel-row')), /\bborder-b\b/)
+  assert.match(classesOf(openingWithClass(scorersHtml, 'liga-panel-name')), /\bbreak-words\b/)
+  assert.match(classesOf(openingWithClass(scorersHtml, 'liga-panel-value')), /\btabular-nums\b/)
+  assert.match(classesOf(openingWithClass(scorersHtml, 'liga-panel-value')), /\btext-brand-light\b/)
+  assert.match(classesOf(openingWithClass(scorersHtml, 'liga-rank')), /\btabular-nums\b/)
+  assert.doesNotMatch(scorersHtml, /truncate|🥇|🥈|🥉/)
   assert.equal(textOf(scorersHtml), 'Top Scorers1PEH YU21KEAEN23EXTRAORDINARYLONGPREFERREDNAME1', 'one row per scorer; ties share a rank and the next rank skips')
-  assert.equal(render(PotsCard, { pots: [] }), '')
   assert.equal(render(TopScorersCard, { groups: [] }), '')
 
   const rosterHtml = render(RosterList, { players, myPlayerId: null })
@@ -384,7 +379,6 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
   for (const contract of [
     'onClick={openAdd}', 'setShowAddModal(true)', '<Modal onClose={() => { setShowAddModal(false); setError(null) }}>',
     'onSubmit={handleAddSubmit}', 'await addPlayer(data, joinSeason)', 'disabled={isPending}',
-    'await togglePlayerActive(player.id, !player.is_active)',
     'onChange={(e) => setShowInactive(e.target.checked)}',
   ]) assert.ok(adminSource.includes(contract), `preserve admin interaction: ${contract}`)
 })
@@ -476,9 +470,10 @@ test('schedule master–detail: inline details panel on desktop, modal on touch 
     assert.match(src, /\{isDesktop && detail\}/)
     assert.match(src, /\{!isDesktop && detail\}/)
     assert.match(src, /lg:grid lg:grid-cols-\[minmax\(0,1fr\)_26rem\]/)
-    assert.match(src, /if \(!isDesktop\) setSelectedItem\(null\)/, 'saving keeps the desktop panel on the edited event')
     assert.match(src, /data-selected=\{isSelected\(item\) \|\| undefined\}/)
   }
+  // Only admins edit events
+  assert.match(fs.readFileSync(path.join(root, 'app/admin/schedule/ScheduleClient.tsx'), 'utf8'), /if \(!isDesktop\) setSelectedItem\(null\)/, 'saving keeps the desktop panel on the edited event')
 })
 
 test('season squad membership: admins add existing players and remove players without a season record', () => {
@@ -528,7 +523,7 @@ test('season squad membership: admins add existing players and remove players wi
 test('squad membership is admin-only and open-season-only', () => {
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
   const actions = read('app/admin/team/actions.ts')
-  for (const fn of ['addPlayer', 'updatePlayer', 'importPlayers', 'togglePlayerActive', 'addPlayersToSeason', 'removePlayerFromSeason']) {
+  for (const fn of ['addPlayer', 'updatePlayer', 'togglePlayerActive', 'addPlayersToSeason', 'removePlayerFromSeason']) {
     assert.match(actions, new RegExp(String.raw`export async function ${fn}\([^)]*\) \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)`), `${fn} checks is_admin() first`)
   }
   assert.match(actions, /export async function removePlayerFromSeason[\s\S]*?if \(await hasSeasonRecord\(season\.id, playerId\)\)[\s\S]*?throw/, 'removal refused when the player has a season record')
@@ -810,11 +805,11 @@ test('friendlies never count towards records or stats', () => {
     cards: [{ player_id: 'p', game_id: 'friendly', card_type: 'yellow', created_at: '2027-04-19T03:00:00Z' }],
   }
   for (const args of [{ season: '2027', seasonId: 's' }, { season: 'all' }]) {
-    const { leaderboard, seasonGames, pots } = computeSeason({ ...base, ...args })
+    const { leaderboard, seasonGames } = computeSeason({ ...base, ...args })
     const r = leaderboard[0]
     assert.deepEqual(seasonGames.map((g) => g.id), ['league'])
     assert.deepEqual([r.goals, r.assists, r.caps, r.cleanSheets, r.potmWins, r.cards.yellow], [1, 1, 1, 1, 0, 0])
-    assert.deepEqual(pots, [], 'friendly POTM points do not count')
+    assert.equal(r.potsPts, 0, 'friendly POTM points do not count')
   }
 
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')

@@ -92,68 +92,6 @@ export function nameParts(player: { full_name: string; preferred_name: string | 
   return parts
 }
 
-/** Splits a name into parts: before, preferred, after — keeping original word order.
- *  Returns separators so the renderer knows whether to insert a space between parts.
- *  Within-word splits (e.g. "ISH" in "ISHWARPAL") have no separator — the parts are joined directly. */
-export function splitName(player: { full_name: string; preferred_name: string | null }): { before: string; beforeSep: string; preferred: string; afterSep: string; after: string } {
-  const preferred = preferredName(player)
-  const full = player.full_name.trim()
-  const words = full.split(/\s+/)
-  const prefWords = preferred.split(/\s+/)
-
-  // First: try multi-word match (e.g. "PEH YU" in "PEH YU TAY")
-  if (prefWords.length > 1) {
-    for (let i = 0; i <= words.length - prefWords.length; i++) {
-      const slice = words.slice(i, i + prefWords.length)
-      if (slice.every((w, j) => w.toUpperCase() === prefWords[j].toUpperCase())) {
-        return {
-          before: words.slice(0, i).join(' ').toUpperCase(),
-          beforeSep: ' ',
-          preferred,
-          afterSep: ' ',
-          after: words.slice(i + prefWords.length).join(' ').toUpperCase(),
-        }
-      }
-    }
-  }
-
-  // Second: try exact whole-word match (case-insensitive, single word)
-  const wordIdx = words.findIndex(w => w.toUpperCase() === preferred.toUpperCase())
-  if (wordIdx !== -1) {
-    return {
-      before: words.slice(0, wordIdx).join(' ').toUpperCase(),
-      beforeSep: ' ',
-      preferred,
-      afterSep: ' ',
-      after: words.slice(wordIdx + 1).join(' ').toUpperCase(),
-    }
-  }
-
-  // Third: try substring match within a word (e.g. "KEAEN" in "KEAEN-SETH", "ISH" in "ISHWARPAL")
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i].toUpperCase()
-    const p = preferred.toUpperCase()
-    const pos = w.indexOf(p)
-    if (pos !== -1) {
-      const beforeWord = words.slice(0, i).join(' ')
-      const wordBefore = words[i].slice(0, pos)
-      const wordAfter = words[i].slice(pos + p.length)
-      const afterParts = [wordAfter, ...words.slice(i + 1)].filter(s => s.length > 0)
-      // Determine separators based on whether the split is within the same word
-      // If wordBefore is non-empty, it's part of the same word — no separator
-      const beforeText = [beforeWord, wordBefore].filter(s => s.length > 0).join(' ').toUpperCase()
-      const beforeSep = wordBefore.length > 0 ? '' : ' '
-      // If wordAfter is non-empty, it's part of the same word — no separator
-      const afterText = afterParts.join(' ').toUpperCase()
-      const afterSep = wordAfter.length > 0 ? '' : ' '
-      return { before: beforeText, beforeSep, preferred, afterSep, after: afterText }
-    }
-  }
-
-  // Not found at all — show full name with preferred prepended
-  return { before: '', beforeSep: '', preferred, afterSep: ' ', after: full.toUpperCase() }
-}
-
 export function sortPositions(pos: string[] | null | undefined) {
   return [...(pos ?? [])].sort(
     (a, b) => (POSITION_ORDER[a] ?? 9) - (POSITION_ORDER[b] ?? 9)
@@ -176,7 +114,7 @@ function CardShape({ color, count }: { color: 'green' | 'yellow' | 'red'; count:
 }
 
 
-export function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+export function CardsCell({ row }: { row: LeaderboardRow }) {
   const { green, yellow, red } = row.cards
   if (green === 0 && yellow === 0 && red === 0) {
     return <span className="text-slate-600 text-xs">–</span>
@@ -359,7 +297,7 @@ export default function RosterList<T extends RosterPlayer>({
               <div className="liga-roster-details relative mt-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
                 <StatRow row={stats} isMe={isMe} positions={player.position} recorded={recorded} />
                 <div className="liga-roster-sanctions liga-meta shrink-0">
-                  <CardsCell row={stats} isMe={isMe} />
+                  <CardsCell row={stats} />
                 </div>
               </div>
             )}

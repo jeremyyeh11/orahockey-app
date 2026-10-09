@@ -8,8 +8,6 @@ export type TeamListEntry = {
   selected: boolean
 }
 
-export type TeamListStatus = 'draft' | 'published' | null
-
 /**
  * Save the team list for a game (draft or publish).
  * Replaces all existing entries for the game with the new set.

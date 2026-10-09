@@ -183,34 +183,6 @@ export async function updatePlayer(id: string, data: PlayerDetailsInput) {
   revalidateSquad()
 }
 
-export async function importPlayers(rows: { full_name: string; email: string; role: 'player' | 'admin' }[]) {
-  const supabase = createClient()
-  await requireAdmin(supabase)
-  await requireOpenSeason()
-
-  const { data: team } = await supabase
-    .from('teams')
-    .select('id')
-    .limit(1)
-    .single()
-
-  const players = rows.map(r => ({
-    full_name: r.full_name,
-    email: r.email,
-    role: r.role,
-    team_id: team?.id ?? null,
-  }))
-
-  const { data, error } = await supabase
-    .from('players')
-    .upsert(players, { onConflict: 'email', ignoreDuplicates: true })
-    .select('id')
-
-  if (error) throw new Error(error.message)
-  revalidateSquad()
-  return { imported: data?.length ?? 0 }
-}
-
 export async function togglePlayerActive(id: string, is_active: boolean) {
   const supabase = createClient()
   await requireAdmin(supabase)

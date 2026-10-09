@@ -2,11 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { addPlayer, togglePlayerActive } from './actions'
+import { addPlayer } from './actions'
 import RosterList from '@/components/RosterList'
 import RosterTable from '@/components/RosterTable'
 import { startNavigationProgress } from '@/components/NavigationProgress'
-import { defaultPreferredName } from '@/components/RosterList'
 import Modal from '@/components/Modal'
 import ExistingPlayerPicker, { type OutsidePlayer } from './ExistingPlayerPicker'
 import {
@@ -157,12 +156,6 @@ export default function SquadClient({
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
       }
-    })
-  }
-
-  function handleToggleActive(player: Player) {
-    startTransition(async () => {
-      await togglePlayerActive(player.id, !player.is_active)
     })
   }
 

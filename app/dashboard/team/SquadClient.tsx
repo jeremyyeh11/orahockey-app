@@ -16,7 +16,6 @@ import {
   type MatchCardRow,
 } from '@/components/SeasonStats'
 import type { RosterPlayer } from '@/components/RosterList'
-import { LEAGUE } from '@/lib/constants'
 import { recordedStats, records, seasonTitle, type Season } from '@/lib/season'
 
 type Player = RosterPlayer & PlayerLite

@@ -10,8 +10,6 @@ import { RsvpButtons } from '@/components/RsvpButtons'
 import type { FineReason } from '@/lib/fines'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from './resultActions'
-import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
-import { updateGame, updateTraining, updateEvent, deleteGame, deleteTraining, deleteEvent } from '@/app/admin/schedule/actions'
 import type { Season } from '@/lib/season'
 
 export default function ScheduleClient({
@@ -24,7 +22,6 @@ export default function ScheduleClient({
   roster,
   attendanceBySession,
   myPlayerId,
-  isAdmin,
   teamListByGame,
   goalsByGame,
   cardsByGame,
@@ -43,7 +40,6 @@ export default function ScheduleClient({
   roster: PlayerLite[]
   attendanceBySession: Record<string, AttendanceRow[]>
   myPlayerId: string
-  isAdmin: boolean
   teamListByGame: Record<string, Record<string, boolean>>
   goalsByGame: Record<string, GoalRow[]>
   cardsByGame: Record<string, CardRow[]>
@@ -94,63 +90,13 @@ export default function ScheduleClient({
     })
   }
 
-  function handleSaveGame(id: string, data: GameInput) {
-    startTransition(async () => {
-      try {
-        await updateGame(id, data)
-        // The modal closes after saving; the desktop panel stays on the edited event
-        if (!isDesktop) setSelectedItem(null)
-      } catch (err) {
-        console.error(err)
-      }
-    })
-  }
-
-  function handleSaveTraining(id: string, data: TrainingInput) {
-    startTransition(async () => {
-      try {
-        await updateTraining(id, data)
-        // The modal closes after saving; the desktop panel stays on the edited event
-        if (!isDesktop) setSelectedItem(null)
-      } catch (err) {
-        console.error(err)
-      }
-    })
-  }
-
-  function handleSaveEvent(id: string, data: EventInput) {
-    startTransition(async () => {
-      try {
-        await updateEvent(id, data)
-        // The modal closes after saving; the desktop panel stays on the edited event
-        if (!isDesktop) setSelectedItem(null)
-      } catch (err) {
-        console.error(err)
-      }
-    })
-  }
-
-  function handleDelete() {
-    if (!selectedItem) return
-    if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
-    startTransition(async () => {
-      try {
-        if (selectedItem.kind === 'game') await deleteGame(selectedItem.game.id)
-        if (selectedItem.kind === 'training') await deleteTraining(selectedItem.training.id)
-        if (selectedItem.kind === 'event') await deleteEvent(selectedItem.event.id)
-        setSelectedItem(null)
-      } catch (err) {
-        console.error(err)
-      }
-    })
-  }
-
+  // Admins only reach /dashboard in player view (middleware), so no admin controls here
   const detail = selectedItem && (
     <EventDetailModal
       key={eventKey(selectedItem)}
       inline={isDesktop}
       item={selectedItem}
-      isAdmin={isAdmin}
+      isAdmin={false}
       readOnly={readOnly}
       teamListByGame={teamListByGame}
       myStatus={myStatus[eventId(selectedItem)]}
@@ -163,10 +109,6 @@ export default function ScheduleClient({
       potmByGame={potmByGame}
       fined={fined[eventKey(selectedItem)]}
       onClose={() => setSelectedItem(null)}
-      onSaveGame={handleSaveGame}
-      onSaveTraining={handleSaveTraining}
-      onSaveEvent={handleSaveEvent}
-      onDelete={handleDelete}
       isPending={isPending}
     />
   )

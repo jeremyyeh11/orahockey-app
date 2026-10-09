@@ -16,7 +16,11 @@ function declarations(selector) {
 }
 
 test('authenticated app typography, controls and shell are scoped to app routes', () => {
-  assert.match(read('components/AppShell.tsx'), /isLigaAppPath\(pathname\)/)
+  // Liga styles hang off the shell's liga-ui class; login/auth pages never render the shell
+  assert.match(read('components/AppShell.tsx'), /<div className="liga-ui /)
+  for (const page of ['app/login/page.tsx', 'app/auth/confirm/page.tsx', 'app/auth/set-password/page.tsx']) {
+    assert.doesNotMatch(read(page), /AppShell|liga-ui/, `${page} stays outside the app shell`)
+  }
   for (const file of [
     'app/dashboard/polls/PollsClient.tsx',
     'app/admin/polls/PollsClient.tsx',
@@ -42,16 +46,6 @@ test('authenticated app typography, controls and shell are scoped to app routes'
   assert.deepEqual(declarations('.liga-page'), {}, 'page framing stays scoped to the app shell')
   assert.equal(declarations('.liga-ui .menu-dock')['backdrop-filter'], 'none')
   assert.match(read('components/BottomNav.tsx'), /safe-area-inset-bottom\)\+24px/)
-  const ts = require('typescript')
-  const compiled = ts.transpileModule(read('lib/liga-ui.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
-  const module = { exports: {} }
-  new Function('exports', 'module', compiled)(module.exports, module)
-  const { isLigaAppPath } = module.exports
-  for (const p of [
-    '/dashboard', '/dashboard/team', '/dashboard/team/123', '/dashboard/schedule', '/dashboard/polls',
-    '/admin', '/admin/dashboard', '/admin/team', '/admin/schedule', '/admin/polls', '/admin/profile', '/admin/team/123',
-  ]) assert.equal(isLigaAppPath(p), true)
-  for (const p of ['/', '/login', '/auth/confirm', '/auth/set-password', null]) assert.equal(isLigaAppPath(p), false)
 })
 
 test('shared app pages expose consistent list, surface and modal hooks', () => {
