@@ -126,7 +126,7 @@ test('every modal uses the shared dialog shell (Esc, focus, labelling, desktop w
   for (const file of [
     'components/PollsClient.tsx',
     'components/ScheduleClient.tsx',
-    'app/admin/team/SquadClient.tsx',
+    'components/SquadClient.tsx',
     'components/AdminControlPanel.tsx',
     'components/MatchResultModal.tsx',
     'components/PlayerProfilePage.tsx',
@@ -146,8 +146,8 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
     assert.match(read(`app/${area}/team/@modal/default.tsx`), /return null/)
     assert.match(read(`app/${area}/team/@modal/(.)[playerId]/page.tsx`), /<PlayerProfileView [^>]*\boverlay\b/)
     assert.ok(fs.existsSync(path.join(root, `app/${area}/team/[playerId]/page.tsx`)), 'direct visits keep the full page')
-    assert.match(read(`app/${area}/team/SquadClient.tsx`), /router\.push\(`\/\w+\/team\/\$\{p\.id\}`, \{ scroll: false \}\)/, 'opening keeps the list scroll')
   }
+  assert.match(read('components/SquadClient.tsx'), /router\.push\(`\$\{basePath\}\/team\/\$\{p\.id\}`, \{ scroll: false \}\)/, 'opening keeps the list scroll')
   const profile = read('components/PlayerProfilePage.tsx')
   assert.match(profile, /useMediaQuery\(DESKTOP_QUERY\)/)
   assert.match(profile, /pathname\.endsWith\(`\/team\/\$\{props\.player\.id\}`\)/, 'stale slot renders nothing off the profile URL')
@@ -163,9 +163,7 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
   assert.match(profile, /startNavigationProgress\(\)\s+router\.push\(squadPath\)/, 'page Back goes to Squad (with progress), not out of the app')
   assert.match(profile, /useModalScrollLock\(presentation === 'page' && !isDesktop\)/, 'desktop page scrolls normally')
   // Top Scorers / Top Assists sit side by side on phones too
-  for (const area of ['admin', 'dashboard']) {
-    assert.match(read(`app/${area}/team/SquadClient.tsx`), /<aside className="[^"]*\bgrid grid-cols-2\b[^"]*xl:grid-cols-1/)
-  }
+  assert.match(read('components/SquadClient.tsx'), /<aside className="[^"]*\bgrid grid-cols-2\b[^"]*xl:grid-cols-1/)
   assert.doesNotMatch(profile, /text-white\/8"/, 'jersey watermark uses a real opacity value')
   assert.match(read('lib/useMediaQuery.ts'), /DESKTOP_QUERY = '\(min-width: 1024px\)'/)
 })
@@ -269,7 +267,7 @@ test('navigation progress bar starts on link clicks and programmatic pushes', ()
   assert.match(bar, /s === 'loading' \? 'done' : s/, 'finishes when the pathname changes')
   assert.match(bar, /10_000/, 'never spins forever')
   assert.match(read('components/AppShell.tsx'), /<NavigationProgress \/>/)
-  for (const f of ['app/admin/team/SquadClient.tsx', 'app/dashboard/team/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/DashboardShell.tsx', 'components/AdminControlPanel.tsx']) {
+  for (const f of ['components/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/DashboardShell.tsx', 'components/AdminControlPanel.tsx']) {
     assert.match(read(f), /startNavigationProgress\(\)\s+router\.push\(/, `${f} starts the bar before router.push`)
   }
 })

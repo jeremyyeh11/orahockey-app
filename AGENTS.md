@@ -31,8 +31,8 @@ app/
   dashboard/                Player area: DashboardShell + the same six tabs
 components/
   AppShell.tsx              Shared chrome for both areas: header, season switcher, bottom nav
-  HomeView.tsx, ScheduleView.tsx, PollsView.tsx, FinesView.tsx, MyProfileView.tsx, PlayerProfileView.tsx
-                            Server views rendered by both the admin and player routes
+  HomeView.tsx, ScheduleView.tsx, PollsView.tsx, SquadView.tsx, FinesView.tsx, MyProfileView.tsx,
+  PlayerProfileView.tsx     Server views rendered by both the admin and player routes
   EventDetailModal.tsx      Event details + admin edit (modal on touch, side panel on desktop)
   RosterList.tsx / RosterTable.tsx   Squad as cards (touch) / sortable table (desktop)
 lib/
@@ -145,8 +145,9 @@ Do not skip this step. Every session that modifies code must end with a commit +
 - Dates are stored timestamptz and always displayed in Singapore time via `lib/format.ts`
 - Page pattern: server `page.tsx` fetches → passes to a `'use client'` component; mutations
   are server actions in a sibling `actions.ts` that `revalidatePath` affected routes
-- Admin and player routes share one server view where they can (`components/*View.tsx`, e.g.
-  `<HomeView basePath="/admin" />`); Squad still has separate admin/player clients
+- Admin and player routes render one shared server view per tab (`components/*View.tsx`, e.g.
+  `<HomeView basePath="/admin" />`); `basePath="/admin"` turns on the admin controls. Keep route
+  `page.tsx` files as thin wrappers and put new tab features in the shared view/client
 - Use `getNow()` (not `new Date()`) for "now" in server pages, `getRequestUser()` for the signed-in
   user, and `fetchAll()` for any select that can pass 1000 rows
 - Game `result` is derived from the score: `deriveResult()` when admins save a game,

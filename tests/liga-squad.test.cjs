@@ -317,12 +317,14 @@ test('season summaries render quiet ranked divider rows with complete tied names
 
 test('Squad headers use the Liga layout with wrapping admin controls while preserving filters and profile routes', () => {
   const routes = []
+  const actionStubs = {
+    addPlayer() { assert.fail('Presentation rendering must not call a server action') },
+    addPlayersToSeason() { assert.fail('Presentation rendering must not call a server action') },
+  }
   const boundaryLoad = createTsLoader({
     'next/navigation': { useRouter: () => ({ push: (url) => routes.push(url) }) },
-    './actions': {
-      addPlayer() { assert.fail('Presentation rendering must not call a server action') },
-      togglePlayerActive() { assert.fail('Presentation rendering must not call a server action') },
-    },
+    '@/app/admin/team/actions': actionStubs,
+    './actions': actionStubs,
   })
   const players = [
     player('me', 'Active Player', ['FWD'], { email: 'active@example.test', role: 'admin', auth_user_id: 'account' }),
@@ -338,9 +340,10 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
     attendance: [{ player_id: 'me', session_id: 'game' }, { player_id: 'veteran', session_id: 'game' }],
   })
   const [open, locked] = SEASONS
+  // One SquadClient serves both areas; basePath picks the area
+  const Component = boundaryLoad('components/SquadClient.tsx').default
   for (const section of ['dashboard', 'admin']) {
-    const Component = boundaryLoad(`app/${section}/team/SquadClient.tsx`).default
-    const { html, tree } = captureRender(Component, propsForSeason(open))
+    const { html, tree } = captureRender(Component, { ...propsForSeason(open), basePath: `/${section}` })
     assert.match(classesOf(html), /\bliga-page\b/)
     assert.match(classesOf(openingWithClass(html, 'liga-page-header')), /\bflex-wrap\b/)
     assert.match(openingWithClass(html, 'liga-page-title'), /^<h1\b/)
@@ -363,11 +366,11 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
       assert.doesNotMatch(html, /POTS Race/, 'POTS race is hidden on the admin Squad page')
     } else {
       assert.match(html, /<p class="[^"]*liga-meta[^"]*">MHL1 2027 · 1 players<\/p>/)
-      assert.doesNotMatch(html, /Add Player|Show inactive|POTS Race/)
+      assert.doesNotMatch(html, /Add Player|Existing Player|Show inactive|POTS Race/)
     }
 
     // A locked (past) season lists its whole squad and offers no edits, admins included
-    const historical = captureRender(Component, propsForSeason(locked))
+    const historical = captureRender(Component, { ...propsForSeason(locked), basePath: `/${section}` })
     const pastRoster = findElement(historical.tree, (node) => node.type === boundaryLoad('components/RosterList.tsx').default)
     assert.deepEqual(pastRoster.props.players.map((p) => p.id), ['me', 'veteran', 'absent'])
     assert.match(historical.html, /MHL1 2026 · 3 players/)
@@ -375,7 +378,7 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
   }
 
   // Keep mutations behind their original handlers; this presentation test never imports real actions.
-  const adminSource = fs.readFileSync(path.join(root, 'app/admin/team/SquadClient.tsx'), 'utf8')
+  const adminSource = fs.readFileSync(path.join(root, 'components/SquadClient.tsx'), 'utf8')
   for (const contract of [
     'onClick={openAdd}', 'setShowAddModal(true)', '<Modal onClose={() => { setShowAddModal(false); setError(null) }}>',
     'onSubmit={handleAddSubmit}', 'await addPlayer(data, joinSeason)', 'disabled={isPending}',
@@ -533,8 +536,7 @@ test('squad membership is admin-only and open-season-only', () => {
   for (const route of ['app/dashboard/team/[playerId]/page.tsx', 'app/dashboard/team/@modal/(.)[playerId]/page.tsx']) {
     assert.doesNotMatch(read(route), /includeAccount/, `${route} (player view) never gets admin panels`)
   }
-  assert.doesNotMatch(read('app/dashboard/team/SquadClient.tsx'), /Existing Player|ExistingPlayerPicker/)
-  assert.match(read('app/admin/team/SquadClient.tsx'), /\{!season\.locked && \([\s\S]*?\+ Existing Player/, 'picker button only for open seasons')
+  assert.match(read('components/SquadClient.tsx'), /\{isAdmin && !season\.locked && \([\s\S]*?\+ Existing Player/, 'picker button only for admins, open seasons only')
   assert.match(read('supabase/migrations/011_seasons.sql'), /"Admins manage season_players" on public\.season_players\s+for all using \(is_admin\(\)\) with check \(is_admin\(\)\)/, 'RLS: only admins write season_players')
 })
 
@@ -570,7 +572,7 @@ test('pending players: added without an email, shown as pending, invited only on
   assert.doesNotMatch(profile('none'), /aria-label="Player email"/)
 
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
-  const squad = read('app/admin/team/SquadClient.tsx')
+  const squad = read('components/SquadClient.tsx')
   assert.doesNotMatch(squad, /name="email" type="email" required/, 'email is optional on Add Player')
   assert.match(squad, /checked=\{joinSeason\}/, 'Add Player can skip the season (past players)')
   const actions = read('app/admin/team/actions.ts')
@@ -657,11 +659,13 @@ test('All time: first in the switcher, view-only, never labelled Archived; squad
   // Squad under All time: every game counts, read-only header
   const boundaryLoad = createTsLoader({
     'next/navigation': { useRouter: () => ({ push() {} }) },
+    '@/app/admin/team/actions': {},
+    './actions': {},
   })
-  const SquadClient = boundaryLoad('app/dashboard/team/SquadClient.tsx').default
+  const SquadClient = boundaryLoad('components/SquadClient.tsx').default
   const players = [player('p', 'Some Player')]
   const { html } = captureRender(SquadClient, {
-    season: ALL_TIME, players, myPlayerId: null, potm: [], attendance: [], cards: [],
+    basePath: '/dashboard', season: ALL_TIME, players, myPlayerId: null, potm: [], attendance: [], cards: [],
     games: [
       { id: 'g26', game_date: '2026-05-01T12:00:00Z', result: 'win', goals_against: 0, season_id: 's2026' },
       { id: 'g27', game_date: '2027-05-01T12:00:00Z', result: 'win', goals_against: 0, season_id: 's2027' },
@@ -816,7 +820,7 @@ test('friendlies never count towards records or stats', () => {
   assert.match(home, /const playedAll = finished\.filter\(countsForRecord\)/, 'Home record + your stats: league only')
   assert.match(home, /const lastGame = finished\.filter\(inView\)\[0\]/, 'the last result shown can still be a friendly')
   assert.match(read('components/ScheduleClient.tsx'), /games\.filter\(\(g\) => hasScore\(g\) && countsForRecord\(g\)\)/)
-  for (const f of ['app/dashboard/team/page.tsx', 'app/admin/team/page.tsx', 'components/PlayerProfileView.tsx']) {
+  for (const f of ['components/SquadView.tsx', 'components/PlayerProfileView.tsx']) {
     assert.match(read(f), /from\('games'\)[^\n]*game_type/, `${f} loads game_type so friendlies can be left out`)
   }
 })
