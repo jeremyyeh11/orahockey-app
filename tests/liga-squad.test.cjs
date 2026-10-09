@@ -655,7 +655,7 @@ test('All time: first in the switcher, view-only, never labelled Archived; squad
   assert.match(textOf(render(LockedSeasonStrip, nav)), /All time — every season combined\. View only; pick a season to make changes\./)
 
   const server = fs.readFileSync(path.join(root, 'lib/season-server.ts'), 'utf8')
-  assert.match(server, /seasons: \[ALL_TIME, \.\.\.seasons\]/, 'switcher lists All time first')
+  assert.match(server, /seasons: \[ALL_TIME, \.\.\.seasons\.filter\(\(s\) => !s\.cancelled_reason\)\]/, 'switcher lists All time first (cancelled seasons left out)')
   assert.match(server, /if \(wanted === ALL_TIME\.label && seasons\.length > 0\) return ALL_TIME/)
 
   // Squad under All time: every game counts, read-only header
@@ -821,7 +821,7 @@ test('friendlies never count towards records or stats', () => {
   const home = read('components/HomeView.tsx')
   assert.match(home, /const playedAll = finished\.filter\(countsForRecord\)/, 'Home record + your stats: league only')
   assert.match(home, /const lastGame = finished\.filter\(inView\)\[0\]/, 'the last result shown can still be a friendly')
-  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /games\.filter\(\(g\) => g\.result && countsForRecord\(g\)\)/)
+  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /games\.filter\(\(g\) => hasScore\(g\) && countsForRecord\(g\)\)/)
   for (const f of ['app/dashboard/team/page.tsx', 'app/admin/team/page.tsx', 'components/PlayerProfileView.tsx']) {
     assert.match(read(f), /from\('games'\)[^\n]*game_type/, `${f} loads game_type so friendlies can be left out`)
   }
@@ -891,8 +891,8 @@ test('Home card: ORA vs titles, MHL1/Friendly, day banner, phase + quote outside
 
   const home = fs.readFileSync(path.join(root, 'components/HomeView.tsx'), 'utf8')
   assert.match(home, /return g \? 'Game day' : t \? 'Training day' : e \? 'Event day' : null/, 'game beats training beats event')
-  assert.match(home, /\{preSeason \? PHASE_LABEL\['pre-season'\] : `\$\{record\.w\}W/, 'Pre-season replaces 0W·0D·0L')
-  assert.match(home, /\{preSeason \? quote : `\$\{gamesLabel\(played\.length\)\}/, 'pre-season: a quote replaces the games/scored/conceded line')
+  assert.match(home, /\{preSeason \? PHASE_LABEL\['pre-season'\] : noScores \? 'No scorelines recorded' : `\$\{record\.w\}W/, 'Pre-season (or no scorelines) replaces 0W·0D·0L')
+  assert.match(home, /\{preSeason \? quote : noScores \|\| !allScored \? gamesLabel\(played\.length\) : `\$\{gamesLabel\(played\.length\)\}/, 'pre-season: a quote replaces the games/scored/conceded line')
   assert.match(home, /return `\$\{n\} game\$\{n === 1 \? '' : 's'\}`/, '"1 game", not "1 games"')
   assert.match(home, /\{phase === 'post-season' && \(?\s*<div className="liga-hero-quote[^>]*>\{quote\}<\/div>/, 'post-season: final record stays, quote added below')
   assert.match(home, /phase === 'pre-season' \? pickQuote\(PRE_SEASON_QUOTES\) : phase === 'post-season' \? pickQuote\(POST_SEASON_QUOTES\)/)
