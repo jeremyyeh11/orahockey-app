@@ -6,7 +6,7 @@
 // player_stats stays in sync via the match_goals trigger.
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidateTabs } from '@/lib/action-helpers'
+import { action, revalidateTabs } from '@/lib/action-helpers'
 
 export type GoalRow = {
   id: string
@@ -27,7 +27,7 @@ export type CardRow = {
 // Squad pages derive stats/cards from these rows too
 const revalidate = () => revalidateTabs('schedule', 'home', 'team')
 
-export async function setMatchScore(gameId: string, goalsFor: number, goalsAgainst: number) {
+export const setMatchScore = action(async (gameId: string, goalsFor: number, goalsAgainst: number) => {
   const supabase = createClient()
 
   const { error } = await supabase.rpc('set_match_score', {
@@ -38,18 +38,18 @@ export async function setMatchScore(gameId: string, goalsFor: number, goalsAgain
 
   if (error) throw new Error(error.message)
   revalidate()
-}
+})
 
 /**
  * Fill (or change) one scorer slot. `assist` is 'pc', 'ps', a player id, or null (unassisted).
  * Returns the saved row so the client can keep ids for re-ordering.
  */
-export async function saveGoal(
+export const saveGoal = action(async (
   gameId: string,
   goalNumber: number,
   scorerId: string,
   assist: string | null
-): Promise<GoalRow> {
+): Promise<GoalRow> => {
   const supabase = createClient()
 
   const assist_kind = assist === 'pc' || assist === 'ps' ? assist : assist ? 'player' : null
@@ -73,9 +73,9 @@ export async function saveGoal(
   if (error) throw new Error(error.message)
   revalidate()
   return data as GoalRow
-}
+})
 
-export async function deleteGoal(gameId: string, goalNumber: number) {
+export const deleteGoal = action(async (gameId: string, goalNumber: number) => {
   const supabase = createClient()
 
   const { error } = await supabase
@@ -86,10 +86,10 @@ export async function deleteGoal(gameId: string, goalNumber: number) {
 
   if (error) throw new Error(error.message)
   revalidate()
-}
+})
 
 /** Persist a drag re-order: parallel arrays of goal row ids and their new goal numbers. */
-export async function reorderGoals(gameId: string, goalIds: string[], numbers: number[]) {
+export const reorderGoals = action(async (gameId: string, goalIds: string[], numbers: number[]) => {
   const supabase = createClient()
 
   const { error } = await supabase.rpc('reorder_match_goals', {
@@ -100,13 +100,13 @@ export async function reorderGoals(gameId: string, goalIds: string[], numbers: n
 
   if (error) throw new Error(error.message)
   revalidate()
-}
+})
 
-export async function addCard(
+export const addCard = action(async (
   gameId: string,
   playerId: string,
   cardType: 'green' | 'yellow' | 'red'
-): Promise<CardRow> {
+): Promise<CardRow> => {
   const supabase = createClient()
 
   const { data, error } = await supabase
@@ -118,13 +118,13 @@ export async function addCard(
   if (error) throw new Error(error.message)
   revalidate()
   return data as CardRow
-}
+})
 
-export async function removeCard(cardId: string) {
+export const removeCard = action(async (cardId: string) => {
   const supabase = createClient()
 
   const { error } = await supabase.from('match_cards').delete().eq('id', cardId)
 
   if (error) throw new Error(error.message)
   revalidate()
-}
+})

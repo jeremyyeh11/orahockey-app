@@ -1,15 +1,15 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { requireAdmin, requirePlayerId, revalidateTabs, teamId } from '@/lib/action-helpers'
+import { action, requireAdmin, requirePlayerId, revalidateTabs, teamId } from '@/lib/action-helpers'
 
-export async function createPoll(
+export const createPoll = action(async (
   question: string,
   options: string[],
   closesAt: string | null,
   multipleChoice: boolean,
   fines: { respond_by: string | null; fines_enabled: boolean }
-) {
+) => {
   if (fines.respond_by && Number.isNaN(new Date(fines.respond_by).getTime())) throw new Error('Respond by is not a valid date.')
 
   const supabase = createClient()
@@ -39,9 +39,9 @@ export async function createPoll(
 
   if (optError) throw new Error(optError.message)
   revalidateTabs('polls', 'home')
-}
+})
 
-export async function setPollActive(id: string, isActive: boolean) {
+export const setPollActive = action(async (id: string, isActive: boolean) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -49,9 +49,9 @@ export async function setPollActive(id: string, isActive: boolean) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('polls', 'home')
-}
+})
 
-export async function deletePoll(id: string) {
+export const deletePoll = action(async (id: string) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -59,4 +59,4 @@ export async function deletePoll(id: string) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('polls', 'home')
-}
+})

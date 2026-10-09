@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidateTabs } from '@/lib/action-helpers'
+import { action, revalidateTabs } from '@/lib/action-helpers'
 import { POSITIONS } from '@/lib/constants'
 
 /**
@@ -9,7 +9,7 @@ import { POSITIONS } from '@/lib/constants'
  * positions. RLS limits the update to their own row and the self-update guard
  * (017/020) to exactly these columns.
  */
-export async function updateMyProfile(data: { preferred_name: string | null; date_of_birth: string | null; position: string[] }) {
+export const updateMyProfile = action(async (data: { preferred_name: string | null; date_of_birth: string | null; position: string[] }) => {
   const supabase = createClient()
   const {
     data: { user },
@@ -34,4 +34,4 @@ export async function updateMyProfile(data: { preferred_name: string | null; dat
   if (!updated?.length) throw new Error('No player record is linked to this account.')
 
   revalidateTabs('profile', 'team', 'home')
-}
+})

@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { requireAdmin, requirePlayerId, revalidateTabs } from '@/lib/action-helpers'
+import { action, requireAdmin, requirePlayerId, revalidateTabs } from '@/lib/action-helpers'
 import type { FineKind, FineReason } from '@/lib/fines'
 
 type FineRef = { playerId: string; kind: FineKind; itemId: string; reason: FineReason }
@@ -12,7 +12,7 @@ const keyOf = (fine: FineRef) => ({ player_id: fine.playerId, item_type: fine.ki
  * Waive one fine with a reason (e.g. "PM'd Ish before the change"), or undo
  * that. Admins only.
  */
-export async function setFineWaived(fine: FineRef, waived: boolean, note?: string) {
+export const setFineWaived = action(async (fine: FineRef, waived: boolean, note?: string) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   const match = keyOf(fine)
@@ -28,10 +28,10 @@ export async function setFineWaived(fine: FineRef, waived: boolean, note?: strin
     if (error) throw new Error(error.message)
   }
   revalidateTabs('fines', 'schedule')
-}
+})
 
 /** Mark one fine paid, or undo that. Admins only. */
-export async function setFinePaid(fine: FineRef, paid: boolean) {
+export const setFinePaid = action(async (fine: FineRef, paid: boolean) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   const match = keyOf(fine)
@@ -45,4 +45,4 @@ export async function setFinePaid(fine: FineRef, paid: boolean) {
     if (error) throw new Error(error.message)
   }
   revalidateTabs('fines', 'schedule')
-}
+})

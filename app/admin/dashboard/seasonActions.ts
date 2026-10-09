@@ -2,14 +2,14 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { requireAdmin } from '@/lib/action-helpers'
+import { action, requireAdmin } from '@/lib/action-helpers'
 
 /**
  * Admin Danger zone: archive the current season and make the next one current
  * (close_current_season(), one transaction). The caller must have typed CLOSE;
  * the database function re-checks that the caller is an admin.
  */
-export async function closeSeason(confirmation: string): Promise<{ newLabel: string }> {
+export const closeSeason = action(async (confirmation: string): Promise<{ newLabel: string }> => {
   if (confirmation !== 'CLOSE') throw new Error('Type CLOSE to confirm.')
 
   const supabase = createClient()
@@ -21,4 +21,4 @@ export async function closeSeason(confirmation: string): Promise<{ newLabel: str
   // Every page shows season data
   revalidatePath('/', 'layout')
   return { newLabel: data as string }
-}
+})

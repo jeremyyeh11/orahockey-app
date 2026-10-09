@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin, revalidateTabs } from '@/lib/action-helpers'
+import { action, requireAdmin, revalidateTabs } from '@/lib/action-helpers'
 
 // Where invite links point. The app builds these links itself (they are
 // hand-delivered via WhatsApp/DM, not emailed), so this must be the real
@@ -29,7 +29,7 @@ export type SetupLink = {
  * Admin-only. The link is returned to the UI for the admin to copy and
  * DM to the player — nothing is emailed.
  */
-export async function generateSetupLink(playerId: string): Promise<SetupLink> {
+export const generateSetupLink = action(async (playerId: string): Promise<SetupLink> => {
   // Caller must be a signed-in admin — the service-role client below
   // bypasses RLS, so this check is the actual gate.
   const supabase = createClient()
@@ -106,4 +106,4 @@ export async function generateSetupLink(playerId: string): Promise<SetupLink> {
     // Supabase defaults: invite links 24h, recovery links 1h.
     expiresIn: kind === 'invite' ? '24 hours' : '1 hour',
   }
-}
+})

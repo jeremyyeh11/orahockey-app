@@ -23,6 +23,7 @@ import { accountStatusOf, type RosterPlayer, type AccountStatus } from '@/compon
 import { LEAGUE } from '@/lib/constants'
 import { recordedStats, records, seasonTitle, type Season } from '@/lib/season'
 import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
 /** A squad member; the account fields are only loaded for admins */
 export type SquadPlayer = RosterPlayer & PlayerLite & {
@@ -151,7 +152,7 @@ export default function SquadClient({
     setError(null)
     startTransition(async () => {
       try {
-        await addPlayer(data, joinSeason)
+        await unwrap(addPlayer(data, joinSeason))
         setShowAddModal(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')

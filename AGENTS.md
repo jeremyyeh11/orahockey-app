@@ -148,6 +148,11 @@ Do not skip this step. Every session that modifies code must end with a commit +
   action starts `const supabase = createClient()` + `await requireAdmin(supabase)` (a test
   enforces it), `requirePlayerId()` for "me", and `revalidateTabs('schedule', 'home', …)` to
   refresh a tab in both areas
+- Declare every action as `export const addGame = action(async (data: GameInput) => { … })` and
+  call it as `await unwrap(addGame(data))` (`lib/action-result.ts`). Production builds replace a
+  thrown action error with a generic message; `action()` returns it as a value and `unwrap`
+  re-throws it in the browser with the real message, so plain `throw new Error('…')` in an action
+  reaches the user. Tests enforce both
 - Admin and player routes render one shared server view per tab (`components/*View.tsx`, e.g.
   `<HomeView basePath="/admin" />`); `basePath="/admin"` turns on the admin controls. Keep route
   `page.tsx` files as thin wrappers and put new tab features in the shared view/client

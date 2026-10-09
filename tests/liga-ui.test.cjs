@@ -248,9 +248,9 @@ test('locked seasons are read-only in the app, admins included', () => {
   assert.match(schedule, /\{!readOnly && \(\s*<RsvpButtons /, 'schedule hides RSVP buttons')
   assert.match(schedule, /\{isAdmin && !readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
   for (const fn of ['addGame', 'addTraining']) {
-    assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export async function ${fn}[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
+    assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export const ${fn} = action[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
   }
-  assert.match(read('app/admin/team/actions.ts'), /export async function addPlayer[\s\S]*?requireOpenSeason\(\)/)
+  assert.match(read('app/admin/team/actions.ts'), /export const addPlayer = action[\s\S]*?requireOpenSeason\(\)/)
   // The database is the real guard
   const migration = read('supabase/migrations/011_seasons.sql')
   assert.match(migration, /\) not in \('anon', 'authenticated'\)/, 'only app requests are blocked; backend writes pass')

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireOpenSeason } from '@/lib/season-server'
-import { requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
+import { action, requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
 
 export type GameInput = {
   opponent: string
@@ -70,7 +70,7 @@ function deriveResult(gf: number | null, ga: number | null) {
 // (season_lock trigger) with a readable message; adds go into the season being
 // viewed, which must be open.
 
-export async function addGame(data: GameInput) {
+export const addGame = action(async (data: GameInput) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   checkTimes(data.game_date, data)
@@ -85,9 +85,9 @@ export async function addGame(data: GameInput) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})
 
-export async function updateGame(id: string, data: GameInput) {
+export const updateGame = action(async (id: string, data: GameInput) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   checkTimes(data.game_date, data)
@@ -99,9 +99,9 @@ export async function updateGame(id: string, data: GameInput) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})
 
-export async function deleteGame(id: string) {
+export const deleteGame = action(async (id: string) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -109,9 +109,9 @@ export async function deleteGame(id: string) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})
 
-export async function addTraining(data: TrainingInput) {
+export const addTraining = action(async (data: TrainingInput) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   checkTimes(data.session_date, data)
@@ -125,9 +125,9 @@ export async function addTraining(data: TrainingInput) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})
 
-export async function updateTraining(id: string, data: TrainingInput) {
+export const updateTraining = action(async (id: string, data: TrainingInput) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   checkTimes(data.session_date, data)
@@ -136,9 +136,9 @@ export async function updateTraining(id: string, data: TrainingInput) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})
 
-export async function deleteTraining(id: string) {
+export const deleteTraining = action(async (id: string) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -146,9 +146,9 @@ export async function deleteTraining(id: string) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})
 
-export async function addEvent(data: EventInput) {
+export const addEvent = action(async (data: EventInput) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   const season = await requireOpenSeason()
@@ -161,9 +161,9 @@ export async function addEvent(data: EventInput) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})
 
-export async function updateEvent(id: string, data: EventInput) {
+export const updateEvent = action(async (id: string, data: EventInput) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -171,9 +171,9 @@ export async function updateEvent(id: string, data: EventInput) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})
 
-export async function deleteEvent(id: string) {
+export const deleteEvent = action(async (id: string) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -185,4 +185,4 @@ export async function deleteEvent(id: string) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
-}
+})

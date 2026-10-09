@@ -14,6 +14,7 @@ import type { AccountStatus } from './RosterList'
 import { PencilIcon } from './icons'
 import PlayerEditModal, { type EditContext } from '@/app/admin/team/PlayerEditModal'
 import { playerPhotoUrl } from '@/lib/photos'
+import { unwrap } from '@/lib/action-result'
 
 export type { AccountStatus }
 
@@ -175,7 +176,7 @@ export function PlayerProfilePage({
     setLinkError(null)
     setCopied(false)
     try {
-      setLink(await generateSetupLink(player.id))
+      setLink(await unwrap(generateSetupLink(player.id)))
     } catch (err) {
       setLinkError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -203,7 +204,7 @@ export function PlayerProfilePage({
     setEmailSaving(true)
     setLinkError(null)
     try {
-      await setPlayerEmail(player.id, emailDraft)
+      await unwrap(setPlayerEmail(player.id, emailDraft))
       setEmailDraft('')
       router.refresh()
     } catch (err) {
@@ -249,7 +250,7 @@ export function PlayerProfilePage({
   function handleRemoveFromSeason() {
     if (!squadStatus) return
     if (!confirm(`Remove ${preferredName(player)} from the ${seasonLabel} squad?`)) return
-    runSquadAction(() => removePlayerFromSeason(player.id))
+    runSquadAction(() => unwrap(removePlayerFromSeason(player.id)))
   }
 
   const whatsappText = link
@@ -459,7 +460,7 @@ export function PlayerProfilePage({
               </div>
               {!squadStatus.inSquad ? (
                 <button
-                  onClick={() => runSquadAction(() => addPlayersToSeason([player.id]))}
+                  onClick={() => runSquadAction(() => unwrap(addPlayersToSeason([player.id])))}
                   disabled={squadPending}
                   className="liga-button liga-button-primary bg-accent shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
                 >
@@ -467,7 +468,7 @@ export function PlayerProfilePage({
                 </button>
               ) : squadStatus.hasRecord ? (
                 <button
-                  onClick={() => runSquadAction(() => togglePlayerActive(player.id, !squadStatus.isActive))}
+                  onClick={() => runSquadAction(() => unwrap(togglePlayerActive(player.id, !squadStatus.isActive)))}
                   disabled={squadPending}
                   className="liga-button liga-button-secondary shrink-0 rounded-lg border border-surface-border px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 disabled:opacity-50"
                 >

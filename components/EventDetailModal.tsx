@@ -25,6 +25,7 @@ import {
 } from './MatchResultModal'
 import { ChevronRightIcon } from './icons'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
+import { unwrap } from '@/lib/action-result'
 
 export type Game = {
   id: string
@@ -278,7 +279,7 @@ export function EventDetailModal({
   function handleRespond(status: MyStatus) {
     setLocalMyStatus(status)
     setRespondingId(sessionId)
-    setAttendance(sessionId, kind, status).finally(() => setRespondingId(null))
+    unwrap(setAttendance(sessionId, kind, status)).finally(() => setRespondingId(null))
   }
 
   function runAdminAction(action: () => Promise<void> | undefined, onDone?: () => void) {

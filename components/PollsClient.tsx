@@ -13,6 +13,7 @@ import { RespondBy } from '@/components/RespondBy'
 import { PollVoters } from '@/components/PollVoters'
 import type { FineReason } from '@/lib/fines'
 import { FormButtons, FormError, inputCls, labelCls } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
 type Roster = { id: string; full_name: string; preferred_name: string | null }[]
 
@@ -72,7 +73,7 @@ export default function PollsClient({
     setError(null)
     startTransition(async () => {
       try {
-        await createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null, fd.get('multiple_choice') === 'on', readFinesFields(fd))
+        await unwrap(createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null, fd.get('multiple_choice') === 'on', readFinesFields(fd)))
         setShowModal(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -82,14 +83,14 @@ export default function PollsClient({
 
   function handleToggle(poll: Poll) {
     startTransition(async () => {
-      await setPollActive(poll.id, !poll.is_active)
+      await unwrap(setPollActive(poll.id, !poll.is_active))
     })
   }
 
   function handleDelete(poll: Poll) {
     if (!confirm(`Delete "${poll.question}" and all its votes?`)) return
     startTransition(async () => {
-      await deletePoll(poll.id)
+      await unwrap(deletePoll(poll.id))
     })
   }
 

@@ -4,8 +4,28 @@
 
 import { revalidatePath } from 'next/cache'
 import type { createClient } from '@/lib/supabase/server'
+import type { ActionError } from '@/lib/action-result'
 
 type Supabase = ReturnType<typeof createClient>
+
+/**
+ * Wraps a server action so a thrown Error comes back as { actionError: message }
+ * (see lib/action-result.ts): production builds would otherwise swap the message
+ * for a generic one. Next's own signals (redirect, notFound — they carry a
+ * digest) are re-thrown. Every action is declared through it:
+ *
+ *   export const addGame = action(async (data: GameInput) => { … })
+ */
+export function action<A extends unknown[], R>(fn: (...args: A) => Promise<R>) {
+  return async (...args: A): Promise<R | ActionError> => {
+    try {
+      return await fn(...args)
+    } catch (err) {
+      if (typeof (err as { digest?: unknown })?.digest === 'string') throw err
+      return { actionError: err instanceof Error ? err.message : 'Something went wrong' }
+    }
+  }
+}
 
 /**
  * Throws unless the caller is an admin (the is_admin() SQL function). Every

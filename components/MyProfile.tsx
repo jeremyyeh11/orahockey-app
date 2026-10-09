@@ -8,6 +8,7 @@ import { preferredName, sortPositions } from '@/components/RosterList'
 import type { LeaderboardRow } from '@/lib/stats'
 import { updateMyProfile } from '@/app/dashboard/profile/actions'
 import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
 export type MyProfileData = {
   player: {
@@ -324,11 +325,11 @@ function EditMyProfile({ player, onClose }: { player: MyProfileData['player']; o
     setError(null)
     startTransition(async () => {
       try {
-        await updateMyProfile({
+        await unwrap(updateMyProfile({
           preferred_name: (fd.get('preferred_name') as string) || null,
           date_of_birth: (fd.get('date_of_birth') as string) || null,
           position: positions,
-        })
+        }))
         router.refresh()
         onClose()
       } catch (err) {

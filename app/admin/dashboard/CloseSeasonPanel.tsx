@@ -8,6 +8,7 @@ import { LEAGUE } from '@/lib/constants'
 import { PHASE_LABEL, SEASON_COOKIE } from '@/lib/season'
 import type { CloseSeasonSummary } from '@/lib/season-server'
 import { closeSeason } from './seasonActions'
+import { unwrap } from '@/lib/action-result'
 
 const CONFIRM_WORD = 'CLOSE'
 
@@ -42,7 +43,7 @@ export default function CloseSeasonPanel({ summary }: { summary: CloseSeasonSumm
     setError(null)
     startTransition(async () => {
       try {
-        const { newLabel } = await closeSeason(typed)
+        const { newLabel } = await unwrap(closeSeason(typed))
         // Show the new season straight away
         document.cookie = `${SEASON_COOKIE}=${encodeURIComponent(newLabel)}; path=/; samesite=lax`
         setStep(null)

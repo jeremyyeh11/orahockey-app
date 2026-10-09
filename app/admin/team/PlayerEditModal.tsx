@@ -7,6 +7,7 @@ import { LEAGUE } from '@/lib/constants'
 import { updatePlayer } from './actions'
 import { PlayerPhotoField } from '@/components/PlayerPhotoField'
 import { FormButtons, FormError, PositionPicker, hintCls, inputCls, labelCls } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
 /** What the admin profile knows about how this player can be edited */
 export type EditContext = {
@@ -64,7 +65,7 @@ export default function PlayerEditModal({
     setError(null)
     startTransition(async () => {
       try {
-        await updatePlayer(player.id, {
+        await unwrap(updatePlayer(player.id, {
           full_name: fd.get('full_name') as string,
           preferred_name: (fd.get('preferred_name') as string) || null,
           // Disabled inputs aren't submitted: keep the existing email then
@@ -74,7 +75,7 @@ export default function PlayerEditModal({
           date_of_birth: (fd.get('date_of_birth') as string) || null,
           is_active: fd.get('is_active') === 'on',
           jersey_number: context.jerseyMode === 'archived' ? player.jersey_number : num('jersey_number'),
-        })
+        }))
         router.refresh()
         onClose()
       } catch (err) {

@@ -1,13 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { requirePlayerId, revalidateTabs } from '@/lib/action-helpers'
+import { action, requirePlayerId, revalidateTabs } from '@/lib/action-helpers'
 
-export async function setAttendance(
+export const setAttendance = action(async (
   sessionId: string,
   sessionType: 'game' | 'training' | 'event',
   status: 'attending' | 'not_attending' | 'maybe'
-) {
+) => {
   const supabase = createClient()
 
   const { error } = await supabase.from('attendance').upsert(
@@ -24,4 +24,4 @@ export async function setAttendance(
   if (error) throw new Error(error.message)
 
   revalidateTabs('schedule', 'home')
-}
+})

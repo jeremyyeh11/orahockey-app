@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PHOTO_BUCKET, playerPhotoUrl } from '@/lib/photos'
 import { setPlayerPhoto } from '@/app/admin/team/actions'
+import { unwrap } from '@/lib/action-result'
 
 const MAX_SIDE = 1200
 
@@ -44,7 +45,7 @@ export function PlayerPhotoField({ playerId, photoPath }: { playerId: string; ph
       const name = `${playerId}/${Date.now()}.webp`
       const { error: upErr } = await createClient().storage.from(PHOTO_BUCKET).upload(name, blob, { contentType: 'image/webp' })
       if (upErr) throw new Error(upErr.message)
-      await setPlayerPhoto(playerId, name)
+      await unwrap(setPlayerPhoto(playerId, name))
       setPath(name)
       startTransition(() => router.refresh())
     } catch (err) {
@@ -59,7 +60,7 @@ export function PlayerPhotoField({ playerId, photoPath }: { playerId: string; ph
     setError(null)
     setBusy(true)
     try {
-      await setPlayerPhoto(playerId, null)
+      await unwrap(setPlayerPhoto(playerId, null))
       setPath(null)
       startTransition(() => router.refresh())
     } catch (err) {

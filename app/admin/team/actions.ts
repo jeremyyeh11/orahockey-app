@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSelectedSeason, hasSeasonRecord, requireOpenSeason } from '@/lib/season-server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { getNow } from '@/lib/preview'
-import { requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
+import { action, requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
 
 // Squad changes are admin-only: /admin routes are gated in middleware, these
 // actions check is_admin() themselves, and RLS allows season_players writes to
@@ -41,7 +41,7 @@ function friendlyPlayerError(message: string, code?: string) {
  * player added retroactively (attaching them to an archived season is a
  * backend job).
  */
-export async function addPlayer(data: PlayerInput, joinSeason = true) {
+export const addPlayer = action(async (data: PlayerInput, joinSeason = true) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   const season = await requireOpenSeason()
@@ -76,7 +76,7 @@ export async function addPlayer(data: PlayerInput, joinSeason = true) {
   if (squadError) throw new Error(squadError.message)
 
   revalidateTabs('team', 'schedule')
-}
+})
 
 export type PlayerDetailsInput = {
   full_name: string
@@ -99,7 +99,7 @@ export type PlayerDetailsInput = {
  * (read-only once the season is archived); otherwise it's the default they take
  * into the next season they join.
  */
-export async function updatePlayer(id: string, data: PlayerDetailsInput) {
+export const updatePlayer = action(async (id: string, data: PlayerDetailsInput) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -163,9 +163,9 @@ export async function updatePlayer(id: string, data: PlayerDetailsInput) {
   }
 
   revalidateTabs('team', 'schedule')
-}
+})
 
-export async function togglePlayerActive(id: string, is_active: boolean) {
+export const togglePlayerActive = action(async (id: string, is_active: boolean) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   await requireOpenSeason()
@@ -177,14 +177,14 @@ export async function togglePlayerActive(id: string, is_active: boolean) {
 
   if (error) throw new Error(error.message)
   revalidateTabs('team', 'schedule')
-}
+})
 
 /**
  * Add existing players (e.g. returning after a season out) to the selected open
  * season's squad, with their latest jersey number, and make sure
  * they're active so they show in the squad.
  */
-export async function addPlayersToSeason(playerIds: string[]) {
+export const addPlayersToSeason = action(async (playerIds: string[]) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   const season = await requireOpenSeason()
@@ -210,14 +210,14 @@ export async function addPlayersToSeason(playerIds: string[]) {
   if (activeError) throw new Error(activeError.message)
 
   revalidateTabs('team', 'schedule')
-}
+})
 
 /**
  * Take a player out of the selected open season's squad. Refused if they already
  * have a record that season (their stats would drop out of the leaderboards) —
  * mark them inactive instead. Their RSVPs for the season's upcoming events go too.
  */
-export async function removePlayerFromSeason(playerId: string) {
+export const removePlayerFromSeason = action(async (playerId: string) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   const season = await requireOpenSeason()
@@ -245,14 +245,14 @@ export async function removePlayerFromSeason(playerId: string) {
   if (error) throw new Error(error.message)
 
   revalidateTabs('team', 'schedule')
-}
+})
 
 /**
  * Give a pending player (added without an email) their email, which unlocks the
  * invite link. Only before they have an account — changing the login email of an
  * existing account isn't done from here.
  */
-export async function setPlayerEmail(playerId: string, email: string) {
+export const setPlayerEmail = action(async (playerId: string, email: string) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -271,13 +271,13 @@ export async function setPlayerEmail(playerId: string, email: string) {
   if (error) throw new Error(friendlyPlayerError(error.message, error.code))
 
   revalidateTabs('team', 'schedule')
-}
+})
 
 /**
  * Set (or clear) a player's photo — the path of an object the admin just
  * uploaded to the player-photos bucket. The previous photo's object is deleted.
  */
-export async function setPlayerPhoto(playerId: string, path: string | null) {
+export const setPlayerPhoto = action(async (playerId: string, path: string | null) => {
   const supabase = createClient()
   await requireAdmin(supabase)
   if (path && !path.startsWith(`${playerId}/`)) throw new Error('That photo belongs to another player.')
@@ -292,4 +292,4 @@ export async function setPlayerPhoto(playerId: string, path: string | null) {
     await supabase.storage.from('player-photos').remove([current.photo_path])
   }
   revalidateTabs('team', 'schedule', 'profile')
-}
+})

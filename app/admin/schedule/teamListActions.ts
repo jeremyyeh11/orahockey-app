@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { requireAdmin, revalidateTabs } from '@/lib/action-helpers'
+import { action, requireAdmin, revalidateTabs } from '@/lib/action-helpers'
 
 export type TeamListEntry = {
   player_id: string
@@ -12,11 +12,11 @@ export type TeamListEntry = {
  * Save the team list for a game (draft or publish).
  * Replaces all existing entries for the game with the new set.
  */
-export async function saveTeamList(
+export const saveTeamList = action(async (
   gameId: string,
   entries: TeamListEntry[],
   status: 'draft' | 'published'
-) {
+) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -46,12 +46,12 @@ export async function saveTeamList(
   if (gameErr) throw new Error(gameErr.message)
 
   revalidateTabs('schedule', 'home')
-}
+})
 
 /**
  * Unpublish the team list (set status to draft, hide from players)
  */
-export async function unpublishTeamList(gameId: string) {
+export const unpublishTeamList = action(async (gameId: string) => {
   const supabase = createClient()
   await requireAdmin(supabase)
 
@@ -63,4 +63,4 @@ export async function unpublishTeamList(gameId: string) {
   if (error) throw new Error(error.message)
 
   revalidateTabs('schedule', 'home')
-}
+})

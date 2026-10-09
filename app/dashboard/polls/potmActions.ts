@@ -5,14 +5,14 @@
 // definer functions — this just forwards the ranked pick and revalidates.
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidateTabs } from '@/lib/action-helpers'
+import { action, revalidateTabs } from '@/lib/action-helpers'
 
-export async function castPotmVote(
+export const castPotmVote = action(async (
   pollId: string,
   firstId: string,
   secondId: string,
   thirdId: string
-) {
+) => {
   const supabase = createClient()
 
   const { error } = await supabase.rpc('cast_potm_vote', {
@@ -26,4 +26,4 @@ export async function castPotmVote(
 
   // A poll may have auto-closed and written placings the match and squad views read.
   revalidateTabs('polls', 'schedule', 'team')
-}
+})

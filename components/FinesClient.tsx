@@ -8,6 +8,7 @@ import { fmtDate, fmtDateTime } from '@/lib/format'
 import { FINE_AMOUNT, FINE_KIND_NOUN, fineHref, fineKey, finesByPlayer, isOutstanding, type Fine, type RsvpStatus } from '@/lib/fines'
 import { setFinePaid, setFineWaived } from '@/app/admin/fines/actions'
 import { preferredName } from '@/components/RosterList'
+import { unwrap } from '@/lib/action-result'
 
 const STATUS: Record<RsvpStatus, string> = { attending: "I'm in", maybe: 'Maybe', not_attending: 'Out' }
 
@@ -222,7 +223,7 @@ export default function FinesClient({
                                   <button
                                     type="button"
                                     disabled={pendingKey === key}
-                                    onClick={() => change(f, () => (f.waived ? setFineWaived(ref(f), false) : setFinePaid(ref(f), false)))}
+                                    onClick={() => change(f, () => (f.waived ? unwrap(setFineWaived(ref(f), false)) : unwrap(setFinePaid(ref(f), false))))}
                                     className={actionCls}
                                   >
                                     {f.waived ? 'Undo waive' : 'Undo paid'}
@@ -232,7 +233,7 @@ export default function FinesClient({
                                     <button
                                       type="button"
                                       disabled={pendingKey === key}
-                                      onClick={() => change(f, () => setFinePaid(ref(f), true))}
+                                      onClick={() => change(f, () => unwrap(setFinePaid(ref(f), true)))}
                                       className={actionCls}
                                     >
                                       Paid
@@ -271,7 +272,7 @@ export default function FinesClient({
             setWaiving(null)
             setError(null)
           }}
-          onWaive={(note) => change(waiving, () => setFineWaived(ref(waiving), true, note), () => setWaiving(null))}
+          onWaive={(note) => change(waiving, () => unwrap(setFineWaived(ref(waiving), true, note)), () => setWaiving(null))}
         />
       )}
     </div>

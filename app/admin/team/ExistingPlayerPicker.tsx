@@ -7,6 +7,7 @@ import { preferredName } from '@/components/RosterList'
 import { LEAGUE } from '@/lib/constants'
 import { addPlayersToSeason } from './actions'
 import { FormButtons } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
 export type OutsidePlayer = {
   id: string
@@ -51,7 +52,7 @@ export default function ExistingPlayerPicker({
     setError(null)
     startTransition(async () => {
       try {
-        await addPlayersToSeason(picked)
+        await unwrap(addPlayersToSeason(picked))
         router.refresh()
         onClose()
       } catch (err) {

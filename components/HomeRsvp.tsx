@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import type { MyStatus } from '@/components/EventRow'
 import { RsvpButtons } from '@/components/RsvpButtons'
+import { unwrap } from '@/lib/action-result'
 
 /**
  * I'm in / Maybe / Out on a Home Next up card — the same RSVP as the schedule.
@@ -29,7 +30,7 @@ export default function HomeRsvp({
     setMine(next)
     startTransition(async () => {
       try {
-        await setAttendance(sessionId, kind, next)
+        await unwrap(setAttendance(sessionId, kind, next))
       } catch (err) {
         console.error(err)
         setMine(prev)

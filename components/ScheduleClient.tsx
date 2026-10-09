@@ -32,6 +32,7 @@ import { ScheduleTimeFields, readTimeFields } from '@/components/ScheduleTimeFie
 import { FinesFields, readFinesFields } from '@/components/FinesFields'
 import { countsForRecord, hasScore } from '@/lib/stats'
 import { FormButtons, FormError, inputCls, labelCls } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
 /**
  * The Schedule tab for both areas (ScheduleView loads it). Everyone RSVPs and
@@ -124,7 +125,7 @@ export default function ScheduleClient({
     setRespondingId(id)
     startTransition(async () => {
       try {
-        await setAttendance(id, item.kind, status)
+        await unwrap(setAttendance(id, item.kind, status))
       } finally {
         setRespondingId(null)
       }
@@ -139,26 +140,26 @@ export default function ScheduleClient({
   }
 
   async function handleSaveGame(id: string, data: GameInput) {
-    await updateGame(id, data)
+    await unwrap(updateGame(id, data))
     afterSave()
   }
 
   async function handleSaveTraining(id: string, data: TrainingInput) {
-    await updateTraining(id, data)
+    await unwrap(updateTraining(id, data))
     afterSave()
   }
 
   async function handleSaveEvent(id: string, data: EventInput) {
-    await updateEvent(id, data)
+    await unwrap(updateEvent(id, data))
     afterSave()
   }
 
   async function handleDelete() {
     if (!selectedItem) return
     if (!confirm('Delete this event? Attendance and stats tied to it will also be removed.')) return
-    if (selectedItem.kind === 'game') await deleteGame(selectedItem.game.id)
-    if (selectedItem.kind === 'training') await deleteTraining(selectedItem.training.id)
-    if (selectedItem.kind === 'event') await deleteEvent(selectedItem.event.id)
+    if (selectedItem.kind === 'game') await unwrap(deleteGame(selectedItem.game.id))
+    if (selectedItem.kind === 'training') await unwrap(deleteTraining(selectedItem.training.id))
+    if (selectedItem.kind === 'event') await unwrap(deleteEvent(selectedItem.event.id))
     setSelectedItem(null)
   }
 
@@ -182,7 +183,7 @@ export default function ScheduleClient({
     setError(null)
     startTransition(async () => {
       try {
-        await addGame(data)
+        await unwrap(addGame(data))
         setAddModal(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -204,7 +205,7 @@ export default function ScheduleClient({
     setError(null)
     startTransition(async () => {
       try {
-        await addTraining(data)
+        await unwrap(addTraining(data))
         setAddModal(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -227,7 +228,7 @@ export default function ScheduleClient({
     setError(null)
     startTransition(async () => {
       try {
-        await addEvent(data)
+        await unwrap(addEvent(data))
         setAddModal(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')

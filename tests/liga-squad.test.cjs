@@ -381,7 +381,7 @@ test('Squad headers use the Liga layout with wrapping admin controls while prese
   const adminSource = fs.readFileSync(path.join(root, 'components/SquadClient.tsx'), 'utf8')
   for (const contract of [
     'onClick={openAdd}', 'setShowAddModal(true)', '<Modal onClose={() => { setShowAddModal(false); setError(null) }}>',
-    'onSubmit={handleAddSubmit}', 'await addPlayer(data, joinSeason)', 'isPending={isPending}',
+    'onSubmit={handleAddSubmit}', 'await unwrap(addPlayer(data, joinSeason))', 'isPending={isPending}',
     'onChange={(e) => setShowInactive(e.target.checked)}',
   ]) assert.ok(adminSource.includes(contract), `preserve admin interaction: ${contract}`)
 })
@@ -485,7 +485,7 @@ test('schedule master–detail: inline details panel on desktop, modal on touch 
   }
   assert.doesNotMatch(detail, /\n    \}\n    setEditMode\(false\)\n  \}/, 'no unconditional exit from edit mode')
   assert.match(detail, /<FormError error=\{saveError\} \/>\s*<\/form>/, 'save errors show in the edit form')
-  assert.match(src, /async function handleSaveGame\(id: string, data: GameInput\) \{\s*await updateGame\(id, data\)/, 'errors reach the panel (no catch in ScheduleClient)')
+  assert.match(src, /async function handleSaveGame\(id: string, data: GameInput\) \{\s*await unwrap\(updateGame\(id, data\)\)/, 'errors reach the panel (no catch in ScheduleClient)')
 })
 
 test('season squad membership: admins add existing players and remove players without a season record', () => {
@@ -536,9 +536,9 @@ test('squad membership is admin-only and open-season-only', () => {
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
   const actions = read('app/admin/team/actions.ts')
   for (const fn of ['addPlayer', 'updatePlayer', 'togglePlayerActive', 'addPlayersToSeason', 'removePlayerFromSeason']) {
-    assert.match(actions, new RegExp(String.raw`export async function ${fn}\([^)]*\) \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)`), `${fn} checks is_admin() first`)
+    assert.match(actions, new RegExp(String.raw`export const ${fn} = action\(async \([^)]*\) => \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)`), `${fn} checks is_admin() first`)
   }
-  assert.match(actions, /export async function removePlayerFromSeason[\s\S]*?if \(await hasSeasonRecord\(season\.id, playerId\)\)[\s\S]*?throw/, 'removal refused when the player has a season record')
+  assert.match(actions, /export const removePlayerFromSeason = action[\s\S]*?if \(await hasSeasonRecord\(season\.id, playerId\)\)[\s\S]*?throw/, 'removal refused when the player has a season record')
   const view = read('components/PlayerProfileView.tsx')
   assert.match(view, /if \(includeAccount && !season\.locked\) \{\s*squadStatus = /, 'squad panel only on the admin route, open seasons only')
   for (const route of ['app/dashboard/team/[playerId]/page.tsx', 'app/dashboard/team/@modal/(.)[playerId]/page.tsx']) {
@@ -585,7 +585,7 @@ test('pending players: added without an email, shown as pending, invited only on
   assert.match(squad, /checked=\{joinSeason\}/, 'Add Player can skip the season (past players)')
   const actions = read('app/admin/team/actions.ts')
   assert.match(actions, /is_active: joinSeason/, 'players added outside the season are inactive (no auto-join)')
-  assert.match(actions, /export async function setPlayerEmail[\s\S]*?requireAdmin\(supabase\)[\s\S]*?if \(player\.auth_user_id\) throw/, 'only admins; never rewrites an existing login')
+  assert.match(actions, /export const setPlayerEmail = action[\s\S]*?requireAdmin\(supabase\)[\s\S]*?if \(player\.auth_user_id\) throw/, 'only admins; never rewrites an existing login')
   assert.match(read('app/admin/team/inviteActions.ts'), /if \(!player\.email\) throw/)
   const migration = read('supabase/migrations/012_pending_players.sql')
   assert.match(migration, /alter column email drop not null/)
@@ -627,7 +627,7 @@ test('admin player edit: prefilled form, season-aware jersey, locked email/role 
 
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
   const actions = read('app/admin/team/actions.ts')
-  assert.match(actions, /export async function updatePlayer\(id: string, data: PlayerDetailsInput\) \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/)
+  assert.match(actions, /export const updatePlayer = action\(async \(id: string, data: PlayerDetailsInput\) => \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/)
   assert.match(actions, /if \(current\.auth_user_id && email !== current\.email\)\s*\{\s*throw/, 'server refuses login-email changes')
   assert.match(actions, /current\.auth_user_id === user\?\.id && data\.role !== current\.role\)\s*\{\s*throw/, 'server refuses self role change')
   assert.match(actions, /if \(entry && !season\.locked\)/, 'season jersey only written for open seasons')
@@ -757,7 +757,7 @@ test('schedule events: titled entries with their own tag, filter, form and seaso
   assert.match(admin, /\['events', 'Events'\]/, 'Events filter (both areas share ScheduleClient)')
   assert.match(read('components/ScheduleView.tsx'), /inSeason\(supabase\.from\('team_events'\)/, 'events are season-scoped')
   const actions = read('app/admin/schedule/actions.ts')
-  assert.match(actions, /export async function addEvent[\s\S]*?requireOpenSeason\(\)[\s\S]*?season_id: season\.id/)
+  assert.match(actions, /export const addEvent = action[\s\S]*?requireOpenSeason\(\)[\s\S]*?season_id: season\.id/)
   assert.match(actions, /if \(!title\) throw new Error\('Give the event a title\.'\)/)
   assert.match(read('app/dashboard/schedule/actions.ts'), /sessionType: 'game' \| 'training' \| 'event'/, 'players RSVP to events')
   const migration = read('supabase/migrations/015_team_events.sql')
@@ -865,7 +865,7 @@ test('schedule times: optional end (same-day ranges stay short), report-early su
   assert.equal((read('components/EventDetailModal.tsx').match(/<ScheduleTimeFields defaultEnd=/g) ?? []).length, 3, 'edit forms: game, training, event')
   const actions = read('app/admin/schedule/actions.ts')
   for (const fn of ['addGame', 'updateGame', 'addTraining', 'updateTraining']) {
-    assert.match(actions, new RegExp(`export async function ${fn}[\\s\\S]*?checkTimes\\(`), `${fn} validates end/report`)
+    assert.match(actions, new RegExp(`export const ${fn} = action[\\s\\S]*?checkTimes\\(`), `${fn} validates end/report`)
   }
   const migration = read('supabase/migrations/016_schedule_times.sql')
   for (const t of ['games', 'training_sessions', 'team_events']) {
@@ -934,10 +934,10 @@ test('every admin server action checks is_admin() before doing anything', () => 
   for (const file of files) {
     const src = read(file)
     assert.match(src, /^'use server'/, `${file} is a server action module`)
-    const actions = src.split(/(?=^export async function )/m).slice(1)
+    const actions = src.split(/(?=^export const \w+ = action\()/m).slice(1)
     assert.ok(actions.length > 0, `${file} has actions`)
     for (const fn of actions) {
-      const name = fn.match(/^export async function (\w+)/)[1]
+      const name = fn.match(/^export const (\w+) = action\(/)[1]
       assert.match(fn, /^[^{]*\{[\s\S]*?const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/, `${file}: ${name} calls requireAdmin first`)
     }
   }
@@ -953,4 +953,37 @@ test('every admin server action checks is_admin() before doing anything', () => 
     '/admin/team layout', '/dashboard/team layout',
     '/admin/polls', '/dashboard/polls',
   ])
+})
+
+test('action errors reach the browser as values, and every call unwraps them', async () => {
+  // Production builds swap a thrown action error for a generic message, so action() returns it instead
+  const { action } = createTsLoader({ 'next/cache': { revalidatePath() {} } })('lib/action-helpers.ts')
+  const { unwrap, isActionError } = load('lib/action-result.ts')
+  const fails = action(async () => { throw new Error('Give the event a title.') })
+  assert.deepEqual(await fails(), { actionError: 'Give the event a title.' })
+  await assert.rejects(unwrap(fails()), { message: 'Give the event a title.' })
+  assert.deepEqual(await unwrap(action(async (a, b) => ({ sum: a + b }))(2, 3)), { sum: 5 })
+  assert.equal(isActionError({ newLabel: '2028' }), false)
+  const redirect = Object.assign(new Error('NEXT_REDIRECT'), { digest: 'NEXT_REDIRECT;replace;/login' })
+  await assert.rejects(action(async () => { throw redirect })(), redirect, "Next's redirect/notFound signals still throw")
+
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const walk = (dir) => fs.readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`])
+  const sources = [...walk('app'), ...walk('components'), ...walk('lib')].filter((f) => /\.tsx?$/.test(f))
+  const actionFiles = sources.filter((f) => /^'use server'/.test(read(f)))
+  assert.ok(actionFiles.length >= 12, 'found the server action files')
+  const names = []
+  for (const f of actionFiles) {
+    assert.doesNotMatch(read(f), /^export async function /m, `${f}: declare actions with action()`)
+    names.push(...[...read(f).matchAll(/^export const (\w+) = action\(/gm)].map((m) => m[1]))
+  }
+  assert.ok(names.length >= 35, `found the actions (${names.length})`)
+  const call = new RegExp(String.raw`(?<![\w.])(${names.join('|')})\(`, 'g')
+  for (const f of sources.filter((f) => f.endsWith('.tsx'))) {
+    const src = read(f)
+    for (const m of src.matchAll(call)) {
+      assert.equal(src.slice(m.index - 7, m.index), 'unwrap(', `${f}: ${m[1]}(…) must be wrapped in unwrap(…)`)
+    }
+  }
 })
