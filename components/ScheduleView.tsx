@@ -71,7 +71,7 @@ export async function ScheduleView({ basePath, event }: { basePath: '/dashboard'
     fetchAll(() =>
       supabase
         .from('attendance')
-        .select('player_id, session_id, status, responded_at, player:players(full_name, preferred_name)')
+        .select('player_id, session_id, status, responded_at, reason, player:players(full_name, preferred_name)')
         .order('id')
     ),
     getSeasonSquad(season.id),

@@ -4,22 +4,26 @@ import { useState, useTransition } from 'react'
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import type { MyStatus } from '@/components/EventRow'
 import { RsvpButtons } from '@/components/RsvpButtons'
+import { OutReason } from '@/components/OutReason'
 import { unwrap } from '@/lib/action-result'
 
 /**
- * I'm in / Maybe / Out on a Home Next up card — the same RSVP as the schedule.
+ * I'm in / Update later / Out on a Home Next up card — the same RSVP as the schedule.
  * Shows the pick straight away and puts it back if saving fails. `onAccent` styles
  * it for the green featured card. Sits above the card's stretched details link.
+ * While the answer is Out, an optional reason box sits under the buttons.
  */
 export default function HomeRsvp({
   sessionId,
   kind,
   status,
+  reason,
   onAccent,
 }: {
   sessionId: string
   kind: 'game' | 'training' | 'event'
   status: MyStatus | null
+  reason: string | null
   onAccent: boolean
 }) {
   const [mine, setMine] = useState<MyStatus | null>(status)
@@ -38,5 +42,12 @@ export default function HomeRsvp({
     })
   }
 
-  return <RsvpButtons value={mine} onPick={respond} disabled={isPending} onAccent={onAccent} className="liga-home-rsvp relative z-10 mt-4" />
+  return (
+    <>
+      <RsvpButtons value={mine} onPick={respond} disabled={isPending} onAccent={onAccent} className="liga-home-rsvp relative z-10 mt-4" />
+      {mine === 'not_attending' && (
+        <OutReason sessionId={sessionId} kind={kind} initial={reason} disabled={isPending} onAccent={onAccent} className="relative z-10 mt-2" />
+      )}
+    </>
+  )
 }

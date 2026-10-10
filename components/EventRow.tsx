@@ -61,7 +61,7 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
 
 const STATUS_CHIP: Record<MyStatus, { label: string; cls: string }> = {
   attending: { label: 'Went', cls: 'text-green-400' },
-  maybe: { label: 'Maybe', cls: 'text-amber-400' },
+  maybe: { label: 'Update later', cls: 'text-amber-400' },
   not_attending: { label: 'Missed', cls: 'text-slate-500' },
 }
 

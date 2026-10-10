@@ -22,6 +22,7 @@ import { EventRow, eventFinesEnabled, eventId, eventRespondBy, type EventItem, t
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import { RespondBy, rowCountdownClass } from '@/components/RespondBy'
 import { RsvpButtons } from '@/components/RsvpButtons'
+import { OutReason } from '@/components/OutReason'
 import type { FineReason } from '@/lib/fines'
 import type { PotmPlacing } from '@/components/MatchResultModal'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
@@ -119,6 +120,9 @@ export default function ScheduleClient({
     d: played.filter((g) => g.result === 'tie').length,
     l: played.filter((g) => g.result === 'loss' || g.result === 'ot_loss').length,
   }
+
+  /** Why I'm out of an event, if I said */
+  const myReason = (id: string) => attendanceBySession[id]?.find((a) => a.player_id === myPlayerId)?.reason ?? null
 
   function respond(item: EventItem, status: MyStatus) {
     const id = eventId(item)
@@ -359,6 +363,16 @@ export default function ScheduleClient({
                       )}
                       {!readOnly && (
                         <RsvpButtons value={mine} onPick={(status) => respond(item, status)} disabled={isPending && respondingId === id} className="ml-14 mt-2" />
+                      )}
+                      {!readOnly && mine === 'not_attending' && (
+                        <OutReason
+                          key={`${id}-${myReason(id) ?? ''}`}
+                          sessionId={id}
+                          kind={item.kind}
+                          initial={myReason(id)}
+                          disabled={isPending && respondingId === id}
+                          className="ml-14 mt-2"
+                        />
                       )}
                     </div>
                   )

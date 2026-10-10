@@ -315,3 +315,19 @@ test('server components never call functions exported from client modules', () =
   }
   assert.deepEqual(offenders, [])
 })
+
+test('RSVP: "Update later" (stored as maybe), and an optional reason box under the buttons while Out', () => {
+  assert.match(read('lib/fines.ts'), /maybe: 'Update later'/)
+  for (const file of ['components/RsvpButtons.tsx', 'components/EventDetailModal.tsx', 'components/FinesClient.tsx', 'components/EventRow.tsx']) {
+    assert.doesNotMatch(read(file), /'Maybe'/, `${file} says Update later, not Maybe`)
+  }
+  // The reason box sits after the buttons, only while the answer is Out
+  assert.match(read('components/HomeRsvp.tsx'), /<RsvpButtons [\s\S]*\{mine === 'not_attending' && \(\s*<OutReason /)
+  assert.match(read('components/ScheduleClient.tsx'), /<RsvpButtons [\s\S]*\{!readOnly && mine === 'not_attending' && \(\s*<OutReason/)
+  assert.match(read('components/EventDetailModal.tsx'), /RSVP_LABEL\[status\][\s\S]*\{localMyStatus === 'not_attending' && \(\s*<OutReason/)
+  // Everyone sees it in the attendance list; the database keeps it only while Out
+  assert.match(read('components/EventDetailModal.tsx'), /\{reason && <span className=\{`liga-out-reason-text/)
+  const migration = read('supabase/migrations/033_attendance_reason.sql')
+  assert.match(migration, /if new\.status <> 'not_attending' then\s+new\.reason := null;/)
+  assert.match(read('app/dashboard/schedule/actions.ts'), /export const setOutReason = action[\s\S]*?\.eq\('status', 'not_attending'\)/)
+})

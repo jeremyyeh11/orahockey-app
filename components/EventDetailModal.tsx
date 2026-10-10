@@ -6,7 +6,8 @@ import { preferredName } from '@/lib/names'
 import { fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
-import { FINE_AMOUNT, FINE_KIND_NOUN, type FineReason } from '@/lib/fines'
+import { FINE_AMOUNT, FINE_KIND_NOUN, RSVP_LABEL, type FineReason } from '@/lib/fines'
+import { OutReason } from './OutReason'
 import { RespondBy } from './RespondBy'
 import { FormError, inputCls, labelCls } from './form'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
@@ -87,6 +88,8 @@ export type AttendanceRow = {
   status: 'attending' | 'not_attending' | 'maybe'
   /** When they gave this answer */
   responded_at?: string
+  /** Why they're out (Out only, optional) */
+  reason?: string | null
   player: { full_name: string; preferred_name: string | null }
 }
 
@@ -101,13 +104,13 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
 }
 
 
-type BreakdownGroup = { label: string; players: { id: string; name: string; at?: string }[] }
+type BreakdownGroup = { label: string; players: { id: string; name: string; at?: string; reason?: string | null }[] }
 
 function buildBreakdown(
   attendance: AttendanceRow[] | undefined,
   roster: PlayerLite[]
 ): BreakdownGroup[] {
-  const groups: Record<string, (PlayerLite & { at?: string })[]> = {
+  const groups: Record<string, (PlayerLite & { at?: string; reason?: string | null })[]> = {
     attending: [],
     maybe: [],
     not_attending: [],
@@ -120,6 +123,7 @@ function buildBreakdown(
       full_name: a.player.full_name,
       preferred_name: a.player.preferred_name,
       at: a.responded_at,
+      reason: a.reason,
     }
     if (groups[a.status]) groups[a.status].push(p)
     respondedIds.add(a.player_id)
@@ -129,8 +133,8 @@ function buildBreakdown(
 
   return [
     { label: 'Attending', players: groups.attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
-    { label: 'Maybe', players: groups.maybe.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
-    { label: 'Not attending', players: groups.not_attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
+    { label: RSVP_LABEL.maybe, players: groups.maybe.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
+    { label: 'Not attending', players: groups.not_attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at, reason: p.reason })) },
     { label: "Hasn't responded", players: noResponse.map((p) => ({ id: p.id, name: preferredName(p) })) },
   ].filter((g) => g.players.length > 0)
 }
@@ -435,7 +439,7 @@ export function EventDetailModal({
                 value={fmtDateTime(eventRespondBy(currentItem)!)}
                 sub={
                   eventFinesEnabled(currentItem)
-                    ? `$${FINE_AMOUNT} fine if late reply, or for a change within 24h before the ${FINE_KIND_NOUN[currentItem.kind]}`
+                    ? `$${FINE_AMOUNT} fine if late reply, for a change within 24h before the ${FINE_KIND_NOUN[currentItem.kind]}, or if still on ${RSVP_LABEL.maybe} then`
                     : 'No fines'
                 }
               />
@@ -515,11 +519,7 @@ export function EventDetailModal({
                 )}
               <div className="mb-2 text-[11px] font-medium text-slate-500">Your response</div>
               <div className="flex gap-2">
-                {([
-                  ['attending', "I'm in"],
-                  ['maybe', 'Maybe'],
-                  ['not_attending', 'Out'],
-                ] as const).map(([status, label]) => (
+                {(['attending', 'maybe', 'not_attending'] as const).map((status) => (
                   <button
                     key={status}
                     onClick={() => handleRespond(status)}
@@ -534,10 +534,19 @@ export function EventDetailModal({
                         : 'border border-surface-border text-slate-400 hover:text-white'
                     }`}
                   >
-                    {label}
+                    {RSVP_LABEL[status]}
                   </button>
                 ))}
               </div>
+              {localMyStatus === 'not_attending' && (
+                <OutReason
+                  sessionId={sessionId}
+                  kind={kind}
+                  initial={sessionAttendance.find((a) => a.player_id === myPlayerId)?.reason}
+                  disabled={respondingId === sessionId}
+                  className="mt-2"
+                />
+              )}
             </div>
             )}
 
@@ -553,7 +562,7 @@ export function EventDetailModal({
                       {i === 0 && showTimes && <span className="liga-section-title shrink-0 normal-case tracking-normal">Responded on</span>}
                     </div>
                     <div className="space-y-0.5">
-                      {group.players.map(({ id, name, at }) => (
+                      {group.players.map(({ id, name, at, reason }) => (
                         <div
                           key={id}
                           data-fined={fined?.[id]?.length ? '' : undefined}
@@ -564,11 +573,13 @@ export function EventDetailModal({
                           <span className="min-w-0 break-words">
                             {name}
                             {/* Fined (unwaived): a late or missing reply, or a change within 24h before the start */}
-                            {fined?.[id]?.map((reason) => (
-                              <span key={reason} className="liga-fine-mark ml-1.5 rounded bg-red-900/50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-red-300">
-                                {reason === 'late_change' ? 'Late change' : 'Late'}
+                            {fined?.[id]?.map((fineReason) => (
+                              <span key={fineReason} className="liga-fine-mark ml-1.5 rounded bg-red-900/50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-red-300">
+                                {fineReason === 'late_change' ? 'Late change' : 'Late'}
                               </span>
                             ))}
+                            {/* Why they're out — optional, everyone sees it */}
+                            {reason && <span className={`liga-out-reason-text ml-1.5 ${fined?.[id]?.length ? 'text-red-300' : 'text-slate-500'}`}>· {reason}</span>}
                           </span>
                           {/* When they gave this answer — open seasons only (archived ones carry import times) */}
                           {at && showTimes && (

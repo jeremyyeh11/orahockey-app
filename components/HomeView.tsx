@@ -94,7 +94,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       .maybeSingle(),
     supabase.from('player_stats').select('game_id, goals, assists').eq('player_id', me?.id ?? ''),
     // Every RSVP of yours — games, trainings and team events (attendance %, Next up's buttons)
-    supabase.from('attendance').select('session_id, session_type, status').eq('player_id', me?.id ?? ''),
+    supabase.from('attendance').select('session_id, session_type, status, reason').eq('player_id', me?.id ?? ''),
     // Trainings and team events that have started, for attendance %
     inSeason(supabase.from('training_sessions').select('id'), season).lte('session_date', now),
     inSeason(supabase.from('team_events').select('id'), season).lte('event_date', now),
@@ -213,8 +213,8 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const nextUp = candidates
     .filter((x): x is NextItem => !!x)
     .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime())
-  const myStatusOf = (item: NextItem) =>
-    ((myAtt ?? []).find((a) => a.session_type === item.kind && a.session_id === item.id)?.status as MyStatus | undefined) ?? null
+  const myAttOf = (item: NextItem) => (myAtt ?? []).find((a) => a.session_type === item.kind && a.session_id === item.id)
+  const myStatusOf = (item: NextItem) => (myAttOf(item)?.status as MyStatus | undefined) ?? null
 
   // Next up / season complete — straight under the season strip. The soonest event is
   // the green featured card; RSVP buttons only where the season can change (not
@@ -235,6 +235,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
             href={`${basePath}/schedule?event=${item.kind}-${item.id}`}
             now={nowDate}
             rsvp={season.locked ? undefined : myStatusOf(item)}
+            reason={myAttOf(item)?.reason ?? null}
           />
         ))}
       </div>
@@ -412,9 +413,10 @@ type NextItem = {
 /**
  * A Next up event: date block, title, time and place, a → link top right into the
  * schedule (the details panel on desktop, the event modal on phones) and your
- * I'm in / Maybe / Out. The link is stretched over the whole card; the RSVP buttons
+ * I'm in / Update later / Out. The link is stretched over the whole card; the RSVP buttons
  * sit above it. `featured` (the soonest event) is the big green card, the rest grey.
  * `rsvp` undefined hides the buttons (read-only season); null means no reply yet.
+ * `reason` is why I'm out, when I am.
  */
 function NextUpCard({
   next,
@@ -422,12 +424,14 @@ function NextUpCard({
   href,
   now,
   rsvp,
+  reason,
 }: {
   next: NextItem
   featured: boolean
   href: string
   now: Date
   rsvp: MyStatus | null | undefined
+  reason: string | null
 }) {
   const day = dateBlock(next.when)
   const report = fmtReport(next.when, next.report)
@@ -476,7 +480,7 @@ function NextUpCard({
           <span aria-hidden="true">→</span>
         </Link>
       </div>
-      {rsvp !== undefined && <HomeRsvp sessionId={next.id} kind={next.kind} status={rsvp} onAccent={featured} />}
+      {rsvp !== undefined && <HomeRsvp sessionId={next.id} kind={next.kind} status={rsvp} reason={reason} onAccent={featured} />}
     </div>
   )
 }
