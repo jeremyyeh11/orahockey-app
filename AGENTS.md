@@ -163,10 +163,11 @@ Do not skip this step. Every session that modifies code must end with a commit +
 
 ## Tests
 ```bash
-node --test tests/*.test.cjs   # passing just tests/ fails to load
+npm test        # node --test tests/*.test.cjs (passing just tests/ fails to load)
+npm run lint    # next/core-web-vitals (.eslintrc.json); next build also lints and fails on errors
 ```
-There's no `npm test` script. Many tests are source-pattern regexes on component markup, so UI
-changes usually need test updates — run them before every commit.
+Many tests are source-pattern regexes on component markup, so UI changes usually need test
+updates — run them before every commit.
 
 ## UI Preferences
 - Squad: cards with stats inline on touch layouts ("12G", value+label together); a sortable

@@ -77,7 +77,8 @@ For an existing development project, confirm its schema matches the app before r
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Start the development server. |
-| `npm run lint` | Run Next.js ESLint checks. |
+| `npm test` | Run the test suites in `tests/` (Node's built-in test runner). |
+| `npm run lint` | Run Next.js ESLint checks (`next/core-web-vitals`); `npm run build` also lints and fails on errors. |
 | `npm run build` | Create a production build. |
 | `npm start` | Serve the production build after building. |
 

@@ -13,7 +13,6 @@ type Page<T> = { data: T[] | null; error: { message: string } | null }
  *
  *   const { data } = await fetchAll(() => supabase.from('attendance').select('player_id, session_id').order('id'))
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetchAll<T = any>(build: () => { range(from: number, to: number): PromiseLike<Page<T>> }): Promise<Page<T>> {
   const rows: T[] = []
   for (let from = 0; ; from += PAGE) {
