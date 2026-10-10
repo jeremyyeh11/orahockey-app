@@ -7,7 +7,7 @@ import { FormButtons, FormError, hintCls, inputCls, labelCls } from '@/component
 import { fmtDate, fmtDateTime } from '@/lib/format'
 import { FINE_AMOUNT, FINE_KIND_NOUN, fineHref, fineKey, finesByPlayer, isOutstanding, type Fine, type RsvpStatus } from '@/lib/fines'
 import { setFinePaid, setFineWaived } from '@/app/admin/fines/actions'
-import { preferredName } from '@/components/RosterList'
+import { preferredName } from '@/lib/names'
 import { unwrap } from '@/lib/action-result'
 
 const STATUS: Record<RsvpStatus, string> = { attending: "I'm in", maybe: 'Maybe', not_attending: 'Out' }

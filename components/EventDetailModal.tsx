@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { ReadEditModal } from './ReadEditModal'
-import { preferredName } from './RosterList'
+import { preferredName } from '@/lib/names'
 import { fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'

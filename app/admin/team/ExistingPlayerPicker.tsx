@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
-import { preferredName } from '@/components/RosterList'
+import { preferredName } from '@/lib/names'
 import { LEAGUE } from '@/lib/constants'
 import { addPlayersToSeason } from './actions'
 import { FormButtons } from '@/components/form'

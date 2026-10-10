@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { gameTitle } from '@/lib/constants'
-import { preferredName } from './RosterList'
+import { preferredName } from '@/lib/names'
 import Modal from './Modal'
 import type { PlayerLite } from './EventDetailModal'
 import { saveTeamList, unpublishTeamList, type TeamListEntry } from '@/app/admin/schedule/teamListActions'

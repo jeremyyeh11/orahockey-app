@@ -2,7 +2,9 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { goalTypeColumns, nameParts, preferredName, sortPositions, statColumns, statValue } from './RosterList'
+import { goalTypeColumns, statColumns, statValue } from './RosterList'
+import { nameParts, preferredName } from '@/lib/names'
+import { sortPositions } from '@/lib/constants'
 import type { LeaderboardRow, PlayerLite } from '@/lib/stats'
 import { useModalScrollLock } from '@/lib/useModalScrollLock'
 import { DESKTOP_QUERY, useMediaQuery } from '@/lib/useMediaQuery'
@@ -10,13 +12,11 @@ import Modal from './Modal'
 import { startNavigationProgress } from './NavigationProgress'
 import { generateSetupLink, type SetupLink } from '@/app/admin/team/inviteActions'
 import { addPlayersToSeason, removePlayerFromSeason, setPlayerEmail, togglePlayerActive } from '@/app/admin/team/actions'
-import type { AccountStatus } from './RosterList'
+import type { AccountStatus } from '@/lib/account'
 import { PencilIcon } from './icons'
 import PlayerEditModal, { type EditContext } from '@/app/admin/team/PlayerEditModal'
 import { playerPhotoUrl } from '@/lib/photos'
 import { unwrap } from '@/lib/action-result'
-
-export type { AccountStatus }
 
 /** Admin view, open season only: the player's place in the selected season's squad */
 export type SquadStatus = {

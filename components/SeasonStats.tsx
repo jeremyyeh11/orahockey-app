@@ -1,6 +1,6 @@
 'use client'
 
-import { preferredName } from './RosterList'
+import { preferredName } from '@/lib/names'
 
 // Re-export types and pure functions from lib/stats.ts so existing imports work
 export type { PlayerLite, GameLite, SeasonStat, PotmRow, AttendanceRow, MatchCardRow, LeaderboardRow } from '@/lib/stats'

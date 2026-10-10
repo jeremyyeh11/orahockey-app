@@ -19,7 +19,8 @@ import {
   type AttendanceRow,
   type MatchCardRow,
 } from '@/components/SeasonStats'
-import { accountStatusOf, type RosterPlayer, type AccountStatus } from '@/components/RosterList'
+import type { RosterPlayer } from '@/components/RosterList'
+import { accountStatusOf, type AccountStatus } from '@/lib/account'
 import { LEAGUE } from '@/lib/constants'
 import { recordedStats, records, seasonTitle, type Season } from '@/lib/season'
 import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'

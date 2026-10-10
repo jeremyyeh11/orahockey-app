@@ -5,14 +5,14 @@ import type { LeaderboardRow } from './SeasonStats'
 import {
   ACCOUNT_DOT,
   CardsCell,
-  sortPositions,
-  nameParts,
   goalTypeColumns,
   statColumns,
   statValue,
-  type AccountStatus,
   type RosterPlayer,
 } from './RosterList'
+import type { AccountStatus } from '@/lib/account'
+import { sortPositions } from '@/lib/constants'
+import { nameParts } from '@/lib/names'
 
 // Headline stats first; the goal-type breakdown (FG/PC/PS) follows as a muted group
 const STATS = [

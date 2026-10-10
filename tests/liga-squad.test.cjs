@@ -549,7 +549,8 @@ test('squad membership is admin-only and open-season-only', () => {
 })
 
 test('pending players: added without an email, shown as pending, invited only once an email is saved', () => {
-  const { accountStatusOf, ACCOUNT_DOT } = load('components/RosterList.tsx')
+  const { ACCOUNT_DOT } = load('components/RosterList.tsx')
+  const { accountStatusOf } = load('lib/account.ts')
   assert.equal(accountStatusOf({ email: null, auth_user_id: null }, null), 'pending')
   assert.equal(accountStatusOf({ email: 'a@b.co', auth_user_id: null }, null), 'none')
   assert.equal(accountStatusOf({ email: 'a@b.co', auth_user_id: null }, '2026-10-01'), 'invited')
@@ -906,7 +907,10 @@ test('Home card: ORA vs titles, MHL1/Friendly, day banner, phase + quote outside
 })
 
 test('names: every preferred word is highlighted where it sits in the full name, in any order', () => {
-  const { nameParts } = load('components/RosterList.tsx')
+  const { nameParts } = load('lib/names.ts')
+  const { sortPositions } = load('lib/constants.ts')
+  assert.deepEqual(sortPositions(['GK', 'OTHER', 'FWD', 'DEF', 'MID']), ['FWD', 'MID', 'DEF', 'GK', 'OTHER'], 'positions in display order, unknown last')
+  assert.deepEqual(sortPositions(null), [])
   const show = (full_name, preferred_name) =>
     nameParts({ full_name, preferred_name }).map((p) => (p.highlight ? `[${p.text}]` : p.text)).join('')
   assert.equal(show('MAK RUI AN RYAN', 'MAK RYAN'), '[MAK] RUI AN [RYAN]')

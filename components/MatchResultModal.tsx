@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { gameTitle } from '@/lib/constants'
-import { preferredName } from './RosterList'
+import { preferredName } from '@/lib/names'
 import Modal from './Modal'
 import type { Game, PlayerLite } from './EventDetailModal'
 import {
