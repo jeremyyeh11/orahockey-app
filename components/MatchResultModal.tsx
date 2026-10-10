@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { gameTitle } from '@/lib/constants'
-import { preferredName } from './RosterList'
+import { preferredName } from '@/lib/names'
 import Modal from './Modal'
 import type { Game, PlayerLite } from './EventDetailModal'
 import {
@@ -15,6 +15,7 @@ import {
   type GoalRow,
   type CardRow,
 } from '@/app/dashboard/schedule/resultActions'
+import { unwrap } from '@/lib/action-result'
 
 export const CARD_SHAPES: Record<CardRow['card_type'], { shape: string; cls: string; label: string }> = {
   green: { shape: '▲', cls: 'text-green-400', label: 'Green' },
@@ -129,7 +130,7 @@ export function MatchResultModal({
       return
     }
     run(async () => {
-      await setMatchScore(game.id, gfNum, gaNum)
+      await unwrap(setMatchScore(game.id, gfNum, gaNum))
       setScore({ gf: gfNum, ga: gaNum })
       setSlots((prev) => buildSlots(prev.filter((g): g is GoalRow => !!g && g.goal_number <= gfNum), gfNum))
       onScoreChange(gfNum, gaNum, gfNum > gaNum ? 'win' : gfNum < gaNum ? 'loss' : 'tie')
@@ -142,7 +143,7 @@ export function MatchResultModal({
     if (!scorerId) {
       if (!existing) return
       setSlots((prev) => prev.map((g, i) => (i === index ? null : g)))
-      run(() => deleteGoal(game.id, index + 1))
+      run(() => unwrap(deleteGoal(game.id, index + 1)))
       return
     }
     // Keep the assist unless it was the newly-picked scorer assisting themself
@@ -153,7 +154,7 @@ export function MatchResultModal({
         ? existing.assist_kind
         : null
     run(async () => {
-      const row = await saveGoal(game.id, index + 1, scorerId, assist)
+      const row = await unwrap(saveGoal(game.id, index + 1, scorerId, assist))
       setSlots((prev) => prev.map((g, i) => (i === index ? row : g)))
     })
   }
@@ -162,7 +163,7 @@ export function MatchResultModal({
     const existing = slots[index]
     if (!existing) return
     run(async () => {
-      const row = await saveGoal(game.id, index + 1, existing.scorer_id, assist || null)
+      const row = await unwrap(saveGoal(game.id, index + 1, existing.scorer_id, assist || null))
       setSlots((prev) => prev.map((g, i) => (i === index ? row : g)))
     })
   }
@@ -218,11 +219,11 @@ export function MatchResultModal({
     setSlots(renumbered)
     const filled = renumbered.filter((g): g is GoalRow => g !== null)
     run(() =>
-      reorderGoals(
+      unwrap(reorderGoals(
         game.id,
         filled.map((g) => g.id),
         filled.map((g) => g.goal_number)
-      )
+      ))
     )
   }
 
@@ -234,7 +235,7 @@ export function MatchResultModal({
   function handleAddCard() {
     if (!cardPlayer) return
     run(async () => {
-      const row = await addCard(game.id, cardPlayer, cardType)
+      const row = await unwrap(addCard(game.id, cardPlayer, cardType))
       setCards((prev) => [...prev, row])
       setCardPlayer('')
       setCardType('green')
@@ -246,7 +247,7 @@ export function MatchResultModal({
     const row = [...cards].reverse().find((c) => c.player_id === playerId && c.card_type === type)
     if (!row) return
     setCards((prev) => prev.filter((c) => c.id !== row.id))
-    run(() => removeCard(row.id))
+    run(() => unwrap(removeCard(row.id)))
   }
 
   const hasScore = score.gf != null && score.ga != null

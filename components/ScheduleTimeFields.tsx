@@ -1,8 +1,6 @@
 import { endFromTime } from '@/lib/format'
+import { inputCls, labelCls } from '@/components/form'
 
-const inputCls =
-  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
-const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 /**
  * Optional "Ends at" (a time on the start's day — earlier than the start means
@@ -21,7 +19,7 @@ export function ScheduleTimeFields({
     <div className="liga-time-fields flex gap-3">
       <div className="flex-1">
         <label className={labelCls} htmlFor="schedule-end-time">Ends at</label>
-        <input id="schedule-end-time" name="end_time" type="time" defaultValue={defaultEnd ?? ''} className={`${inputCls} h-[42px]`} />
+        <input id="schedule-end-time" name="end_time" type="time" defaultValue={defaultEnd ?? ''} className={inputCls} />
         <p className="mt-1 text-[11px] text-slate-500">Optional</p>
       </div>
       <div className="flex-1">

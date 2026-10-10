@@ -191,15 +191,10 @@ export function computeSeason({
         b.caps - a.caps
     )
 
-  const pots = Object.values(rows)
-    .filter((r) => r.potsPts > 0)
-    .sort((a, b) => b.potsPts - a.potsPts || b.potmWins - a.potmWins || b.goals - a.goals)
-    .slice(0, 3)
-
   const topScorerGroups = rankedGroups(Object.values(rows), (r) => r.goals, (r) => r.assists)
   const topAssistGroups = rankedGroups(Object.values(rows), (r) => r.assists, (r) => r.goals)
 
-  return { seasonGames, leaderboard, pots, topScorerGroups, topAssistGroups }
+  return { seasonGames, leaderboard, topScorerGroups, topAssistGroups }
 }
 
 /**

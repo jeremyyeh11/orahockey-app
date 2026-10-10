@@ -4,10 +4,12 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import SignOutButton from '@/components/SignOutButton'
-import { preferredName, sortPositions } from '@/components/RosterList'
-import { POSITIONS } from '@/lib/constants'
+import { preferredName } from '@/lib/names'
+import { sortPositions } from '@/lib/constants'
 import type { LeaderboardRow } from '@/lib/stats'
 import { updateMyProfile } from '@/app/dashboard/profile/actions'
+import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
 export type MyProfileData = {
   player: {
@@ -311,10 +313,6 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
   )
 }
 
-const inputCls =
-  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand [color-scheme:dark]'
-const labelCls = 'mb-1 block text-xs font-medium text-slate-400'
-
 /** What a player may change about themselves: preferred name, date of birth, positions */
 function EditMyProfile({ player, onClose }: { player: MyProfileData['player']; onClose: () => void }) {
   const router = useRouter()
@@ -328,11 +326,11 @@ function EditMyProfile({ player, onClose }: { player: MyProfileData['player']; o
     setError(null)
     startTransition(async () => {
       try {
-        await updateMyProfile({
+        await unwrap(updateMyProfile({
           preferred_name: (fd.get('preferred_name') as string) || null,
           date_of_birth: (fd.get('date_of_birth') as string) || null,
           position: positions,
-        })
+        }))
         router.refresh()
         onClose()
       } catch (err) {
@@ -352,47 +350,16 @@ function EditMyProfile({ player, onClose }: { player: MyProfileData['player']; o
         </div>
         <div>
           <label className={labelCls} htmlFor="me-dob">Date of birth</label>
-          <input id="me-dob" name="date_of_birth" type="date" defaultValue={player.date_of_birth ?? ''} className={`${inputCls} h-[42px]`} />
+          <input id="me-dob" name="date_of_birth" type="date" defaultValue={player.date_of_birth ?? ''} className={inputCls} />
           <p className="mt-1 text-[11px] text-slate-500">Shown on your profile to the whole team.</p>
         </div>
         <div>
           <span className={labelCls}>Positions</span>
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Positions">
-            {POSITIONS.map((pos) => (
-              <button
-                key={pos}
-                type="button"
-                aria-pressed={positions.includes(pos)}
-                onClick={() => setPositions((prev) => (prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]))}
-                className={`liga-button min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold transition ${
-                  positions.includes(pos)
-                    ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
-                    : 'border-surface-border text-slate-400 hover:border-slate-500 hover:text-white'
-                }`}
-              >
-                {pos}
-              </button>
-            ))}
-          </div>
+          <PositionPicker value={positions} onChange={setPositions} />
         </div>
         <p className="text-[11px] text-slate-500">Your photo, name, jersey number and email are managed by the coaches.</p>
-        {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-        <div className="flex gap-3 pt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="liga-button liga-button-primary bg-accent flex-1 rounded-lg text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
-          >
-            {isPending ? 'Saving…' : 'Save'}
-          </button>
-        </div>
+        <FormError error={error} />
+        <FormButtons isPending={isPending} onCancel={onClose} />
       </form>
     </Modal>
   )

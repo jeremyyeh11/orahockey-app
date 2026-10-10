@@ -25,3 +25,12 @@ export const GAME_TYPE_LABEL: Record<string, string> = {
 
 /** Playing positions, in display order */
 export const POSITIONS = ['FWD', 'MID', 'DEF', 'GK'] as const
+
+/** Positions in display order (FWD, MID, DEF, GK); anything else goes last */
+export function sortPositions(pos: string[] | null | undefined) {
+  const rank = (p: string) => {
+    const i = (POSITIONS as readonly string[]).indexOf(p)
+    return i === -1 ? POSITIONS.length : i
+  }
+  return [...(pos ?? [])].sort((a, b) => rank(a) - rank(b))
+}

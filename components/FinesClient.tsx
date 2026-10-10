@@ -3,10 +3,12 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import Modal from '@/components/Modal'
+import { FormButtons, FormError, hintCls, inputCls, labelCls } from '@/components/form'
 import { fmtDate, fmtDateTime } from '@/lib/format'
 import { FINE_AMOUNT, FINE_KIND_NOUN, fineHref, fineKey, finesByPlayer, isOutstanding, type Fine, type RsvpStatus } from '@/lib/fines'
 import { setFinePaid, setFineWaived } from '@/app/admin/fines/actions'
-import { preferredName } from '@/components/RosterList'
+import { preferredName } from '@/lib/names'
+import { unwrap } from '@/lib/action-result'
 
 const STATUS: Record<RsvpStatus, string> = { attending: "I'm in", maybe: 'Maybe', not_attending: 'Out' }
 
@@ -221,7 +223,7 @@ export default function FinesClient({
                                   <button
                                     type="button"
                                     disabled={pendingKey === key}
-                                    onClick={() => change(f, () => (f.waived ? setFineWaived(ref(f), false) : setFinePaid(ref(f), false)))}
+                                    onClick={() => change(f, () => (f.waived ? unwrap(setFineWaived(ref(f), false)) : unwrap(setFinePaid(ref(f), false))))}
                                     className={actionCls}
                                   >
                                     {f.waived ? 'Undo waive' : 'Undo paid'}
@@ -231,7 +233,7 @@ export default function FinesClient({
                                     <button
                                       type="button"
                                       disabled={pendingKey === key}
-                                      onClick={() => change(f, () => setFinePaid(ref(f), true))}
+                                      onClick={() => change(f, () => unwrap(setFinePaid(ref(f), true)))}
                                       className={actionCls}
                                     >
                                       Paid
@@ -270,7 +272,7 @@ export default function FinesClient({
             setWaiving(null)
             setError(null)
           }}
-          onWaive={(note) => change(waiving, () => setFineWaived(ref(waiving), true, note), () => setWaiving(null))}
+          onWaive={(note) => change(waiving, () => unwrap(setFineWaived(ref(waiving), true, note)), () => setWaiving(null))}
         />
       )}
     </div>
@@ -310,7 +312,7 @@ function WaiveModal({
           </p>
         </div>
         <div>
-          <label htmlFor="waive-reason" className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor="waive-reason" className={labelCls}>
             Reason *
           </label>
           <textarea
@@ -322,27 +324,12 @@ function WaiveModal({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. PM'd Ish before changing"
-            className="liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className={inputCls}
           />
-          <p className="mt-1 text-[11px] text-slate-500">Shown on the fine for everyone.</p>
+          <p className={hintCls}>Shown on the fine for everyone.</p>
         </div>
-        {error && <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={pending || !note.trim()}
-            className="liga-button liga-button-primary bg-accent flex-1 rounded-lg text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-40"
-          >
-            {pending ? 'Waiving…' : 'Waive fine'}
-          </button>
-        </div>
+        <FormError error={error} />
+        <FormButtons isPending={pending} disabled={!note.trim()} onCancel={onCancel} label="Waive fine" pendingLabel="Waiving…" />
       </form>
     </Modal>
   )

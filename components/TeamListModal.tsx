@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { gameTitle } from '@/lib/constants'
-import { preferredName } from './RosterList'
+import { preferredName } from '@/lib/names'
 import Modal from './Modal'
 import type { PlayerLite } from './EventDetailModal'
 import { saveTeamList, unpublishTeamList, type TeamListEntry } from '@/app/admin/schedule/teamListActions'
 import type { Game } from './EventDetailModal'
 import type { AttendanceRow } from './EventDetailModal'
+import { unwrap } from '@/lib/action-result'
 
 type PlayerWithMeta = PlayerLite & {
   position: string[] | null
@@ -66,7 +67,7 @@ export function TeamListModal({
       player_id: p.id,
       selected: selections[p.id] ?? false,
     }))
-    saveTeamList(game.id, entries, 'draft')
+    unwrap(saveTeamList(game.id, entries, 'draft'))
       .then(() => {
         onStatusChange('draft')
         onClose()
@@ -83,7 +84,7 @@ export function TeamListModal({
       player_id: p.id,
       selected: selections[p.id] ?? false,
     }))
-    saveTeamList(game.id, entries, 'published')
+    unwrap(saveTeamList(game.id, entries, 'published'))
       .then(() => {
         onStatusChange('published')
         onClose()
@@ -96,7 +97,7 @@ export function TeamListModal({
 
   function handleUnpublish() {
     setIsPending(true)
-    unpublishTeamList(game.id)
+    unwrap(unpublishTeamList(game.id))
       .then(() => {
         setCurrentStatus('draft')
         onStatusChange('draft')

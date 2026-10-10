@@ -33,8 +33,6 @@ export type RecordedStat = (typeof RECORDABLE_STATS)[number]
 export const recordedStats = (s: Pick<Season, 'recorded_stats'>): string[] => s.recorded_stats ?? [...RECORDABLE_STATS]
 /** Whether a season recorded one stat — e.g. records(season, 'assists') */
 export const records = (s: Pick<Season, 'recorded_stats'>, stat: RecordedStat) => recordedStats(s).includes(stat)
-/** Anything beyond appearances (false = appearances only) */
-export const statsRecorded = (s: Pick<Season, 'recorded_stats'>) => recordedStats(s).length > 0
 
 /**
  * Pseudo-season for the switcher's "All time" option: every season combined.

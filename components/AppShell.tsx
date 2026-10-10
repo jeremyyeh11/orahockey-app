@@ -1,7 +1,6 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { isLigaAppPath } from '@/lib/liga-ui'
 import { signOut } from '@/lib/auth'
 import { CLUB_NAME } from '@/lib/constants'
 import BottomNav, { type NavItem } from '@/components/BottomNav'
@@ -39,7 +38,6 @@ export default function AppShell({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-  const ligaApp = isLigaAppPath(pathname)
   const seasons = seasonNav && seasonNav.seasons.length > 0 && !NOT_SEASON_SCOPED.test(pathname) ? seasonNav : null
 
   async function handleLogout() {
@@ -47,8 +45,10 @@ export default function AppShell({
     router.push('/login')
   }
 
+  // liga-ui scopes the app's Liga styles. Only the /admin and /dashboard shells
+  // render AppShell, so login and auth pages never get them.
   return (
-    <div className={`flex min-h-screen flex-col ${ligaApp ? 'liga-ui' : ''}`}>
+    <div className="liga-ui flex min-h-screen flex-col">
       {/* Top bar — background spans the window; its contents align with the page column */}
       <header className="app-header sticky top-0 z-30 border-b border-white/10 bg-white/[0.03] backdrop-blur-xl">
         <div className="app-container flex items-center px-4 py-3.5 lg:py-2">

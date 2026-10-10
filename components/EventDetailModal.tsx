@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { ReadEditModal } from './ReadEditModal'
-import { preferredName } from './RosterList'
-import { fmtDateTime, fmtDateTimeRange, fmtReport, dateBlock, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
+import { preferredName } from '@/lib/names'
+import { fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
 import { FINE_AMOUNT, FINE_KIND_NOUN, type FineReason } from '@/lib/fines'
 import { RespondBy } from './RespondBy'
+import { FormError, inputCls, labelCls } from './form'
 import { ScheduleTimeFields, readTimeFields } from './ScheduleTimeFields'
 import { FinesFields, readFinesFields } from './FinesFields'
 import { GameTypeSwitch } from './GameTypeSwitch'
@@ -24,6 +25,7 @@ import {
 } from './MatchResultModal'
 import { ChevronRightIcon } from './icons'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
+import { unwrap } from '@/lib/action-result'
 
 export type Game = {
   id: string
@@ -98,17 +100,12 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   ot_loss: { label: 'L·OT', cls: 'bg-red-900/60 text-red-300' },
 }
 
-const inputCls =
-  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
-const dateInputCls = `${inputCls} h-[42px]`
-const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
 type BreakdownGroup = { label: string; players: { id: string; name: string; at?: string }[] }
 
 function buildBreakdown(
   attendance: AttendanceRow[] | undefined,
-  roster: PlayerLite[],
-  myPlayerId: string
+  roster: PlayerLite[]
 ): BreakdownGroup[] {
   const groups: Record<string, (PlayerLite & { at?: string })[]> = {
     attending: [],
@@ -157,7 +154,6 @@ export function EventDetailModal({
   onSaveTraining,
   onSaveEvent,
   onDelete,
-  isPending,
   inline = false,
 }: {
   item: EventItem | null
@@ -176,17 +172,23 @@ export function EventDetailModal({
   /** This event's unwaived fines by player — marked in the attendance list */
   fined?: Record<string, FineReason[]>
   onClose: () => void
-  onSaveGame: (id: string, data: GameInput) => void
-  onSaveTraining: (id: string, data: TrainingInput) => void
-  onSaveEvent: (id: string, data: EventInput) => void
-  onDelete: () => void
-  isPending: boolean
+  /**
+   * Admin edits — only reachable in edit mode, which needs isAdmin. Awaited:
+   * a rejected save keeps edit mode open with the error shown.
+   */
+  onSaveGame?: (id: string, data: GameInput) => Promise<void>
+  onSaveTraining?: (id: string, data: TrainingInput) => Promise<void>
+  onSaveEvent?: (id: string, data: EventInput) => Promise<void>
+  onDelete?: () => Promise<void>
   /** Desktop master–detail: render as the Schedule page's side panel instead of a modal */
   inline?: boolean
 }) {
   // Admin controls only apply while the event's season is open
   const isAdmin = isAdminUser && !readOnly
   const [editMode, setEditMode] = useState(false)
+  // Admin save/delete: wait for the server, and on failure stay in edit mode with the error shown
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, startSaving] = useTransition()
   const [respondingId, setRespondingId] = useState<string | null>(null)
   const [showTeamList, setShowTeamList] = useState(false)
   const [showResult, setShowResult] = useState(false)
@@ -213,7 +215,7 @@ export function EventDetailModal({
   const title = eventTitle(currentItem)
   const endIso = eventEnd(currentItem)
   const editEnd = endIso ? toTimeLocal(endIso) : ''
-  const breakdown = buildBreakdown(attendanceBySession[sessionId], roster, myPlayerId)
+  const breakdown = buildBreakdown(attendanceBySession[sessionId], roster)
   // Reply times: open seasons only (archived ones carry import times)
   const showTimes = !readOnly && breakdown.some((g) => g.players.some((p) => p.at))
 
@@ -277,7 +279,19 @@ export function EventDetailModal({
   function handleRespond(status: MyStatus) {
     setLocalMyStatus(status)
     setRespondingId(sessionId)
-    setAttendance(sessionId, kind, status).finally(() => setRespondingId(null))
+    unwrap(setAttendance(sessionId, kind, status)).finally(() => setRespondingId(null))
+  }
+
+  function runAdminAction(action: () => Promise<void> | undefined, onDone?: () => void) {
+    setSaveError(null)
+    startSaving(async () => {
+      try {
+        await action()
+        onDone?.()
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Something went wrong')
+      }
+    })
   }
 
   function handleSave(e: React.FormEvent<HTMLFormElement>) {
@@ -299,7 +313,7 @@ export function EventDetailModal({
         ...readTimeFields(fd, gameDate),
         ...readFinesFields(fd),
       }
-      onSaveGame(sessionId, data)
+      runAdminAction(() => onSaveGame?.(sessionId, data), () => setEditMode(false))
     } else if (kind === 'event') {
       const eventDate = fromDatetimeLocal(fd.get('event_date') as string)
       const data: EventInput = {
@@ -310,7 +324,7 @@ export function EventDetailModal({
         ...readTimeFields(fd, eventDate),
         ...readFinesFields(fd),
       }
-      onSaveEvent(sessionId, data)
+      runAdminAction(() => onSaveEvent?.(sessionId, data), () => setEditMode(false))
     } else {
       const sessionDate = fromDatetimeLocal(fd.get('session_date') as string)
       const data: TrainingInput = {
@@ -320,9 +334,8 @@ export function EventDetailModal({
         ...readTimeFields(fd, sessionDate),
         ...readFinesFields(fd),
       }
-      onSaveTraining(sessionId, data)
+      runAdminAction(() => onSaveTraining?.(sessionId, data), () => setEditMode(false))
     }
-    setEditMode(false)
   }
 
   // If result entry modal is open, render it instead
@@ -391,9 +404,9 @@ export function EventDetailModal({
         const form = document.getElementById('event-edit-form') as HTMLFormElement | null
         form?.requestSubmit()
       }}
-      onDiscard={() => setEditMode(false)}
-      isPending={isPending}
-      onDelete={isAdmin && editMode ? onDelete : undefined}
+      onDiscard={() => { setEditMode(false); setSaveError(null) }}
+      isPending={saving}
+      onDelete={isAdmin && editMode && onDelete ? () => runAdminAction(onDelete) : undefined}
     >
       {/* READ MODE */}
       {!editMode && (
@@ -591,7 +604,7 @@ export function EventDetailModal({
               </div>
               <div>
                 <label className={labelCls}>Date &amp; time *</label>
-                <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={dateInputCls} />
+                <input name="game_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.game.game_date)} className={inputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <FinesFields
@@ -636,7 +649,7 @@ export function EventDetailModal({
               </div>
               <div>
                 <label className={labelCls}>Date &amp; time *</label>
-                <input name="event_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.event.event_date)} className={dateInputCls} />
+                <input name="event_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.event.event_date)} className={inputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <FinesFields
@@ -659,7 +672,7 @@ export function EventDetailModal({
             <>
               <div>
                 <label className={labelCls}>Date &amp; time *</label>
-                <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={dateInputCls} />
+                <input name="session_date" type="datetime-local" required defaultValue={toDatetimeLocal(currentItem.training.session_date)} className={inputCls} />
               </div>
               <ScheduleTimeFields defaultEnd={editEnd} defaultReport={eventReportMinutes(currentItem)} />
               <FinesFields
@@ -677,6 +690,7 @@ export function EventDetailModal({
               </div>
             </>
           )}
+          <FormError error={saveError} />
         </form>
       )}
     </ReadEditModal>

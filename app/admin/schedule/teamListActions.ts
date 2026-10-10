@@ -1,36 +1,24 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { action, requireAdmin, revalidateTabs } from '@/lib/action-helpers'
 
 export type TeamListEntry = {
   player_id: string
   selected: boolean
 }
 
-export type TeamListStatus = 'draft' | 'published' | null
-
 /**
  * Save the team list for a game (draft or publish).
  * Replaces all existing entries for the game with the new set.
  */
-export async function saveTeamList(
+export const saveTeamList = action(async (
   gameId: string,
   entries: TeamListEntry[],
   status: 'draft' | 'published'
-) {
+) => {
   const supabase = createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not signed in')
-
-  const { data: me } = await supabase
-    .from('players')
-    .select('id, role')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (!me || me.role !== 'admin') throw new Error('Admin only')
+  await requireAdmin(supabase)
 
   // Delete existing entries
   await supabase.from('match_team_lists').delete().eq('game_id', gameId)
@@ -57,28 +45,15 @@ export async function saveTeamList(
 
   if (gameErr) throw new Error(gameErr.message)
 
-  revalidatePath('/admin/schedule')
-  revalidatePath('/dashboard/schedule')
-  revalidatePath('/admin/dashboard')
-  revalidatePath('/dashboard')
-}
+  revalidateTabs('schedule', 'home')
+})
 
 /**
  * Unpublish the team list (set status to draft, hide from players)
  */
-export async function unpublishTeamList(gameId: string) {
+export const unpublishTeamList = action(async (gameId: string) => {
   const supabase = createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not signed in')
-
-  const { data: me } = await supabase
-    .from('players')
-    .select('id, role')
-    .eq('auth_user_id', user.id)
-    .single()
-
-  if (!me || me.role !== 'admin') throw new Error('Admin only')
+  await requireAdmin(supabase)
 
   const { error } = await supabase
     .from('games')
@@ -87,8 +62,5 @@ export async function unpublishTeamList(gameId: string) {
 
   if (error) throw new Error(error.message)
 
-  revalidatePath('/admin/schedule')
-  revalidatePath('/dashboard/schedule')
-  revalidatePath('/admin/dashboard')
-  revalidatePath('/dashboard')
-}
+  revalidateTabs('schedule', 'home')
+})

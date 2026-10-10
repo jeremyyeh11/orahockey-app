@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { gameTitle } from '@/lib/constants'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { preferredName } from './RosterList'
+import { preferredName } from '@/lib/names'
 import { castPotmVote } from '@/app/dashboard/polls/potmActions'
 import { fmtDateTime } from '@/lib/format'
 import type { PotmPoll } from '@/lib/potm'
+import { unwrap } from '@/lib/action-result'
 
 /**
  * Player-of-the-Match voting for the Polls tab (backlog #5). Rank 1st/2nd/3rd from the
@@ -144,7 +145,7 @@ function PotmCard({
     if (!allPicked) return
     setError(null)
     setBusy(true)
-    castPotmVote(poll.id, first, second, third)
+    unwrap(castPotmVote(poll.id, first, second, third))
       .then(() => onVoted(poll.id))
       .catch((err) => setError(err instanceof Error ? err.message : 'Something went wrong'))
       .finally(() => setBusy(false))

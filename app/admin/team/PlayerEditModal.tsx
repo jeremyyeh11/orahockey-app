@@ -3,9 +3,11 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
-import { LEAGUE, POSITIONS } from '@/lib/constants'
+import { LEAGUE } from '@/lib/constants'
 import { updatePlayer } from './actions'
 import { PlayerPhotoField } from '@/components/PlayerPhotoField'
+import { FormButtons, FormError, PositionPicker, hintCls, inputCls, labelCls } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
 /** What the admin profile knows about how this player can be edited */
 export type EditContext = {
@@ -35,11 +37,6 @@ export type EditablePlayer = {
   photo_path?: string | null
 }
 
-const inputCls =
-  'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50'
-const labelCls = 'mb-1 block text-xs font-medium text-slate-400'
-const hintCls = 'mt-1 text-[11px] text-slate-500'
-
 /**
  * Admin-only edit of a player's details, opened from their profile. A bottom
  * sheet on phones, a centred dialog on desktop (shared Modal), above the profile.
@@ -58,10 +55,6 @@ export default function PlayerEditModal({
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  function togglePosition(pos: string) {
-    setPositions((prev) => (prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]))
-  }
-
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -72,7 +65,7 @@ export default function PlayerEditModal({
     setError(null)
     startTransition(async () => {
       try {
-        await updatePlayer(player.id, {
+        await unwrap(updatePlayer(player.id, {
           full_name: fd.get('full_name') as string,
           preferred_name: (fd.get('preferred_name') as string) || null,
           // Disabled inputs aren't submitted: keep the existing email then
@@ -82,7 +75,7 @@ export default function PlayerEditModal({
           date_of_birth: (fd.get('date_of_birth') as string) || null,
           is_active: fd.get('is_active') === 'on',
           jersey_number: context.jerseyMode === 'archived' ? player.jersey_number : num('jersey_number'),
-        })
+        }))
         router.refresh()
         onClose()
       } catch (err) {
@@ -130,23 +123,7 @@ export default function PlayerEditModal({
 
         <div>
           <span className={labelCls}>Positions</span>
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Positions">
-            {POSITIONS.map((pos) => (
-              <button
-                key={pos}
-                type="button"
-                aria-pressed={positions.includes(pos)}
-                onClick={() => togglePosition(pos)}
-                className={`liga-button min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold transition ${
-                  positions.includes(pos)
-                    ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
-                    : 'border-surface-border text-slate-400 hover:border-slate-500 hover:text-white'
-                }`}
-              >
-                {pos}
-              </button>
-            ))}
-          </div>
+          <PositionPicker value={positions} onChange={setPositions} />
           <p className={hintCls}>Every position they play — the same across all seasons.</p>
         </div>
 
@@ -178,7 +155,7 @@ export default function PlayerEditModal({
 
         <div>
           <label className={labelCls} htmlFor="edit-dob">Date of birth</label>
-          <input id="edit-dob" name="date_of_birth" type="date" defaultValue={player.date_of_birth ?? ''} className={`${inputCls} h-[42px]`} />
+          <input id="edit-dob" name="date_of_birth" type="date" defaultValue={player.date_of_birth ?? ''} className={inputCls} />
           <p className={hintCls}>Years at ORA is worked out from their first season played.</p>
         </div>
 
@@ -190,26 +167,9 @@ export default function PlayerEditModal({
           </span>
         </label>
 
-        {error && (
-          <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
-        )}
+        <FormError error={error} />
 
-        <div className="flex gap-3 pt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-          >
-            {isPending ? 'Saving…' : 'Save'}
-          </button>
-        </div>
+        <FormButtons isPending={isPending} onCancel={onClose} />
       </form>
     </Modal>
   )

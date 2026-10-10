@@ -2,13 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { addPlayer, togglePlayerActive } from './actions'
+import { addPlayer } from '@/app/admin/team/actions'
 import RosterList from '@/components/RosterList'
 import RosterTable from '@/components/RosterTable'
 import { startNavigationProgress } from '@/components/NavigationProgress'
-import { defaultPreferredName } from '@/components/RosterList'
 import Modal from '@/components/Modal'
-import ExistingPlayerPicker, { type OutsidePlayer } from './ExistingPlayerPicker'
+import ExistingPlayerPicker, { type OutsidePlayer } from '@/app/admin/team/ExistingPlayerPicker'
 import {
   useSeasonStats,
   TopScorersCard,
@@ -20,30 +19,24 @@ import {
   type AttendanceRow,
   type MatchCardRow,
 } from '@/components/SeasonStats'
-import { accountStatusOf, type RosterPlayer, type AccountStatus } from '@/components/RosterList'
-import { LEAGUE, POSITIONS } from '@/lib/constants'
+import type { RosterPlayer } from '@/components/RosterList'
+import { accountStatusOf, type AccountStatus } from '@/lib/account'
+import { LEAGUE } from '@/lib/constants'
 import { recordedStats, records, seasonTitle, type Season } from '@/lib/season'
+import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
+import { unwrap } from '@/lib/action-result'
 
-type Player = RosterPlayer & PlayerLite & {
+/** A squad member; the account fields are only loaded for admins */
+export type SquadPlayer = RosterPlayer & PlayerLite & {
   /** null = pending: added before onboarding, no email yet */
-  email: string | null
-  role: 'player' | 'admin'
-  auth_user_id: string | null
+  email?: string | null
+  role?: 'player' | 'admin'
+  auth_user_id?: string | null
 }
 
-type WhitelistRow = { email: string; invited_at: string | null; claimed_at: string | null }
+export type WhitelistRow = { email: string; invited_at: string | null; claimed_at: string | null }
 
-type Game = {
-  id: string
-  opponent: string
-  game_date: string
-  goals_for: number | null
-  goals_against: number | null
-  result: string | null
-  season_id: string
-}
-
-type FormData = {
+type NewPlayer = {
   full_name: string
   preferred_name: string | null
   email: string | null
@@ -52,8 +45,13 @@ type FormData = {
   role: 'player' | 'admin'
 }
 
-
+/**
+ * The Squad tab for both areas (SquadView loads it): Top Scorers / Top Assists
+ * and the roster (cards on touch layouts, a sortable table on desktop). Admins
+ * also get account dots, Show inactive, + Add Player and + Existing Player.
+ */
 export default function SquadClient({
+  basePath,
   season,
   players,
   games,
@@ -62,22 +60,25 @@ export default function SquadClient({
   attendance,
   cards,
   myPlayerId,
-  whitelist,
-  notInSquad,
+  whitelist = [],
+  notInSquad = [],
 }: {
+  basePath: '/dashboard' | '/admin'
   season: Season
   /** The season's squad (season_players), with that season's jersey numbers */
-  players: Player[]
-  games: Game[]
+  players: SquadPlayer[]
+  games: GameLite[]
   stats: SeasonStat[]
   potm: PotmRow[]
   attendance: AttendanceRow[]
   cards: MatchCardRow[]
   myPlayerId: string | null
-  whitelist: WhitelistRow[]
-  /** Players on the books who aren't in this season's squad (for "+ Existing Player") */
-  notInSquad: OutsidePlayer[]
+  /** Admins: invites, for the account dots */
+  whitelist?: WhitelistRow[]
+  /** Admins: players on the books who aren't in this season's squad (for "+ Existing Player") */
+  notInSquad?: OutsidePlayer[]
 }) {
+  const isAdmin = basePath === '/admin'
   const router = useRouter()
   const [showAddModal, setShowAddModal] = useState(false)
   const [showExisting, setShowExisting] = useState(false)
@@ -91,28 +92,34 @@ export default function SquadClient({
   const { topScorerGroups, topAssistGroups, statsMap } = useSeasonStats({
     season,
     players,
-    games: games as unknown as GameLite[],
+    games,
     stats,
     potm,
     attendance,
     cards,
   })
 
-  // Account status per player: green = signed in before, amber = invited
+  // Account status per player (admins): green = signed in before, amber = invited
   // but not claimed, grey = no account yet, hollow = pending (no email yet)
-  const wlByEmail = new Map(whitelist.map((w) => [w.email, w]))
-  const accountMap = new Map<string, AccountStatus>(
-    players.map((p) => [p.id, accountStatusOf(p, p.email ? wlByEmail.get(p.email)?.invited_at : null)])
-  )
+  let accountMap: Map<string, AccountStatus> | undefined
+  if (isAdmin) {
+    const wlByEmail = new Map(whitelist.map((w) => [w.email, w]))
+    accountMap = new Map(
+      players.map((p) => [
+        p.id,
+        accountStatusOf({ email: p.email ?? null, auth_user_id: p.auth_user_id ?? null }, p.email ? wlByEmail.get(p.email)?.invited_at : null),
+      ])
+    )
+  }
 
-  // A past (locked) season shows its whole squad, read-only
+  // A past (locked) season shows its whole squad, read-only; an open one, who's active now
   const visible = season.locked || showInactive ? players : players.filter((p) => p.is_active)
   const rosterProps = {
     players: visible,
     myPlayerId,
-    onSelect: (p: Player) => {
+    onSelect: (p: SquadPlayer) => {
       startNavigationProgress()
-      router.push(`/admin/team/${p.id}`, { scroll: false })
+      router.push(`${basePath}/team/${p.id}`, { scroll: false })
     },
     statsMap,
     recorded: recordedStats(season),
@@ -126,13 +133,7 @@ export default function SquadClient({
     setShowAddModal(true)
   }
 
-  function togglePosition(pos: string) {
-    setSelectedPositions((prev) =>
-      prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos]
-    )
-  }
-
-  function parseForm(form: HTMLFormElement): FormData {
+  function parseForm(form: HTMLFormElement): NewPlayer {
     const fd = new FormData(form)
     const jerseyRaw = fd.get('jersey_number') as string
     const preferredRaw = (fd.get('preferred_name') as string).trim()
@@ -152,7 +153,7 @@ export default function SquadClient({
     setError(null)
     startTransition(async () => {
       try {
-        await addPlayer(data, joinSeason)
+        await unwrap(addPlayer(data, joinSeason))
         setShowAddModal(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -160,19 +161,9 @@ export default function SquadClient({
     })
   }
 
-  function handleToggleActive(player: Player) {
-    startTransition(async () => {
-      await togglePlayerActive(player.id, !player.is_active)
-    })
-  }
-
-  const inputCls =
-    'liga-field w-full rounded-lg border border-surface-border bg-surface px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
-  const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
-
   return (
     <div className="liga-page p-4">
-      {/* Header + add player (open seasons only) */}
+      {/* Header + add player (admins, open seasons only) */}
       <div className="liga-page-header mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="liga-page-title text-white">Squad</h1>
@@ -180,7 +171,7 @@ export default function SquadClient({
             {seasonTitle(season)} · {visible.length} players
           </p>
         </div>
-        {!season.locked && (
+        {isAdmin && !season.locked && (
           <div className="liga-squad-actions flex min-w-0 flex-wrap items-center gap-2">
             <button
               onClick={openAdd}
@@ -219,7 +210,7 @@ export default function SquadClient({
         </aside>
 
         <div className="min-w-0">
-          {!season.locked && players.some((p) => !p.is_active) && (
+          {isAdmin && !season.locked && players.some((p) => !p.is_active) && (
             <label className="liga-inactive-toggle liga-meta flex min-h-[44px] items-center gap-2 text-xs text-slate-400 mb-4 cursor-pointer w-fit">
               <input
                 type="checkbox"
@@ -232,7 +223,9 @@ export default function SquadClient({
           )}
 
           {visible.length === 0 ? (
-            <p className="text-slate-500 text-sm py-4 text-center">No players yet. Add one above.</p>
+            <p className="py-4 text-center text-sm text-slate-500">
+              {isAdmin ? 'No players yet. Add one above.' : "No players in this season's squad yet."}
+            </p>
           ) : (
             <>
               {/* Cards on touch layouts, a sortable table on desktop */}
@@ -279,22 +272,7 @@ export default function SquadClient({
               </div>
               <div className="flex-1">
                 <label className={labelCls}>Position</label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {POSITIONS.map((pos) => (
-                    <button
-                      key={pos}
-                      type="button"
-                      onClick={() => togglePosition(pos)}
-                      className={`liga-button rounded-lg px-2.5 py-2 text-xs font-semibold border transition ${
-                        selectedPositions.includes(pos)
-                          ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
-                          : 'border-surface-border text-slate-400 hover:text-white hover:border-slate-500'
-                      }`}
-                    >
-                      {pos}
-                    </button>
-                  ))}
-                </div>
+                <PositionPicker value={selectedPositions} onChange={setSelectedPositions} />
               </div>
             </div>
             <div>
@@ -318,25 +296,8 @@ export default function SquadClient({
                 </span>
               </span>
             </label>
-            {error && (
-              <p className="liga-alert liga-alert-error rounded-lg bg-red-900/40 px-3 py-2 text-sm text-red-400">{error}</p>
-            )}
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => { setShowAddModal(false); setError(null) }}
-                className="liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="liga-button liga-button-primary bg-accent flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110 disabled:opacity-50"
-              >
-                {isPending ? 'Saving…' : 'Save'}
-              </button>
-            </div>
+            <FormError error={error} />
+            <FormButtons isPending={isPending} onCancel={() => { setShowAddModal(false); setError(null) }} />
           </form>
         </Modal>
       )}

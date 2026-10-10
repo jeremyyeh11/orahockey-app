@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { setPollVote } from '@/app/dashboard/polls/actions'
 import { CheckIcon } from '@/components/icons'
 import { voterCount, type Poll } from '@/lib/polls'
+import { unwrap } from '@/lib/action-result'
 
 /**
  * A poll's options, Telegram-style: tap an option to vote — no Vote button.
@@ -52,7 +53,7 @@ export function PollOptions({
     setError(null)
     startTransition(async () => {
       try {
-        await setPollVote(poll.id, next)
+        await unwrap(setPollVote(poll.id, next))
       } catch (err) {
         setPicked(null)
         setError(err instanceof Error ? err.message : 'Something went wrong')

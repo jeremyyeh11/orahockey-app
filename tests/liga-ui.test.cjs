@@ -16,22 +16,24 @@ function declarations(selector) {
 }
 
 test('authenticated app typography, controls and shell are scoped to app routes', () => {
-  assert.match(read('components/AppShell.tsx'), /isLigaAppPath\(pathname\)/)
+  // Liga styles hang off the shell's liga-ui class; login/auth pages never render the shell
+  assert.match(read('components/AppShell.tsx'), /<div className="liga-ui /)
+  for (const page of ['app/login/page.tsx', 'app/auth/confirm/page.tsx', 'app/auth/set-password/page.tsx']) {
+    assert.doesNotMatch(read(page), /AppShell|liga-ui/, `${page} stays outside the app shell`)
+  }
   for (const file of [
-    'app/dashboard/polls/PollsClient.tsx',
-    'app/admin/polls/PollsClient.tsx',
+    'components/PollsClient.tsx',
     'components/MyProfile.tsx',
     'components/HomeView.tsx',
   ]) assert.match(read(file), /liga-page/, `${file} exposes the shared page frame`)
-  assert.match(read('app/dashboard/schedule/ScheduleClient.tsx'), /liga-event-list/)
-  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /liga-event-list/)
+  assert.match(read('components/ScheduleClient.tsx'), /liga-event-list/)
   assert.match(read('components/EventRow.tsx'), /liga-event-row/)
   assert.equal(declarations('.liga-ui')['font-family'], 'var(--font-inter), ui-sans-serif, system-ui, sans-serif')
   assert.equal(declarations('.liga-ui .liga-event-card.card')['background-color'], 'transparent')
   assert.equal(declarations('.liga-ui .liga-event-card.card')['border-bottom'], '1px solid #323238')
   // RSVP: one compact bordered group (Home cards and schedule rows), never spread across the row
   assert.match(read('components/RsvpButtons.tsx'), /liga-rsvp flex gap-2 lg:max-w-sm/)
-  for (const area of ['admin', 'dashboard']) assert.match(read(`app/${area}/schedule/ScheduleClient.tsx`), /<RsvpButtons value=\{mine\}/)
+  assert.match(read('components/ScheduleClient.tsx'), /<RsvpButtons value=\{mine\}/)
   assert.match(read('components/HomeRsvp.tsx'), /<RsvpButtons /)
   assert.deepEqual(declarations('.liga-ui .liga-event-actions .liga-button'), {}, 'no spread-out action styles left')
   assert.equal(declarations('.liga-ui .liga-meta')['font-family'], 'var(--font-liga-mono), ui-monospace, monospace')
@@ -42,16 +44,6 @@ test('authenticated app typography, controls and shell are scoped to app routes'
   assert.deepEqual(declarations('.liga-page'), {}, 'page framing stays scoped to the app shell')
   assert.equal(declarations('.liga-ui .menu-dock')['backdrop-filter'], 'none')
   assert.match(read('components/BottomNav.tsx'), /safe-area-inset-bottom\)\+24px/)
-  const ts = require('typescript')
-  const compiled = ts.transpileModule(read('lib/liga-ui.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
-  const module = { exports: {} }
-  new Function('exports', 'module', compiled)(module.exports, module)
-  const { isLigaAppPath } = module.exports
-  for (const p of [
-    '/dashboard', '/dashboard/team', '/dashboard/team/123', '/dashboard/schedule', '/dashboard/polls',
-    '/admin', '/admin/dashboard', '/admin/team', '/admin/schedule', '/admin/polls', '/admin/profile', '/admin/team/123',
-  ]) assert.equal(isLigaAppPath(p), true)
-  for (const p of ['/', '/login', '/auth/confirm', '/auth/set-password', null]) assert.equal(isLigaAppPath(p), false)
 })
 
 test('shared app pages expose consistent list, surface and modal hooks', () => {
@@ -132,9 +124,9 @@ test('every modal uses the shared dialog shell (Esc, focus, labelling, desktop w
   assert.match(modal, /md: 'sm:max-w-md lg:max-w-lg'/)
   assert.match(modal, /useModalScrollLock\(\)/)
   for (const file of [
-    'app/admin/polls/PollsClient.tsx',
-    'app/admin/schedule/ScheduleClient.tsx',
-    'app/admin/team/SquadClient.tsx',
+    'components/PollsClient.tsx',
+    'components/ScheduleClient.tsx',
+    'components/SquadClient.tsx',
     'components/AdminControlPanel.tsx',
     'components/MatchResultModal.tsx',
     'components/PlayerProfilePage.tsx',
@@ -154,8 +146,8 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
     assert.match(read(`app/${area}/team/@modal/default.tsx`), /return null/)
     assert.match(read(`app/${area}/team/@modal/(.)[playerId]/page.tsx`), /<PlayerProfileView [^>]*\boverlay\b/)
     assert.ok(fs.existsSync(path.join(root, `app/${area}/team/[playerId]/page.tsx`)), 'direct visits keep the full page')
-    assert.match(read(`app/${area}/team/SquadClient.tsx`), /router\.push\(`\/\w+\/team\/\$\{p\.id\}`, \{ scroll: false \}\)/, 'opening keeps the list scroll')
   }
+  assert.match(read('components/SquadClient.tsx'), /router\.push\(`\$\{basePath\}\/team\/\$\{p\.id\}`, \{ scroll: false \}\)/, 'opening keeps the list scroll')
   const profile = read('components/PlayerProfilePage.tsx')
   assert.match(profile, /useMediaQuery\(DESKTOP_QUERY\)/)
   assert.match(profile, /pathname\.endsWith\(`\/team\/\$\{props\.player\.id\}`\)/, 'stale slot renders nothing off the profile URL')
@@ -171,9 +163,7 @@ test('Squad profiles open over the list via an intercepted route (dialog on desk
   assert.match(profile, /startNavigationProgress\(\)\s+router\.push\(squadPath\)/, 'page Back goes to Squad (with progress), not out of the app')
   assert.match(profile, /useModalScrollLock\(presentation === 'page' && !isDesktop\)/, 'desktop page scrolls normally')
   // Top Scorers / Top Assists sit side by side on phones too
-  for (const area of ['admin', 'dashboard']) {
-    assert.match(read(`app/${area}/team/SquadClient.tsx`), /<aside className="[^"]*\bgrid grid-cols-2\b[^"]*xl:grid-cols-1/)
-  }
+  assert.match(read('components/SquadClient.tsx'), /<aside className="[^"]*\bgrid grid-cols-2\b[^"]*xl:grid-cols-1/)
   assert.doesNotMatch(profile, /text-white\/8"/, 'jersey watermark uses a real opacity value')
   assert.match(read('lib/useMediaQuery.ts'), /DESKTOP_QUERY = '\(min-width: 1024px\)'/)
 })
@@ -251,17 +241,16 @@ test('locked seasons are read-only in the app, admins included', () => {
   const detail = read('components/EventDetailModal.tsx')
   assert.match(detail, /const isAdmin = isAdminUser && !readOnly/, 'admin controls switch off in a locked season')
   assert.match(detail, /isGame && !editMode && !readOnly \?/, 'no result entry')
-  for (const area of ['admin', 'dashboard']) {
-    const schedule = read(`app/${area}/schedule/ScheduleClient.tsx`)
-    assert.match(schedule, /const readOnly = season\.locked/)
-    assert.match(schedule, /readOnly=\{readOnly\}/, `${area} schedule passes read-only to event details`)
-    assert.match(schedule, /\{!readOnly && \(\s*<RsvpButtons /, `${area} schedule hides RSVP buttons`)
-  }
-  assert.match(read('app/admin/schedule/ScheduleClient.tsx'), /\{!readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
+  // One ScheduleClient serves both areas
+  const schedule = read('components/ScheduleClient.tsx')
+  assert.match(schedule, /const readOnly = season\.locked/)
+  assert.match(schedule, /readOnly=\{readOnly\}/, 'schedule passes read-only to event details')
+  assert.match(schedule, /\{!readOnly && \(\s*<RsvpButtons /, 'schedule hides RSVP buttons')
+  assert.match(schedule, /\{isAdmin && !readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
   for (const fn of ['addGame', 'addTraining']) {
-    assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export async function ${fn}[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
+    assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export const ${fn} = action[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
   }
-  assert.match(read('app/admin/team/actions.ts'), /export async function addPlayer[\s\S]*?requireOpenSeason\(\)/)
+  assert.match(read('app/admin/team/actions.ts'), /export const addPlayer = action[\s\S]*?requireOpenSeason\(\)/)
   // The database is the real guard
   const migration = read('supabase/migrations/011_seasons.sql')
   assert.match(migration, /\) not in \('anon', 'authenticated'\)/, 'only app requests are blocked; backend writes pass')
@@ -278,7 +267,7 @@ test('navigation progress bar starts on link clicks and programmatic pushes', ()
   assert.match(bar, /s === 'loading' \? 'done' : s/, 'finishes when the pathname changes')
   assert.match(bar, /10_000/, 'never spins forever')
   assert.match(read('components/AppShell.tsx'), /<NavigationProgress \/>/)
-  for (const f of ['app/admin/team/SquadClient.tsx', 'app/dashboard/team/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/DashboardShell.tsx', 'components/AdminControlPanel.tsx']) {
+  for (const f of ['components/SquadClient.tsx', 'components/PlayerProfilePage.tsx', 'app/dashboard/DashboardShell.tsx', 'components/AdminControlPanel.tsx']) {
     assert.match(read(f), /startNavigationProgress\(\)\s+router\.push\(/, `${f} starts the bar before router.push`)
   }
 })

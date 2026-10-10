@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import { fmtDateTime } from '@/lib/format'
 import type { FineReason } from '@/lib/fines'
-import { preferredName } from '@/components/RosterList'
+import { preferredName } from '@/lib/names'
 
 type Person = { id: string; full_name: string; preferred_name: string | null }
 

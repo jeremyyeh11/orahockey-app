@@ -2,11 +2,8 @@
 
 import type { LeaderboardRow } from './SeasonStats'
 import type { AccountStatus } from '@/lib/account'
-
-// Re-exported for client components that import them from here. Server
-// components must import from '@/lib/account' — this is a client module.
-export type { AccountStatus }
-export { accountStatusOf } from '@/lib/account'
+import { sortPositions } from '@/lib/constants'
+import { nameParts } from '@/lib/names'
 
 export type RosterPlayer = {
   id: string
@@ -27,139 +24,6 @@ export const ACCOUNT_DOT: Record<AccountStatus, { cls: string; title: string }> 
 }
 
 
-const POSITION_ORDER: Record<string, number> = { FWD: 0, MID: 1, DEF: 2, GK: 3 }
-
-/** Default preferred name = first word of full_name, uppercased */
-export function defaultPreferredName(fullName: string): string {
-  return (fullName.trim().split(/\s+/)[0] ?? '').toUpperCase()
-}
-
-/** Effective preferred name: explicit override or default from full_name */
-export function preferredName(player: { full_name: string; preferred_name: string | null }): string {
-  return (player.preferred_name?.trim() || defaultPreferredName(player.full_name)).toUpperCase()
-}
-
-export type NamePart = { text: string; highlight: boolean }
-
-/**
- * The full name as highlighted / plain parts, in the full name's own word order.
- * Every word of the preferred name is highlighted wherever it appears, in any
- * order: "MAK RYAN" and "RYAN MAK" both give **MAK** RUI AN **RYAN**. A preferred
- * word may also sit inside a longer word ("ISH" in ISHWARPAL, "KEAEN" in
- * KEAEN-SETH). If a preferred word isn't in the full name at all, the preferred
- * name leads and the full name follows.
- */
-export function nameParts(player: { full_name: string; preferred_name: string | null }): NamePart[] {
-  const preferred = preferredName(player)
-  const words = player.full_name.trim().toUpperCase().split(/\s+/).filter(Boolean)
-  const prefWords = preferred.split(/\s+/).filter(Boolean)
-
-  // Highlighted [start, end) within each full-name word, or null
-  const marks: ([number, number] | null)[] = words.map(() => null)
-  for (const pw of prefWords) {
-    let i = words.findIndex((w, k) => !marks[k] && w === pw)
-    if (i === -1) i = words.findIndex((w, k) => !marks[k] && w.includes(pw))
-    if (i === -1) {
-      return [
-        { text: preferred, highlight: true },
-        { text: ` ${words.join(' ')}`, highlight: false },
-      ]
-    }
-    const at = words[i] === pw ? 0 : words[i].indexOf(pw)
-    marks[i] = [at, at + pw.length]
-  }
-
-  const parts: NamePart[] = []
-  const push = (text: string, highlight: boolean) => {
-    if (!text) return
-    const last = parts[parts.length - 1]
-    if (last && last.highlight === highlight) last.text += text
-    else parts.push({ text, highlight })
-  }
-  words.forEach((w, k) => {
-    if (k > 0) {
-      // The space joins two highlighted words ("PEH YU") or sits in the plain text
-      const prev = marks[k - 1]
-      const joined = !!prev && prev[1] === words[k - 1].length && !!marks[k] && marks[k]![0] === 0
-      push(' ', joined)
-    }
-    const m = marks[k]
-    if (!m) return push(w, false)
-    push(w.slice(0, m[0]), false)
-    push(w.slice(m[0], m[1]), true)
-    push(w.slice(m[1]), false)
-  })
-  return parts
-}
-
-/** Splits a name into parts: before, preferred, after — keeping original word order.
- *  Returns separators so the renderer knows whether to insert a space between parts.
- *  Within-word splits (e.g. "ISH" in "ISHWARPAL") have no separator — the parts are joined directly. */
-export function splitName(player: { full_name: string; preferred_name: string | null }): { before: string; beforeSep: string; preferred: string; afterSep: string; after: string } {
-  const preferred = preferredName(player)
-  const full = player.full_name.trim()
-  const words = full.split(/\s+/)
-  const prefWords = preferred.split(/\s+/)
-
-  // First: try multi-word match (e.g. "PEH YU" in "PEH YU TAY")
-  if (prefWords.length > 1) {
-    for (let i = 0; i <= words.length - prefWords.length; i++) {
-      const slice = words.slice(i, i + prefWords.length)
-      if (slice.every((w, j) => w.toUpperCase() === prefWords[j].toUpperCase())) {
-        return {
-          before: words.slice(0, i).join(' ').toUpperCase(),
-          beforeSep: ' ',
-          preferred,
-          afterSep: ' ',
-          after: words.slice(i + prefWords.length).join(' ').toUpperCase(),
-        }
-      }
-    }
-  }
-
-  // Second: try exact whole-word match (case-insensitive, single word)
-  const wordIdx = words.findIndex(w => w.toUpperCase() === preferred.toUpperCase())
-  if (wordIdx !== -1) {
-    return {
-      before: words.slice(0, wordIdx).join(' ').toUpperCase(),
-      beforeSep: ' ',
-      preferred,
-      afterSep: ' ',
-      after: words.slice(wordIdx + 1).join(' ').toUpperCase(),
-    }
-  }
-
-  // Third: try substring match within a word (e.g. "KEAEN" in "KEAEN-SETH", "ISH" in "ISHWARPAL")
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i].toUpperCase()
-    const p = preferred.toUpperCase()
-    const pos = w.indexOf(p)
-    if (pos !== -1) {
-      const beforeWord = words.slice(0, i).join(' ')
-      const wordBefore = words[i].slice(0, pos)
-      const wordAfter = words[i].slice(pos + p.length)
-      const afterParts = [wordAfter, ...words.slice(i + 1)].filter(s => s.length > 0)
-      // Determine separators based on whether the split is within the same word
-      // If wordBefore is non-empty, it's part of the same word — no separator
-      const beforeText = [beforeWord, wordBefore].filter(s => s.length > 0).join(' ').toUpperCase()
-      const beforeSep = wordBefore.length > 0 ? '' : ' '
-      // If wordAfter is non-empty, it's part of the same word — no separator
-      const afterText = afterParts.join(' ').toUpperCase()
-      const afterSep = wordAfter.length > 0 ? '' : ' '
-      return { before: beforeText, beforeSep, preferred, afterSep, after: afterText }
-    }
-  }
-
-  // Not found at all — show full name with preferred prepended
-  return { before: '', beforeSep: '', preferred, afterSep: ' ', after: full.toUpperCase() }
-}
-
-export function sortPositions(pos: string[] | null | undefined) {
-  return [...(pos ?? [])].sort(
-    (a, b) => (POSITION_ORDER[a] ?? 9) - (POSITION_ORDER[b] ?? 9)
-  )
-}
-
 function CardShape({ color, count }: { color: 'green' | 'yellow' | 'red'; count: number }) {
   if (count === 0) return null
   const shapes = {
@@ -176,7 +40,7 @@ function CardShape({ color, count }: { color: 'green' | 'yellow' | 'red'; count:
 }
 
 
-export function CardsCell({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
+export function CardsCell({ row }: { row: LeaderboardRow }) {
   const { green, yellow, red } = row.cards
   if (green === 0 && yellow === 0 && red === 0) {
     return <span className="text-slate-600 text-xs">–</span>
@@ -359,7 +223,7 @@ export default function RosterList<T extends RosterPlayer>({
               <div className="liga-roster-details relative mt-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
                 <StatRow row={stats} isMe={isMe} positions={player.position} recorded={recorded} />
                 <div className="liga-roster-sanctions liga-meta shrink-0">
-                  <CardsCell row={stats} isMe={isMe} />
+                  <CardsCell row={stats} />
                 </div>
               </div>
             )}
