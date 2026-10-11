@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import SignOutButton from '@/components/SignOutButton'
 import { preferredName } from '@/lib/names'
+import { RoleTag } from './RoleTag'
 import { sortPositions } from '@/lib/constants'
 import type { LeaderboardRow } from '@/lib/stats'
 import { updateMyProfile } from '@/app/dashboard/profile/actions'
@@ -130,6 +131,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
             <div className="-mt-6 relative">
               <div className="font-display text-3xl font-extrabold uppercase leading-none text-white">{preferredName(player)}</div>
               <div className="liga-meta mt-1 text-slate-400">{player.full_name}</div>
+              <RoleTag role={player.role} className="mt-1.5" />
               {positions.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {positions.map((p) => (

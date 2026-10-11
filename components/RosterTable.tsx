@@ -13,6 +13,7 @@ import {
 import type { AccountStatus } from '@/lib/account'
 import { sortPositions } from '@/lib/constants'
 import { nameParts } from '@/lib/names'
+import { RoleTag } from './RoleTag'
 
 // Headline stats first; the goal-type breakdown (FG/PC/PS) follows as a muted group
 const STATS = [
@@ -151,6 +152,7 @@ export default function RosterTable<T extends RosterPlayer>({
                     {part.text}
                   </span>
                 ))}
+                <RoleTag role={p.role} className="ml-1.5 align-middle" />
                 {isMe && <span className="sr-only"> (you)</span>}
               </>
             )
