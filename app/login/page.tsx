@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { CLUB_NAME, LEAGUE } from '@/lib/constants'
+import { isAdminRole } from '@/lib/roles'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -65,7 +66,7 @@ export default function LoginPage() {
         .eq('auth_user_id', data.user.id)
         .single()
 
-      if (player?.role === 'admin') {
+      if (isAdminRole(player?.role)) {
         router.push('/admin/dashboard')
       } else {
         router.push('/dashboard')

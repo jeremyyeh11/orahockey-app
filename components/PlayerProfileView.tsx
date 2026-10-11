@@ -98,11 +98,13 @@ export async function PlayerProfileView({
   let editContext: EditContext | undefined
   if (includeAccount) {
     const p = player as unknown as { auth_user_id: string | null }
+    const { data: viewer } = await supabase.from('players').select('role').eq('auth_user_id', user?.id ?? '').maybeSingle()
     editContext = {
       seasonLabel: season.label,
       jerseyMode: seasonEntry ? (season.locked ? 'archived' : 'season') : 'default',
       hasAccount: !!p.auth_user_id,
       isSelf: !!p.auth_user_id && p.auth_user_id === user?.id,
+      viewerIsSuperadmin: viewer?.role === 'superadmin',
     }
   }
 

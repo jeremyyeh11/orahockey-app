@@ -8,6 +8,7 @@ import { updatePlayer } from './actions'
 import { PlayerPhotoField } from '@/components/PlayerPhotoField'
 import { FormButtons, FormError, PositionPicker, hintCls, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
+import { FINEMASTER_HINT, ROLE_LABEL, assignableRoles, type Role } from '@/lib/roles'
 
 /** What the admin profile knows about how this player can be edited */
 export type EditContext = {
@@ -22,6 +23,8 @@ export type EditContext = {
   hasAccount: boolean
   /** Viewing yourself — your own role can't be changed */
   isSelf: boolean
+  /** Only a superadmin can give or remove superadmin */
+  viewerIsSuperadmin: boolean
 }
 
 export type EditablePlayer = {
@@ -29,7 +32,7 @@ export type EditablePlayer = {
   full_name: string
   preferred_name: string | null
   email?: string | null
-  role?: 'player' | 'admin'
+  role?: Role
   position: string[] | null
   date_of_birth?: string | null
   is_active: boolean
@@ -70,7 +73,7 @@ export default function PlayerEditModal({
           preferred_name: (fd.get('preferred_name') as string) || null,
           // Disabled inputs aren't submitted: keep the existing email then
           email: context.hasAccount ? player.email ?? null : ((fd.get('email') as string) || null),
-          role: context.isSelf ? player.role ?? 'player' : (fd.get('role') as 'player' | 'admin'),
+          role: context.isSelf ? player.role ?? 'player' : (fd.get('role') as Role),
           position: positions,
           date_of_birth: (fd.get('date_of_birth') as string) || null,
           is_active: fd.get('is_active') === 'on',
@@ -146,10 +149,11 @@ export default function PlayerEditModal({
           <div className="flex-1">
             <label className={labelCls} htmlFor="edit-role">Role</label>
             <select id="edit-role" name="role" defaultValue={player.role ?? 'player'} disabled={context.isSelf} className={inputCls}>
-              <option value="player">Player</option>
-              <option value="admin">Admin</option>
+              {assignableRoles(context.viewerIsSuperadmin, player.role).map((r) => (
+                <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+              ))}
             </select>
-            {context.isSelf && <p className={hintCls}>You can’t change your own role.</p>}
+            {context.isSelf ? <p className={hintCls}>You can’t change your own role.</p> : <p className={hintCls}>{FINEMASTER_HINT}</p>}
           </div>
         </div>
 

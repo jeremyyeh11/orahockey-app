@@ -10,6 +10,7 @@ import type { LeaderboardRow } from '@/lib/stats'
 import { updateMyProfile } from '@/app/dashboard/profile/actions'
 import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
+import type { Role } from '@/lib/roles'
 
 export type MyProfileData = {
   player: {
@@ -20,7 +21,7 @@ export type MyProfileData = {
     position: string[] | null
     date_of_birth: string | null
     email: string | null
-    role: 'player' | 'admin'
+    role: Role
     photoUrl: string | null
   }
   /** Seasons they've been in the squad for, newest first */

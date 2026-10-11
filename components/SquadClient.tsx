@@ -23,14 +23,15 @@ import type { RosterPlayer } from '@/components/RosterList'
 import { accountStatusOf, type AccountStatus } from '@/lib/account'
 import { LEAGUE } from '@/lib/constants'
 import { recordedStats, records, seasonTitle, type Season } from '@/lib/season'
-import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
+import { FormButtons, FormError, PositionPicker, hintCls, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
+import { FINEMASTER_HINT, ROLE_LABEL, assignableRoles, type Role } from '@/lib/roles'
 
 /** A squad member; the account fields are only loaded for admins */
 export type SquadPlayer = RosterPlayer & PlayerLite & {
   /** null = pending: added before onboarding, no email yet */
   email?: string | null
-  role?: 'player' | 'admin'
+  role?: Role
   auth_user_id?: string | null
 }
 
@@ -42,7 +43,7 @@ type NewPlayer = {
   email: string | null
   jersey_number: number | null
   position: string[] | null
-  role: 'player' | 'admin'
+  role: Role
 }
 
 /**
@@ -143,7 +144,7 @@ export default function SquadClient({
       email: ((fd.get('email') as string) ?? '').trim() || null,
       jersey_number: jerseyRaw ? Number(jerseyRaw) : null,
       position: selectedPositions.length > 0 ? selectedPositions : null,
-      role: fd.get('role') as 'player' | 'admin',
+      role: fd.get('role') as Role,
     }
   }
 
@@ -278,9 +279,11 @@ export default function SquadClient({
             <div>
               <label className={labelCls}>Role</label>
               <select name="role" className={inputCls} defaultValue="player">
-                <option value="player">Player</option>
-                <option value="admin">Admin</option>
+                {assignableRoles(false).map((r) => (
+                  <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                ))}
               </select>
+              <p className={hintCls}>{FINEMASTER_HINT}</p>
             </div>
             <label className="liga-join-season flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-surface-border px-3 py-2.5">
               <input

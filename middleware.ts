@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { USER_EMAIL_HEADER, USER_ID_HEADER } from '@/lib/supabase/request-user'
+import { isAdminRole } from '@/lib/roles'
 
 // Role lookups hit the DB, so cache the result in a short-lived cookie.
 // Value is `${userId}:${role}` so a different login never reuses it.
@@ -103,15 +104,15 @@ export async function middleware(request: NextRequest) {
   // Admins can opt into the player view from the admin control panel
   const viewAsPlayer = request.cookies.get('ora-view')?.value === 'player'
 
-  // Admin trying to access player dashboard → redirect to admin
-  if (role === 'admin' && pathname.startsWith('/dashboard') && !viewAsPlayer) {
+  // Admin (or superadmin) trying to access player dashboard → redirect to admin
+  if (isAdminRole(role) && pathname.startsWith('/dashboard') && !viewAsPlayer) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin/dashboard'
     return withRoleCookie(NextResponse.redirect(url))
   }
 
-  // Player trying to access admin area → redirect to player dashboard
-  if (role !== 'admin' && pathname.startsWith('/admin')) {
+  // Player (or finemaster) trying to access admin area → redirect to player dashboard
+  if (!isAdminRole(role) && pathname.startsWith('/admin')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return withRoleCookie(NextResponse.redirect(url))
