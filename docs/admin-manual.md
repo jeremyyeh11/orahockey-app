@@ -74,8 +74,9 @@ Manage the roster.
 
 ### Fines
 The **Fines** tab (between Squad and Profile). Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:
-- **Late reply** - first reply after the deadline, or none at all (counted in the month the deadline passed).
+- **Late reply** - first reply after the deadline, or none at all (counted in the month the deadline passed). Also a player still on **Update later** 24 hours before the start (or at the deadline, if that's later) - shown as *Still on Update later*.
 - **Late change** - a player changing their own answer in the 24 hours before the start (counted in the month of the change). The app can't see who PM'd the coaching committee, so every such change is fined - **Waive** the ones who did.
+- At most one fine per player per event - the first one that applies.
 - Each outstanding fine has **Paid** and **Waive**. **Waive** asks for a reason (e.g. *PM'd Ish before changing*), which shows on the fine for everyone. Paid and waived fines are greyed out and keep an **Undo**.
 - The card under the month says **Outstanding** (with the amount still owed) or **Settled** once every fine is paid or waived. Players who still owe are listed first and open; settled players collapse.
 - **Copy outstanding for WhatsApp** copies what each player still owes that month, to paste into a message.

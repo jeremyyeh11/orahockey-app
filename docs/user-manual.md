@@ -24,7 +24,7 @@ Seasons up to **2025** only recorded who played each game (and the scores): they
 Past seasons are **archived** (marked with a lock icon) and **read-only** - you can look at results, stats, team lists and attendance, but nothing can be changed (not even by coaches). The app goes back to the current season the next time you open it.
 
 ### Home
-Your landing screen. Shows the season record (W - D - L) and where the season is - **Pre-season** (before the first fixture), **Season**, or **Post-season** (after the last), **Next up** - right under the season card: the next game, the next training and the next team event (one of each, soonest first; the soonest is the green card). Tap **I'm in / Maybe / Out** on a card to answer straight from Home, or tap the card (**→**) to open its details on the Schedule - then your own stats for that season (**Apps** - league games you played, friendlies don't count; Goals; Assists; **Attendance %** - how many of the season's games, friendlies, trainings and team events so far you said **I'm in** to), the last result (tap it for that game's details), and a prompt if there are active polls awaiting your vote. Below your season stats is **All time** - your appearances, goals and assists across every season. On a computer, the season, Next up and recent results sit on the left and your stats on the right.
+Your landing screen. Shows the season record (W - D - L) and where the season is - **Pre-season** (before the first fixture), **Season**, or **Post-season** (after the last), **Next up** - right under the season card: the next game, the next training and the next team event (one of each, soonest first; the soonest is the green card). Tap **I'm in / Update later / Out** on a card to answer straight from Home, or tap the card (**→**) to open its details on the Schedule - then your own stats for that season (**Apps** - league games you played, friendlies don't count; Goals; Assists; **Attendance %** - how many of the season's games, friendlies, trainings and team events so far you said **I'm in** to), the last result (tap it for that game's details), and a prompt if there are active polls awaiting your vote. Below your season stats is **All time** - your appearances, goals and assists across every season. On a computer, the season, Next up and recent results sit on the left and your stats on the right.
 
 ### Squad
 The season's squad with each player's stats for that season: goals by type (**FG** field goal, **PC** penalty corner, **PS** penalty stroke), assists (**A**), clean sheets for keepers (**CS**), Player of the Match wins (**POTM**) and appearances (**APP**). On a phone each player is a card; on a computer the roster is a table - click any column heading to sort by it. Jersey numbers are the ones from that season.
@@ -37,12 +37,12 @@ The season's squad with each player's stats for that season: goals by type (**FG
 A list of the season's games, training sessions and team **events** (gatherings, meetings…), split into **Upcoming** and **Past**. Friendly games are tagged **Friendly** and don't count towards records or stats. Times show as a range when there's an end time (e.g. *Sat 10 Oct · 09:00 – 11:00*), with the time to report by underneath when there is one.
 
 - Use the **All / Games / Trainings / Events** filter chips to narrow the list.
-- For any upcoming event, tap **I'm in / Maybe / Out** right on the card to set your attendance. Until you reply, the card shows a countdown above the buttons (e.g. *1d 5h left to reply*) with the deadline underneath - amber in the last 24 hours, red once overdue (see **Fines** below).
+- For any upcoming event, tap **I'm in / Update later / Out** right on the card to set your attendance. Until you reply, the card shows a countdown above the buttons (e.g. *1d 5h left to reply*) with the deadline underneath - amber in the last 24 hours, red once overdue (see **Fines** below). When you tap **Out**, a box under the buttons lets you add a reason (optional) - everyone sees it next to your name in the attendance list.
 - **Tap any event** to open its detail view. On a computer the details sit in a panel beside the list instead - it shows the next event to start with; click any event to switch. There you can:
   - see the full details (opponent, date/time, venue, home/away, type, result and score for played games),
   - set or change your attendance,
   - see the **Reply by** deadline and whether fines apply,
-  - see the **attendance breakdown** - Attending, Maybe, Not attending, Hasn't responded, in that order - with when each person gave their answer, and a red **Late** / **Late change** tag on anyone fined for that event,
+  - see the **attendance breakdown** - Attending, Update later, Not attending (with any reason given), Hasn't responded, in that order - with when each person gave their answer, and a red **Late** / **Late change** tag on anyone fined for that event,
   - read the **Additional Information** note (added by coaches).
 
 ### Polls
@@ -55,7 +55,9 @@ Your own page: your photo (taken and uploaded by the coaches), positions, career
 **$5** a time, collated at the end of each month. The **Fines** tab shows everyone's fines, one month at a time: a card says whether the month is **Outstanding** or **Settled**, then each player with what each fine was for. Paid and waived fines are greyed out (a waived fine shows why).
 
 - **Late reply** - replying after the **Reply by** deadline, or not replying at all. Deadlines (Singapore time): weekend games and trainings - **Thursday 23:59** before; weekday training - **Sunday 23:59** before; weekday games - **72 hours** before; polls and team events - **72 hours** after they're posted. Your *first* reply is what counts.
+- **Update later** isn't a final answer. If you're on **Update later** when the deadline passes (or switch to it afterwards), you have until **24 hours before the start** to change to **I'm in** or **Out** - still on Update later then is a late reply. If the deadline is already inside those 24 hours, there's no extra time.
 - **Late change** - changing your answer in the **24 hours before the start**. You must also PM a member of the coaching committee (Ish / Akash / Faris / Hiren / Jaspal); if you did, they'll waive the fine.
+- At most **one fine per event** - e.g. still on Update later 24h before, then changing to I'm in, is one fine, not two.
 - Some casual events and polls have fines switched off - their detail view says **No fines**. Team events start with fines off. Player-of-the-match voting never has fines.
 - Only players with an app account can be fined.
 

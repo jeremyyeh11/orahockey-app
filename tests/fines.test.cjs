@@ -108,12 +108,60 @@ test('late changes: own change within 24h of the start, one per event; waivers k
     authIdOf: (p) => `auth-${p}`,
     now: new Date(sg('2026-10-11T00:00:00')),
   })
-  assert.deepEqual(fines.map((f) => [f.playerId, f.reason, f.from, f.to, f.at, f.waived]), [
-    ['a', 'late_change', 'attending', 'not_attending', sg('2026-10-10T08:00:00'), true],
-  ], 'b changed 25h before; c was changed by an admin; d changed after the start')
+  assert.deepEqual(fines.map((f) => [f.playerId, f.reason, f.from, f.to, f.at, f.waived, !!f.undecided]), [
+    ['b', 'late_reply', undefined, undefined, sg('2026-10-09T15:00:00'), false, true],
+    ['a', 'late_change', 'attending', 'not_attending', sg('2026-10-10T08:00:00'), true, false],
+  ], 'b changed 25h before (not a late change, but still on Update later 24h before); c was changed by an admin; d changed after the start')
 
   const totals = finesByPlayer(fines)
-  assert.deepEqual(totals.map((t) => [t.playerId, t.count, t.total]), [['a', 0, 0]], 'waived fines stay listed but cost nothing')
+  assert.deepEqual(totals.map((t) => [t.playerId, t.count, t.total]), [['b', 1, FINE_AMOUNT], ['a', 0, 0]], 'waived fines stay listed but cost nothing')
+})
+
+test('Update later: settle on I\'m in or Out by 24h before the start, or be fined — one fine per event at most', () => {
+  // Sat 09:00 training: reply by Thu 23:59, Update later settles by Fri 09:00
+  const entry = {
+    kind: 'training', id: 't2', title: 'Training', start: sg('2026-10-10T09:00:00'), respondBy: sg('2026-10-08T23:59:59'),
+    finesEnabled: true, expected: ['settled', 'stuck', 'switched', 'stuckThenIn', 'lateThenLater', 'inOnTime'],
+  }
+  const change = (player_id, changed_at, status, previous_status = null) => ({
+    player_id, session_id: 't2', session_type: 'training', status, previous_status, changed_at, changed_by: `auth-${player_id}`,
+  })
+  const changes = [
+    change('settled', sg('2026-10-07T10:00:00'), 'maybe'),
+    change('settled', sg('2026-10-09T08:00:00'), 'not_attending', 'maybe'), // after the deadline, before the 24h cutoff
+    change('stuck', sg('2026-10-07T10:00:00'), 'maybe'),
+    change('switched', sg('2026-10-07T10:00:00'), 'attending'),
+    change('switched', sg('2026-10-09T07:00:00'), 'maybe', 'attending'), // switched after the deadline
+    change('stuckThenIn', sg('2026-10-07T10:00:00'), 'maybe'),
+    change('stuckThenIn', sg('2026-10-09T20:00:00'), 'attending', 'maybe'), // inside 24h: already fined, no second fine
+    change('lateThenLater', sg('2026-10-09T08:00:00'), 'maybe'), // late reply, then still undecided
+    change('inOnTime', sg('2026-10-07T10:00:00'), 'attending'),
+  ]
+  const args = { entries: [entry], changes, votes: [], waivers: [], authIdOf: (p) => `auth-${p}` }
+
+  const beforeCutoff = computeFines({ ...args, now: new Date(sg('2026-10-09T08:30:00')) })
+  assert.deepEqual(beforeCutoff.map((f) => f.playerId), ['lateThenLater'], 'Update later is fine until the 24h cutoff')
+
+  const fines = computeFines({ ...args, now: new Date(sg('2026-10-11T00:00:00')) })
+  assert.deepEqual(fines.map((f) => [f.playerId, f.reason, f.at, !!f.undecided]), [
+    ['lateThenLater', 'late_reply', entry.respondBy, false],
+    ['stuck', 'late_reply', sg('2026-10-09T09:00:00'), true],
+    ['switched', 'late_reply', sg('2026-10-09T09:00:00'), true],
+    ['stuckThenIn', 'late_reply', sg('2026-10-09T09:00:00'), true],
+  ])
+
+  // Added late: the deadline is already inside the last 24h, so Update later gets no extra time
+  const late = { ...entry, id: 't3', respondBy: sg('2026-10-09T20:00:00'), expected: ['x', 'y'] }
+  const lateFines = computeFines({
+    ...args,
+    entries: [late],
+    changes: [
+      { ...change('x', sg('2026-10-09T18:00:00'), 'maybe'), session_id: 't3' },
+      { ...change('y', sg('2026-10-09T18:00:00'), 'attending'), session_id: 't3' },
+    ],
+    now: new Date(sg('2026-10-09T21:00:00')),
+  })
+  assert.deepEqual(lateFines.map((f) => [f.playerId, f.at, !!f.undecided]), [['x', late.respondBy, true]])
 })
 
 test('polls: the vote time decides; totals are $5 a fine, most owed first', () => {

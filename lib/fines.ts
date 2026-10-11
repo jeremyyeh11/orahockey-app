@@ -7,7 +7,10 @@ import { toDatetimeLocal } from '@/lib/format'
 /** Dollars per fine */
 export const FINE_AMOUNT = 5
 
-/** Changing your RSVP this close to the start (without telling the coaching committee) is fined */
+/**
+ * Changing your RSVP this close to the start (without telling the coaching
+ * committee) is fined — and "Update later" must be settled before it starts
+ */
 export const LATE_CHANGE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 const HOUR = 60 * 60 * 1000
@@ -18,6 +21,12 @@ export type FineKind = 'game' | 'training' | 'event' | 'poll'
 export const FINE_KIND_NOUN: Record<FineKind, string> = { game: 'match', training: 'training', event: 'event', poll: 'poll' }
 export type FineReason = 'late_reply' | 'late_change'
 export type RsvpStatus = 'attending' | 'not_attending' | 'maybe'
+
+/** What players see for each RSVP answer ('maybe' is stored, "Update later" is shown) */
+export const RSVP_LABEL: Record<RsvpStatus, string> = { attending: "I'm in", maybe: 'Update later', not_attending: 'Out' }
+
+/** Longest "why I'm out" (attendance.reason, 033) */
+export const OUT_REASON_MAX = 200
 
 // ── Respond-by ──────────────────────────────────────────────
 
@@ -110,6 +119,8 @@ export type Fine = {
   at: string
   /** Late reply: when they did reply (null = never) */
   repliedAt?: string | null
+  /** Late reply: still on "Update later" when a final answer was due (`at`) */
+  undecided?: boolean
   /** Late change: what changed */
   from?: RsvpStatus
   to?: RsvpStatus
@@ -128,12 +139,17 @@ export const fineKey = (f: { playerId: string; kind: FineKind; itemId: string; r
   `${f.playerId}|${f.kind}|${f.itemId}|${f.reason}`
 
 /**
- * Every fine as of `now`:
+ * Every fine as of `now` — at most one per player per entry:
  *  - late reply: an expected player's first reply (RSVP or poll vote) came after
  *    the respond-by, or never came — once the respond-by has passed
- *  - late change: a player changed their own RSVP within 24h of the start (one
- *    fine per event, at the first such change). The coaching committee can't be
- *    seen from here, so admins waive the ones who told them.
+ *  - still on "Update later" (also a late reply): "Update later" isn't a final
+ *    answer, so a player on it when the respond-by passes gets until 24h before
+ *    the start to say I'm in or Out. Anyone still on it then is fined — including
+ *    anyone who switched to it after the respond-by. If the respond-by is already
+ *    inside those 24h, there's no extra time.
+ *  - late change: a player changed their own RSVP within 24h of the start (at the
+ *    first such change). The coaching committee can't be seen from here, so admins
+ *    waive the ones who told them.
  * Entries with fines off or no respond-by never fine. `authIdOf` maps a player
  * to their auth user, so changes someone else made aren't held against them.
  */
@@ -159,19 +175,30 @@ export function computeFines({
   const waived = new Map(waivers.map((w) => [keyOf(w), w.note ?? null]))
   const paid = new Map(payments.map((p) => [keyOf(p), p.paid_at]))
   const nowMs = now.getTime()
+  const ms = (iso: string) => new Date(iso).getTime()
 
   const firstReply = new Map<string, string>()
   const remember = (key: string, at: string) => {
     const prev = firstReply.get(key)
-    if (!prev || new Date(at).getTime() < new Date(prev).getTime()) firstReply.set(key, at)
+    if (!prev || ms(at) < ms(prev)) firstReply.set(key, at)
   }
   for (const c of changes) remember(`${c.session_type}|${c.session_id}|${c.player_id}`, c.changed_at)
   for (const v of votes) remember(`poll|${v.poll_id}|${v.player_id}`, v.voted_at)
 
+  // Each session's RSVP history, oldest first
   const changesBySession = new Map<string, RsvpChange[]>()
-  for (const c of changes) {
+  for (const c of [...changes].sort((a, b) => ms(a.changed_at) - ms(b.changed_at))) {
     const key = `${c.session_type}|${c.session_id}`
     changesBySession.set(key, [...(changesBySession.get(key) ?? []), c])
+  }
+  /** A player's answer as it stood at `atMs` (null = no reply yet) */
+  const statusAt = (history: RsvpChange[], playerId: string, atMs: number) => {
+    let status: RsvpStatus | null = null
+    for (const c of history) {
+      if (ms(c.changed_at) > atMs) break
+      if (c.player_id === playerId) status = c.status
+    }
+    return status
   }
 
   const fines: Fine[] = []
@@ -182,42 +209,44 @@ export function computeFines({
 
   for (const e of entries) {
     if (!e.finesEnabled || !e.respondBy) continue
-    const dueMs = new Date(e.respondBy).getTime()
+    const dueMs = ms(e.respondBy)
+    const history = changesBySession.get(`${e.kind}|${e.id}`) ?? []
+    const startMs = e.kind === 'poll' || !e.start ? null : ms(e.start)
+    // "Update later" must turn into I'm in or Out by 24h before the start (or the respond-by, if later)
+    const decideByMs = startMs === null ? null : Math.max(dueMs, startMs - LATE_CHANGE_WINDOW_MS)
+    const fined = new Set<string>()
 
-    if (dueMs <= nowMs) {
-      for (const playerId of e.expected) {
-        const replied = firstReply.get(`${e.kind}|${e.id}|${playerId}`) ?? null
-        if (!replied || new Date(replied).getTime() > dueMs) {
-          add({ playerId, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_reply', at: e.respondBy, repliedAt: replied })
-        }
+    for (const playerId of dueMs <= nowMs ? e.expected : []) {
+      const replied = firstReply.get(`${e.kind}|${e.id}|${playerId}`) ?? null
+      if (!replied || ms(replied) > dueMs) {
+        fined.add(playerId)
+        add({ playerId, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_reply', at: e.respondBy, repliedAt: replied })
+      } else if (decideByMs !== null && decideByMs <= nowMs && statusAt(history, playerId, decideByMs) === 'maybe') {
+        fined.add(playerId)
+        add({ playerId, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_reply', at: new Date(decideByMs).toISOString(), repliedAt: replied, undecided: true })
       }
     }
 
-    if (e.kind === 'poll' || !e.start) continue
-    const startMs = new Date(e.start).getTime()
-    const fined = new Set<string>()
-    const late = (changesBySession.get(`${e.kind}|${e.id}`) ?? [])
-      .filter((c) => {
-        const t = new Date(c.changed_at).getTime()
-        return (
-          c.previous_status !== null &&
-          c.previous_status !== c.status &&
-          t >= startMs - LATE_CHANGE_WINDOW_MS &&
-          t < startMs &&
-          t <= nowMs &&
-          c.changed_by !== null &&
-          c.changed_by === authIdOf(c.player_id)
-        )
-      })
-      .sort((a, b) => new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime())
-    for (const c of late) {
+    if (startMs === null) continue
+    for (const c of history) {
       if (fined.has(c.player_id)) continue
-      fined.add(c.player_id)
-      add({ playerId: c.player_id, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_change', at: c.changed_at, from: c.previous_status!, to: c.status })
+      const t = ms(c.changed_at)
+      if (
+        c.previous_status !== null &&
+        c.previous_status !== c.status &&
+        t >= startMs - LATE_CHANGE_WINDOW_MS &&
+        t < startMs &&
+        t <= nowMs &&
+        c.changed_by !== null &&
+        c.changed_by === authIdOf(c.player_id)
+      ) {
+        fined.add(c.player_id)
+        add({ playerId: c.player_id, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_change', at: c.changed_at, from: c.previous_status, to: c.status })
+      }
     }
   }
 
-  return fines.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+  return fines.sort((a, b) => ms(a.at) - ms(b.at))
 }
 
 /** Unwaived fines per entry ('training-<id>', 'poll-<id>') and player — attendance and voter lists mark them */

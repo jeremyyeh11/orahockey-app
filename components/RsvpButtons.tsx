@@ -1,10 +1,7 @@
 import type { MyStatus } from '@/components/EventRow'
+import { RSVP_LABEL } from '@/lib/fines'
 
-const CHOICES = [
-  ['attending', "I'm in"],
-  ['maybe', 'Maybe'],
-  ['not_attending', 'Out'],
-] as const
+const CHOICES = (['attending', 'maybe', 'not_attending'] as const).map((s) => [s, RSVP_LABEL[s]] as const)
 
 // On the green featured card: white for "I'm in" so it still stands out on green
 const ACCENT: Record<MyStatus | 'idle', string> = {
@@ -23,7 +20,7 @@ const PLAIN: Record<MyStatus | 'idle', string> = {
 }
 
 /**
- * I'm in / Maybe / Out as one compact group of bordered buttons (the picked one
+ * I'm in / Update later / Out as one compact group of bordered buttons (the picked one
  * filled) — Home's Next up cards and the schedule's upcoming rows. Capped at
  * max-w-sm on desktop so it never spreads across a wide row. Stateless: the
  * caller owns the status and saving. `onAccent` styles it for the green card.

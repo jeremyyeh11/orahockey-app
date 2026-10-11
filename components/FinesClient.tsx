@@ -5,18 +5,17 @@ import Link from 'next/link'
 import Modal from '@/components/Modal'
 import { FormButtons, FormError, hintCls, inputCls, labelCls } from '@/components/form'
 import { fmtDate, fmtDateTime } from '@/lib/format'
-import { FINE_AMOUNT, FINE_KIND_NOUN, fineHref, fineKey, finesByPlayer, isOutstanding, type Fine, type RsvpStatus } from '@/lib/fines'
+import { FINE_AMOUNT, FINE_KIND_NOUN, RSVP_LABEL, fineHref, fineKey, finesByPlayer, isOutstanding, type Fine } from '@/lib/fines'
 import { setFinePaid, setFineWaived } from '@/app/admin/fines/actions'
 import { preferredName } from '@/lib/names'
 import { unwrap } from '@/lib/action-result'
 
-const STATUS: Record<RsvpStatus, string> = { attending: "I'm in", maybe: 'Maybe', not_attending: 'Out' }
-
 /** What a fine was for, in a line */
 function fineLine(f: Fine) {
   if (f.reason === 'late_change') {
-    return `Changed ${STATUS[f.from!]} → ${STATUS[f.to!]} · ${fmtDateTime(f.at)} (within 24h before the ${FINE_KIND_NOUN[f.kind]})`
+    return `Changed ${RSVP_LABEL[f.from!]} → ${RSVP_LABEL[f.to!]} · ${fmtDateTime(f.at)} (within 24h before the ${FINE_KIND_NOUN[f.kind]})`
   }
+  if (f.undecided) return `Still on ${RSVP_LABEL.maybe} · due ${fmtDateTime(f.at)}`
   return f.repliedAt ? `Replied ${fmtDateTime(f.repliedAt)} · due ${fmtDateTime(f.at)}` : `No reply · due ${fmtDateTime(f.at)}`
 }
 
