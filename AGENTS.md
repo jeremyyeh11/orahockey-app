@@ -135,8 +135,7 @@ Do not skip this step. Every session that modifies code must end with a commit +
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–034 applied (035 — fines move to finemaster/superadmin, Jeremy becomes
-  superadmin — is applied once this code is deployed, since older code sends a superadmin to the player area). The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–035 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance
