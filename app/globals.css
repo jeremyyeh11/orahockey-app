@@ -624,3 +624,62 @@
     max-width: 100%;
   }
 }
+
+/* Superadmin role tag (components/RoleTag.tsx): a teal-to-violet chip that
+   slowly shimmers, with twinkling white sparkles */
+.liga-role-super {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(100deg, #2a4f48 0%, #3b5a68 18%, #5a4cb8 45%, #7b55e0 70%, #a98bf5 88%, #8466ea 100%);
+  background-size: 150% 100%;
+  box-shadow: 0 0 8px rgba(123, 85, 224, 0.45);
+  animation: liga-role-shimmer 6s ease-in-out infinite alternate;
+}
+.liga-role-super::before,
+.liga-role-super::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: liga-role-twinkle 2.4s ease-in-out infinite;
+}
+.liga-role-super::before {
+  background:
+    radial-gradient(circle at 12% 30%, #fff 0 0.9px, transparent 1.6px),
+    radial-gradient(circle at 38% 75%, #fff 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 63% 25%, #fff 0 1px, transparent 1.7px),
+    radial-gradient(circle at 86% 70%, #fff 0 0.8px, transparent 1.4px);
+}
+.liga-role-super::after {
+  animation-delay: -1.2s;
+  background:
+    radial-gradient(circle at 24% 70%, #fff 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 50% 35%, #fff 0 0.9px, transparent 1.6px),
+    radial-gradient(circle at 74% 80%, #fff 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 94% 30%, #fff 0 0.9px, transparent 1.6px);
+}
+@keyframes liga-role-shimmer {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+@keyframes liga-role-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .liga-role-super,
+  .liga-role-super::before,
+  .liga-role-super::after {
+    animation: none;
+  }
+}

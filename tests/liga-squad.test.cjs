@@ -1024,3 +1024,22 @@ test('roles: finemasters and the superadmin manage fines; admins and the superad
   assert.match(mw, /if \(!isAdminRole\(role\) && pathname\.startsWith\('\/admin'\)\)/)
   assert.match(read('app/login/page.tsx'), /if \(isAdminRole\(player\?\.role\)\)/)
 })
+
+test('role tags: green Admin, red Finemaster, a shimmering Superadmin chip, nothing for players', () => {
+  const { RoleTag } = load('components/RoleTag.tsx')
+  assert.equal(render(RoleTag, { role: 'player' }), '')
+  assert.equal(render(RoleTag, {}), '')
+  assert.match(render(RoleTag, { role: 'admin' }), /class="[^"]*text-brand-light[^"]*">Admin</)
+  assert.match(render(RoleTag, { role: 'finemaster' }), /class="[^"]*text-red-400[^"]*">Finemaster</)
+  assert.match(render(RoleTag, { role: 'superadmin' }), /class="[^"]*liga-role-super[^"]*"><span class="relative">Superadmin</)
+  // On your own green card the plain tags turn white
+  assert.match(render(RoleTag, { role: 'admin', onAccent: true }), /class="[^"]*text-white[^"]*">Admin</)
+
+  // Everyone sees them: next to the name on squad cards, the table and profiles
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  assert.match(read('components/RosterList.tsx'), /<RoleTag role=\{player\.role\} onAccent=\{isMe\}/)
+  assert.match(read('components/RosterTable.tsx'), /<RoleTag role=\{p\.role\}/)
+  assert.match(read('components/PlayerProfilePage.tsx'), /<RoleTag role=\{player\.role\}/)
+  assert.match(read('components/SquadView.tsx'), /isAdmin \? 'role, email, auth_user_id' : 'role'/)
+  assert.match(read('app/globals.css'), /\.liga-role-super \{[\s\S]*?animation: liga-role-shimmer/)
+})

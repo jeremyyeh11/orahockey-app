@@ -10,9 +10,9 @@ import { getRequestUser } from '@/lib/supabase/request-user'
 import type { EditContext } from '@/app/admin/team/PlayerEditModal'
 import { recordedStats, seasonTitle } from '@/lib/season'
 
-const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path'
-// Admin view additionally exposes contact/role fields (+ auth link for account status).
-const ADMIN_FIELDS = `${BASE_FIELDS}, email, role, auth_user_id`
+const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path, role'
+// Admin view additionally exposes contact fields (+ auth link for account status).
+const ADMIN_FIELDS = `${BASE_FIELDS}, email, auth_user_id`
 
 /** Tab title for a profile route — the player's name, e.g. "Akash Prebhash Chandra · ORA Hockey". */
 export async function playerProfileMetadata(playerId: string): Promise<Metadata> {

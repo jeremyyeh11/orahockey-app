@@ -182,7 +182,8 @@ updates — run them before every commit.
 ## UI Preferences
 - Squad: cards with stats inline on touch layouts ("12G", value+label together); a sortable
   table on desktop (lg+)
-- No pill/badge backgrounds — plain text
+- No pill/badge backgrounds — plain text. One exception: role tags after names (`components/RoleTag.tsx`) —
+  green Admin and red Finemaster are plain text, the Superadmin tag is a shimmering teal-to-violet chip
 - Card/sanction indicators use shapes: green ▲, yellow ■, red ● with count always shown (even 1)
 - Mobile-first, compact, legible
 - Sort: user row first, then alphabetical only (no position grouping)

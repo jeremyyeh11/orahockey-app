@@ -4,6 +4,8 @@ import type { LeaderboardRow } from './SeasonStats'
 import type { AccountStatus } from '@/lib/account'
 import { sortPositions } from '@/lib/constants'
 import { nameParts } from '@/lib/names'
+import type { Role } from '@/lib/roles'
+import { RoleTag } from './RoleTag'
 
 export type RosterPlayer = {
   id: string
@@ -12,6 +14,8 @@ export type RosterPlayer = {
   jersey_number: number | null
   position: string[] | null
   is_active: boolean
+  /** Shown as a tag after the name (admin, finemaster, superadmin) */
+  role?: Role
 }
 
 /** Login-account state shown as a dot on admin roster cards */
@@ -204,6 +208,7 @@ export default function RosterList<T extends RosterPlayer>({
                     <span key={i} className="text-sm font-normal tracking-wide text-slate-400">{part.text}</span>
                   )
                 )}
+                <RoleTag role={player.role} onAccent={isMe} className="ml-1.5 align-middle" />
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 {sortPositions(player.position).map((pos) => (
