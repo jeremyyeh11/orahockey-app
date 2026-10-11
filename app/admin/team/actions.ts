@@ -5,6 +5,7 @@ import { getSelectedSeason, hasSeasonRecord, requireOpenSeason } from '@/lib/sea
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { getNow } from '@/lib/preview'
 import { action, requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
+import type { Role } from '@/lib/roles'
 
 // Squad changes are admin-only: /admin routes are gated in middleware, these
 // actions check is_admin() themselves, and RLS allows season_players writes to
@@ -17,7 +18,7 @@ type PlayerInput = {
   email: string | null
   jersey_number: number | null
   position: string[] | null
-  role: 'player' | 'admin'
+  role: Role
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -83,7 +84,7 @@ export type PlayerDetailsInput = {
   preferred_name: string | null
   /** Only changeable before they have an account (it's their login) */
   email: string | null
-  role: 'player' | 'admin'
+  role: Role
   /** Every position they play — per player, across seasons */
   position: string[] | null
   date_of_birth: string | null

@@ -8,6 +8,8 @@ For coaches and managers with the **admin** role. Use the [user manual](user-man
 
 Players can view the schedule, squad, and polls, mark their own attendance, and vote. Admins can also add, edit, and delete players and events, and create, close, reopen, and delete polls. Admins are players too and can mark their own attendance and vote.
 
+Fines are handled by the **finemaster**: a player who can also waive fines and mark them paid, with no other admin powers. Admins see fines but can't waive or settle them. The **superadmin** is an admin who can also waive and settle fines. Only a superadmin can make someone a superadmin.
+
 ## Managing the club
 
 ### Seasons
@@ -36,7 +38,7 @@ Admins see the same Home as players (see the [user manual](user-manual.md#home))
 ### Squad
 Manage the roster.
 
-- **+ Add Player** (top right) adds a player to the selected season's squad - full name, preferred name, email, jersey number, position(s) (FWD / MID / DEF / GK), and role (player or admin). Jersey numbers are kept per season; positions belong to the player across all seasons.
+- **+ Add Player** (top right) adds a player to the selected season's squad - full name, preferred name, email, jersey number, position(s) (FWD / MID / DEF / GK), and role (player, finemaster or admin). Jersey numbers are kept per season; positions belong to the player across all seasons.
 - **Email is optional.** Leave it blank to add someone before their onboarding details are in - they show as **Pending** (a hollow account dot). Add their email later from their profile's **Account** panel (**Save email**); the **Invite link** appears once it's saved. Once a player has an account, their login email can't be changed from the app.
 - **Past players:** untick **Add to the MHL1 2027 squad** to add someone who isn't playing this season - they're created inactive and in no season. Attaching them to an archived season (e.g. 2026) is a backend change: send the names and seasons to whoever manages the database.
 - **+ Existing Player** adds players who are already on the books but not in this season's squad (e.g. back after a season out). Tick one or more and tap **Add**. They're marked active, with their last jersey number. The button only shows when someone is missing from the squad.
@@ -75,12 +77,12 @@ Manage the roster.
 ### Fines
 The **Fines** tab (between Squad and Profile). Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:
 - **Late reply** - first reply after the deadline, or none at all (counted in the month the deadline passed). Also a player still on **Update later** 24 hours before the start (or at the deadline, if that's later) - shown as *Still on Update later*.
-- **Late change** - a player changing their own answer in the 24 hours before the start (counted in the month of the change). The app can't see who PM'd the coaching committee, so every such change is fined - **Waive** the ones who did.
+- **Late change** - a player changing their own answer in the 24 hours before the start (counted in the month of the change). The app can't see who PM'd the coaching committee, so every such change is fined - the finemaster waives the ones who did.
 - At most one fine per player per event - the first one that applies.
-- Each outstanding fine has **Paid** and **Waive**. **Waive** asks for a reason (e.g. *PM'd Ish before changing*), which shows on the fine for everyone. Paid and waived fines are greyed out and keep an **Undo**.
+- For the finemaster (and superadmin), each outstanding fine has **Paid** and **Waive**. **Waive** asks for a reason (e.g. *PM'd Ish before changing*), which shows on the fine for everyone. Paid and waived fines are greyed out and keep an **Undo**.
 - The card under the month says **Outstanding** (with the amount still owed) or **Settled** once every fine is paid or waived. Players who still owe are listed first and open; settled players collapse.
 - **Copy outstanding for WhatsApp** copies what each player still owes that month, to paste into a message.
-- Only active squad members with an app account are fined. Players see the same page without the waive buttons.
+- Only active squad members with an app account are fined. Everyone else, admins included, sees the same page without the Paid / Waive buttons.
 
 ### Profile
 The same Profile tab every player has (see the [user manual](user-manual.md#profile)): your card, details you can edit, stats by season, and **Sign out**.

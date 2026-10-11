@@ -934,7 +934,7 @@ test('every admin server action checks is_admin() before doing anything', () => 
   const files = dirs.flatMap((d) =>
     fs.readdirSync(path.join(root, 'app/admin', d.name)).filter((f) => /^(actions|\w+Actions)\.ts$/.test(f)).map((f) => `app/admin/${d.name}/${f}`)
   )
-  assert.ok(files.length >= 7, 'found the admin action files')
+  assert.ok(files.length >= 6, 'found the admin action files')
   for (const file of files) {
     const src = read(file)
     assert.match(src, /^'use server'/, `${file} is a server action module`)
@@ -945,6 +945,15 @@ test('every admin server action checks is_admin() before doing anything', () => 
       assert.match(fn, /^[^{]*\{[\s\S]*?const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/, `${file}: ${name} calls requireAdmin first`)
     }
   }
+  // Fines are managed by finemasters and the superadmin, not admins: those actions
+  // live outside app/admin and check can_manage_fines() first
+  const fineActions = read('app/dashboard/fines/actions.ts')
+  for (const name of ['setFineWaived', 'setFinePaid']) {
+    assert.match(fineActions, new RegExp(String.raw`export const ${name} = action\(async \([^)]*\) => \{\s+const supabase = createClient\(\)\s+await requireFineManager\(supabase\)`), `${name} calls requireFineManager first`)
+  }
+  assert.doesNotMatch(fineActions, /requireAdmin/)
+  assert.match(read('lib/action-helpers.ts'), /export async function requireFineManager\(supabase: Supabase\) \{\s+const \{ data, error \} = await supabase\.rpc\('can_manage_fines'\)/)
+
   // The helpers are a plain module: a 'use server' file would make them callable endpoints
   assert.doesNotMatch(read('lib/action-helpers.ts'), /^['"]use server['"]/m)
 
@@ -990,4 +999,28 @@ test('action errors reach the browser as values, and every call unwraps them', a
       assert.equal(src.slice(m.index - 7, m.index), 'unwrap(', `${f}: ${m[1]}(…) must be wrapped in unwrap(…)`)
     }
   }
+})
+
+test('roles: finemasters and the superadmin manage fines; admins and the superadmin get the admin area', () => {
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const { isAdminRole, canManageFines, assignableRoles } = load('lib/roles.ts')
+  assert.deepEqual(['player', 'finemaster', 'admin', 'superadmin'].map(isAdminRole), [false, false, true, true])
+  assert.deepEqual(['player', 'finemaster', 'admin', 'superadmin'].map(canManageFines), [false, true, false, true])
+
+  // Only a superadmin can give superadmin; it stays listed for someone who has it
+  assert.deepEqual(assignableRoles(false), ['player', 'finemaster', 'admin'])
+  assert.deepEqual(assignableRoles(false, 'superadmin'), ['player', 'finemaster', 'admin', 'superadmin'])
+  assert.deepEqual(assignableRoles(true), ['player', 'finemaster', 'admin', 'superadmin'])
+
+  // Paid / Waive follow the viewer's role, not the area they're in
+  const view = read('components/FinesView.tsx')
+  assert.match(view, /canManage=\{canManageFines\(me\?\.role\)\}/)
+  assert.doesNotMatch(view, /isAdmin/)
+  assert.match(read('components/FinesClient.tsx'), /\{canManage && \(/)
+
+  // Routing: the superadmin is an admin, the finemaster a player
+  const mw = read('middleware.ts')
+  assert.match(mw, /if \(isAdminRole\(role\) && pathname\.startsWith\('\/dashboard'\)/)
+  assert.match(mw, /if \(!isAdminRole\(role\) && pathname\.startsWith\('\/admin'\)\)/)
+  assert.match(read('app/login/page.tsx'), /if \(isAdminRole\(player\?\.role\)\)/)
 })

@@ -17,6 +17,7 @@ import { PencilIcon } from './icons'
 import PlayerEditModal, { type EditContext } from '@/app/admin/team/PlayerEditModal'
 import { playerPhotoUrl } from '@/lib/photos'
 import { unwrap } from '@/lib/action-result'
+import type { Role } from '@/lib/roles'
 
 /** Admin view, open season only: the player's place in the selected season's squad */
 export type SquadStatus = {
@@ -53,7 +54,7 @@ export type ProfilePlayer = PlayerLite & {
   position: string[] | null
   is_active: boolean
   email?: string
-  role?: 'player' | 'admin'
+  role?: Role
   date_of_birth?: string | null
   photo_path?: string | null
 }

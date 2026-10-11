@@ -39,6 +39,16 @@ export async function requireAdmin(supabase: Supabase) {
 }
 
 /**
+ * Throws unless the caller can waive fines and mark them paid (the
+ * can_manage_fines() SQL function: finemasters and the superadmin, not plain
+ * admins). Every fine-management action calls this first.
+ */
+export async function requireFineManager(supabase: Supabase) {
+  const { data, error } = await supabase.rpc('can_manage_fines')
+  if (error || data !== true) throw new Error('Only the finemaster can do that.')
+}
+
+/**
  * The caller's players row id. Uses auth.getUser(), which asks the Auth
  * server, rather than the middleware header: mutations re-check the session.
  */

@@ -6,7 +6,7 @@ import Modal from '@/components/Modal'
 import { FormButtons, FormError, hintCls, inputCls, labelCls } from '@/components/form'
 import { fmtDate, fmtDateTime } from '@/lib/format'
 import { FINE_AMOUNT, FINE_KIND_NOUN, RSVP_LABEL, fineHref, fineKey, finesByPlayer, isOutstanding, type Fine } from '@/lib/fines'
-import { setFinePaid, setFineWaived } from '@/app/admin/fines/actions'
+import { setFinePaid, setFineWaived } from '@/app/dashboard/fines/actions'
 import { preferredName } from '@/lib/names'
 import { unwrap } from '@/lib/action-result'
 
@@ -26,8 +26,9 @@ const actionCls =
  * One month's fines for the whole team (everyone sees everyone's): a status card
  * (outstanding / settled), then each player, most owed first. Players with
  * anything outstanding start expanded; fully settled ones collapse. Paid and
- * waived fines are greyed out. Admins mark fines paid or waive them (with a
- * reason); anyone can copy what's still owed to paste into WhatsApp.
+ * waived fines are greyed out. Finemasters and the superadmin mark fines paid
+ * or waive them (with a reason); anyone can copy what's still owed to paste
+ * into WhatsApp.
  */
 export default function FinesClient({
   monthTitle,
@@ -36,7 +37,7 @@ export default function FinesClient({
   fines,
   players,
   myPlayerId,
-  isAdmin,
+  canManage,
   basePath,
 }: {
   month: string
@@ -46,7 +47,8 @@ export default function FinesClient({
   fines: Fine[]
   players: Record<string, { full_name: string; preferred_name: string | null }>
   myPlayerId: string | null
-  isAdmin: boolean
+  /** Finemaster or superadmin: Paid / Waive buttons */
+  canManage: boolean
   basePath: '/dashboard' | '/admin'
 }) {
   const nameOf = (id: string) => (players[id] ? preferredName(players[id]) : 'Unknown player')
@@ -216,7 +218,7 @@ export default function FinesClient({
                           </div>
                           <div className="flex shrink-0 flex-col items-end gap-1.5">
                             <span className={`font-mono text-xs tabular-nums ${settled ? 'text-slate-500 line-through' : 'text-white'}`}>${FINE_AMOUNT}</span>
-                            {isAdmin && (
+                            {canManage && (
                               <div className="flex gap-1.5">
                                 {settled ? (
                                   <button

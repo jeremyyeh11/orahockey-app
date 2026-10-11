@@ -56,7 +56,7 @@ Your own page: your photo (taken and uploaded by the coaches), positions, career
 
 - **Late reply** - replying after the **Reply by** deadline, or not replying at all. Deadlines (Singapore time): weekend games and trainings - **Thursday 23:59** before; weekday training - **Sunday 23:59** before; weekday games - **72 hours** before; polls and team events - **72 hours** after they're posted. Your *first* reply is what counts.
 - **Update later** isn't a final answer. If you're on **Update later** when the deadline passes (or switch to it afterwards), you have until **24 hours before the start** to change to **I'm in** or **Out** - still on Update later then is a late reply. If the deadline is already inside those 24 hours, there's no extra time.
-- **Late change** - changing your answer in the **24 hours before the start**. You must also PM a member of the coaching committee (Ish / Akash / Faris / Hiren / Jaspal); if you did, they'll waive the fine.
+- **Late change** - changing your answer in the **24 hours before the start**. You must also PM a member of the coaching committee (Ish / Akash / Faris / Hiren / Jaspal); if you did, the finemaster will waive the fine.
 - At most **one fine per event** - e.g. still on Update later 24h before, then changing to I'm in, is one fine, not two.
 - Some casual events and polls have fines switched off - their detail view says **No fines**. Team events start with fines off. Player-of-the-match voting never has fines.
 - Only players with an app account can be fined.
