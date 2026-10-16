@@ -647,12 +647,12 @@
   background-color: rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
-.liga-role-coaching   { color: #86efac; background-color: rgba(34, 197, 94, 0.14);  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.3); }
-.liga-role-fitness    { color: #fdba74; background-color: rgba(249, 115, 22, 0.14); box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.3); }
-.liga-role-welfare    { color: #f9a8d4; background-color: rgba(236, 72, 153, 0.14); box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.3); }
-.liga-role-equipment  { color: #7dd3fc; background-color: rgba(14, 165, 233, 0.14); box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.3); }
-.liga-role-training   { color: #fde047; background-color: rgba(234, 179, 8, 0.14);  box-shadow: inset 0 0 0 1px rgba(234, 179, 8, 0.3); }
-.liga-role-finemaster { color: #fca5a5; background-color: rgba(239, 68, 68, 0.14);  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.3); }
+.liga-role-coaching   { color: #a3c4ad; background-color: rgba(120, 168, 134, 0.12); box-shadow: inset 0 0 0 1px rgba(120, 168, 134, 0.25); }
+.liga-role-fitness    { color: #d2b08f; background-color: rgba(198, 150, 106, 0.12); box-shadow: inset 0 0 0 1px rgba(198, 150, 106, 0.25); }
+.liga-role-welfare    { color: #cfa7bb; background-color: rgba(188, 128, 158, 0.12); box-shadow: inset 0 0 0 1px rgba(188, 128, 158, 0.25); }
+.liga-role-equipment  { color: #9fbdd0; background-color: rgba(118, 158, 188, 0.12); box-shadow: inset 0 0 0 1px rgba(118, 158, 188, 0.25); }
+.liga-role-training   { color: #d3c592; background-color: rgba(196, 178, 112, 0.12); box-shadow: inset 0 0 0 1px rgba(196, 178, 112, 0.25); }
+.liga-role-finemaster { color: #d09d9d; background-color: rgba(188, 110, 110, 0.12); box-shadow: inset 0 0 0 1px rgba(188, 110, 110, 0.25); }
 /* After the title colours so it wins on your own green card */
 .liga-role-chip-accent {
   color: #fff;
