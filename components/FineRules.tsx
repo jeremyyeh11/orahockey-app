@@ -77,10 +77,7 @@ export function FineRules() {
 
           {section(
             'Who can be fined',
-            list([
-              'Matches, trainings and events: every active squad member, app account or not. Admins add replies from the sheet.',
-              'Polls: only players with an app account. Anonymous polls too — the app knows you voted, not what you picked.',
-            ])
+            <p>Everyone in the active squad.</p>
           )}
 
           {section(
