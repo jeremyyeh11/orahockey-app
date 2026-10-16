@@ -5,7 +5,7 @@ import { getSelectedSeason, hasSeasonRecord, requireOpenSeason } from '@/lib/sea
 import { getRequestUser } from '@/lib/supabase/request-user'
 import { getNow } from '@/lib/preview'
 import { action, requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
-import type { Role } from '@/lib/roles'
+import { TITLES, type Role, type Title } from '@/lib/roles'
 
 // Squad changes are admin-only: /admin routes are gated in middleware, these
 // actions check is_admin() themselves, and RLS allows season_players writes to
@@ -85,6 +85,8 @@ export type PlayerDetailsInput = {
   /** Only changeable before they have an account (it's their login) */
   email: string | null
   role: Role
+  /** Committee titles (labels only) */
+  titles: Title[]
   /** Every position they play — per player, across seasons */
   position: string[] | null
   date_of_birth: string | null
@@ -109,6 +111,8 @@ export const updatePlayer = action(async (id: string, data: PlayerDetailsInput) 
   if (data.jersey_number != null && (!Number.isInteger(data.jersey_number) || data.jersey_number < 0 || data.jersey_number > 99)) {
     throw new Error('Jersey number must be 0–99.')
   }
+
+  if (!data.titles.every((t) => TITLES.includes(t))) throw new Error('Unknown title.')
 
   const [{ data: current, error: readError }, user, season] = await Promise.all([
     supabase.from('players').select('email, role, auth_user_id').eq('id', id).single(),
@@ -146,6 +150,7 @@ export const updatePlayer = action(async (id: string, data: PlayerDetailsInput) 
       preferred_name: data.preferred_name?.trim().toUpperCase() || null,
       email,
       role: data.role,
+      titles: TITLES.filter((t) => data.titles.includes(t)),
       position: data.position && data.position.length > 0 ? data.position : null,
       date_of_birth: data.date_of_birth || null,
       is_active: data.is_active,

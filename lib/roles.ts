@@ -21,6 +21,35 @@ export const isAdminRole = (role: string | null | undefined) => role === 'admin'
 /** Matches can_manage_fines() in SQL */
 export const canManageFines = (role: string | null | undefined) => role === 'finemaster' || role === 'superadmin'
 
+/**
+ * players.titles (036): committee jobs. Labels only — permissions stay on the
+ * role (most titled players are admins; Equipment is a player). A player can
+ * hold several.
+ */
+export type Title = 'coaching' | 'fitness' | 'welfare' | 'equipment' | 'training'
+
+export const TITLES: Title[] = ['coaching', 'fitness', 'welfare', 'equipment', 'training']
+
+export const TITLE_LABEL: Record<Title, string> = {
+  coaching: 'Coaching',
+  fitness: 'Fitness',
+  welfare: 'Welfare',
+  equipment: 'Equipment',
+  training: 'Training',
+}
+
+/**
+ * The plain tags after a name and in the top bar: their titles, Finemaster
+ * for a finemaster, and Admin for an admin with no title. The superadmin's
+ * shimmering chip is drawn separately (RoleTag).
+ */
+export function roleLabels(role: Role | null | undefined, titles: readonly Title[] = []): string[] {
+  const labels = titles.map((t) => TITLE_LABEL[t])
+  if (role === 'finemaster') labels.push(ROLE_LABEL.finemaster)
+  if (role === 'admin' && labels.length === 0) labels.push(ROLE_LABEL.admin)
+  return labels
+}
+
 /** Debug mode (double-tap ADMIN: player view, preview date) */
 export const isDebugRole = (role: string | null | undefined) => role === 'superadmin'
 

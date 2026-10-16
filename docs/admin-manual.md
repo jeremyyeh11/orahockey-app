@@ -10,6 +10,8 @@ Players can view the schedule, squad, and polls, mark their own attendance, and 
 
 Fines are handled by the **finemaster**: a player who can also waive fines and mark them paid, with no other admin powers. Admins see fines but can't waive or settle them. The **superadmin** is an admin who can also waive and settle fines, and use [debug mode](#previewing-the-player-experience). Only a superadmin can make someone a superadmin.
 
+**Titles** are committee jobs shown as tags after a player's name and in the top bar: Coaching, Fitness, Welfare, Equipment and Training. A player can have several. They're labels only - the role decides what someone can do, so a player with the Equipment title is still just a player. Admins without a title show **Admin**.
+
 ## Managing the club
 
 ### Seasons
@@ -55,7 +57,7 @@ Manage the roster.
 
 **Players who leave:** set them inactive rather than deleting them - inactive players keep their stats and history but drop out of the default roster, while deleting a player also deletes their stats, attendance, and votes. Untick **Active** in their **Edit** form (below).
 
-**Editing a player:** open their profile and tap the **pencil** (top right). You can change full name, preferred name, positions, jersey number, role, date of birth, year joined and **Active**. A few rules:
+**Editing a player:** open their profile and tap the **pencil** (top right). You can change full name, preferred name, positions, jersey number, role, titles, date of birth, year joined and **Active**. A few rules:
 - **Positions** belong to the player, the same in every season - tick every position they play.
 - **Jersey number** is per season: the field shows which. In the selected season's squad it's that season's number (read-only for an archived season); otherwise it's the number they'll take into the next season they join.
 - **Email** can only be set or changed before they have an account - after that it's their login.

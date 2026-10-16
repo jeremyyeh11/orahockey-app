@@ -1041,29 +1041,53 @@ test('debug mode (double-tap ADMIN): superadmin only, enforced in middleware', (
   // A preview date only moves "now" in debug mode
   assert.match(read('lib/preview.ts'), /&& isDebugMode\(\)\) \{\s+return new Date\(`\$\{v\}T12:00:00\+08:00`\)/)
 
-  // Other admins get a plain label, not the double-tap button
+  // Other admins get a plain tag, not the double-tap button
   assert.match(read('app/admin/layout.tsx'), /debug=\{isDebugMode\(\)\}/)
-  assert.match(read('app/admin/AdminShell.tsx'), /<AdminBadge debug=\{debug\} \/>/)
+  assert.match(read('app/admin/AdminShell.tsx'), /<AdminBadge viewer=\{viewer\} debug=\{debug\} \/>/)
   const badge = read('components/AdminControlPanel.tsx')
-  assert.match(badge, /if \(!debug\) return <span className=\{BADGE_CLASS\}>Admin<\/span>/)
+  assert.match(badge, /if \(!debug\) return <span className=\"ml-2\">\{tag\}<\/span>/)
   assert.match(badge, />Debug mode<\/h2>/)
 })
 
-test('role tags: green Admin, red Finemaster, a shimmering Superadmin chip, nothing for players', () => {
+test('role tags: grey chips for titles, Finemaster and untitled Admins, a shimmering Superadmin chip, nothing for players', () => {
   const { RoleTag } = load('components/RoleTag.tsx')
+  const { roleLabels } = load('lib/roles.ts')
   assert.equal(render(RoleTag, { role: 'player' }), '')
   assert.equal(render(RoleTag, {}), '')
-  assert.match(render(RoleTag, { role: 'admin' }), /class="[^"]*text-brand-light[^"]*">Admin</)
-  assert.match(render(RoleTag, { role: 'finemaster' }), /class="[^"]*text-red-400[^"]*">Finemaster</)
+  assert.match(render(RoleTag, { role: 'admin' }), /class="liga-role-tag liga-role-chip">Admin</)
+  assert.match(render(RoleTag, { role: 'finemaster' }), /class="liga-role-tag liga-role-chip">Finemaster</)
   assert.match(render(RoleTag, { role: 'superadmin' }), /class="[^"]*liga-role-super[^"]*"><span class="relative">Superadmin</)
-  // On your own green card the plain tags turn white
-  assert.match(render(RoleTag, { role: 'admin', onAccent: true }), /class="[^"]*text-white[^"]*">Admin</)
+  // On your own green card the plain chips lighten
+  assert.match(render(RoleTag, { role: 'admin', onAccent: true }), /liga-role-chip liga-role-chip-accent">Admin</)
+
+  // Titles replace Admin; a player can hold several; Equipment is a titled player
+  assert.deepEqual(roleLabels('admin', ['coaching', 'training']), ['Coaching', 'Training'])
+  assert.deepEqual(roleLabels('admin', []), ['Admin'])
+  assert.deepEqual(roleLabels('player', ['equipment']), ['Equipment'])
+  assert.deepEqual(roleLabels('finemaster', []), ['Finemaster'])
+  assert.deepEqual(roleLabels('superadmin', []), [])
+  assert.match(render(RoleTag, { role: 'player', titles: ['equipment'] }), />Equipment</)
 
   // Everyone sees them: next to the name on squad cards, the table and profiles
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
-  assert.match(read('components/RosterList.tsx'), /<RoleTag role=\{player\.role\} onAccent=\{isMe\}/)
-  assert.match(read('components/RosterTable.tsx'), /<RoleTag role=\{p\.role\}/)
-  assert.match(read('components/PlayerProfilePage.tsx'), /<RoleTag role=\{player\.role\}/)
-  assert.match(read('components/SquadView.tsx'), /isAdmin \? 'role, email, auth_user_id' : 'role'/)
+  assert.match(read('components/RosterList.tsx'), /<RoleTag role=\{player\.role\} titles=\{player\.titles\} onAccent=\{isMe\}/)
+  assert.match(read('components/RosterTable.tsx'), /<RoleTag role=\{p\.role\} titles=\{p\.titles\}/)
+  assert.match(read('components/PlayerProfilePage.tsx'), /<RoleTag role=\{player\.role\} titles=\{player\.titles\}/)
+  assert.match(read('components/MyProfile.tsx'), /<RoleTag role=\{player\.role\} titles=\{player\.titles\}/)
+  assert.match(read('components/SquadView.tsx'), /isAdmin \? 'role, titles, email, auth_user_id' : 'role, titles'/)
   assert.match(read('app/globals.css'), /\.liga-role-super \{[\s\S]*?animation: liga-role-shimmer/)
+  assert.match(read('app/globals.css'), /\.liga-role-chip \{[\s\S]*?border-radius: 9999px/)
+
+  // Your own tag sits in the top bar of both areas
+  assert.match(read('app/dashboard/DashboardShell.tsx'), /titleExtra=\{<RoleTag role=\{viewer\.role\} titles=\{viewer\.titles\}/)
+  assert.match(read('components/AdminControlPanel.tsx'), /const tag = <RoleTag role=\{viewer\.role\} titles=\{viewer\.titles\} \/>/)
+  for (const f of ['app/admin/layout.tsx', 'app/dashboard/layout.tsx']) {
+    assert.match(read(f), /Promise\.all\(\[getSeasonNav\(\), getViewerRole\(\)\]\)/)
+  }
+
+  // Admins set titles in Edit player; the action only stores known ones
+  assert.match(read('app/admin/team/PlayerEditModal.tsx'), /<TitlePicker value=\{titles\} onChange=\{setTitles\} \/>/)
+  const actions = read('app/admin/team/actions.ts')
+  assert.match(actions, /if \(!data\.titles\.every\(\(t\) => TITLES\.includes\(t\)\)\) throw new Error\('Unknown title\.'\)/)
+  assert.match(actions, /titles: TITLES\.filter\(\(t\) => data\.titles\.includes\(t\)\)/)
 })

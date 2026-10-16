@@ -11,7 +11,7 @@ import type { LeaderboardRow } from '@/lib/stats'
 import { updateMyProfile } from '@/app/dashboard/profile/actions'
 import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
-import type { Role } from '@/lib/roles'
+import type { Role, Title } from '@/lib/roles'
 
 export type MyProfileData = {
   player: {
@@ -23,6 +23,7 @@ export type MyProfileData = {
     date_of_birth: string | null
     email: string | null
     role: Role
+    titles: Title[]
     photoUrl: string | null
   }
   /** Seasons they've been in the squad for, newest first */
@@ -131,7 +132,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
             <div className="-mt-6 relative">
               <div className="font-display text-3xl font-extrabold uppercase leading-none text-white">{preferredName(player)}</div>
               <div className="liga-meta mt-1 text-slate-400">{player.full_name}</div>
-              <RoleTag role={player.role} className="mt-1.5" />
+              <RoleTag role={player.role} titles={player.titles} className="mt-1.5" />
               {positions.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {positions.map((p) => (

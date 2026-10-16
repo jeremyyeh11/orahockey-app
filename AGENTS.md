@@ -25,6 +25,10 @@ mirrors the SQL checks: `isAdminRole()` = `is_admin()` (admin, superadmin) and `
 `can_manage_fines()` (finemaster, superadmin). Only a superadmin can give or remove superadmin (DB trigger).
 `middleware.ts` handles route protection and role-based redirects (admins are sent from `/dashboard` to
 `/admin` unless they switched to player view).
+Committee titles live in `players.titles` (036: coaching, fitness, welfare, equipment, training; several
+allowed). They're labels only — permissions stay on `role` (the coaches, fitness, welfare and training are
+admins; equipment is a player). `roleLabels()` turns role + titles into tags: titles replace Admin,
+Finemaster always shows. Admins set titles in Edit player.
 
 ## Key files
 ```
@@ -50,7 +54,7 @@ lib/
   format.ts                 Dates in Singapore time
   preview.ts                getNow(): honours the admin preview date
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
-supabase/migrations/        001–035 — apply in filename order (prefixes 005 and 009 are each used twice)
+supabase/migrations/        001–036 — apply in filename order (prefixes 005 and 009 are each used twice)
 supabase/seed/              Historical caps 2016–2025 and the 2026 season
 tests/                      node:test suites (see Tests)
 docs/                       User and admin manuals
@@ -135,7 +139,7 @@ Do not skip this step. Every session that modifies code must end with a commit +
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–035 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–036 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance
@@ -183,8 +187,9 @@ updates — run them before every commit.
 ## UI Preferences
 - Squad: cards with stats inline on touch layouts ("12G", value+label together); a sortable
   table on desktop (lg+)
-- No pill/badge backgrounds — plain text. One exception: role tags after names (`components/RoleTag.tsx`) —
-  green Admin and red Finemaster are plain text, the Superadmin tag is a shimmering teal-to-violet chip
+- No pill/badge backgrounds — plain text. One exception: role tags (`components/RoleTag.tsx`), after names
+  and in the top bar (your own) — titles, Finemaster and Admin are plain grey chips (`.liga-role-chip`), the
+  Superadmin tag is a shimmering teal-to-violet chip
 - Card/sanction indicators use shapes: green ▲, yellow ■, red ● with count always shown (even 1)
 - Mobile-first, compact, legible
 - Sort: user row first, then alphabetical only (no position grouping)

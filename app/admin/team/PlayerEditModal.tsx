@@ -6,9 +6,9 @@ import Modal from '@/components/Modal'
 import { LEAGUE } from '@/lib/constants'
 import { updatePlayer } from './actions'
 import { PlayerPhotoField } from '@/components/PlayerPhotoField'
-import { FormButtons, FormError, PositionPicker, hintCls, inputCls, labelCls } from '@/components/form'
+import { FormButtons, FormError, PositionPicker, TitlePicker, hintCls, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
-import { FINEMASTER_HINT, ROLE_LABEL, assignableRoles, type Role } from '@/lib/roles'
+import { FINEMASTER_HINT, ROLE_LABEL, assignableRoles, type Role, type Title } from '@/lib/roles'
 
 /** What the admin profile knows about how this player can be edited */
 export type EditContext = {
@@ -33,6 +33,7 @@ export type EditablePlayer = {
   preferred_name: string | null
   email?: string | null
   role?: Role
+  titles?: Title[]
   position: string[] | null
   date_of_birth?: string | null
   is_active: boolean
@@ -55,6 +56,7 @@ export default function PlayerEditModal({
 }) {
   const router = useRouter()
   const [positions, setPositions] = useState<string[]>(player.position ?? [])
+  const [titles, setTitles] = useState<Title[]>(player.titles ?? [])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -74,6 +76,7 @@ export default function PlayerEditModal({
           // Disabled inputs aren't submitted: keep the existing email then
           email: context.hasAccount ? player.email ?? null : ((fd.get('email') as string) || null),
           role: context.isSelf ? player.role ?? 'player' : (fd.get('role') as Role),
+          titles,
           position: positions,
           date_of_birth: (fd.get('date_of_birth') as string) || null,
           is_active: fd.get('is_active') === 'on',
@@ -155,6 +158,12 @@ export default function PlayerEditModal({
             </select>
             {context.isSelf ? <p className={hintCls}>You can’t change your own role.</p> : <p className={hintCls}>{FINEMASTER_HINT}</p>}
           </div>
+        </div>
+
+        <div>
+          <span className={labelCls}>Titles</span>
+          <TitlePicker value={titles} onChange={setTitles} />
+          <p className={hintCls}>Committee jobs, shown as tags after their name. Labels only: the role sets what they can do.</p>
         </div>
 
         <div>

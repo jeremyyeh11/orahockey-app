@@ -625,7 +625,32 @@
   }
 }
 
-/* Superadmin role tag (components/RoleTag.tsx): a teal-to-violet chip that
+/* Role tags (components/RoleTag.tsx): plain grey chips, superadmin shimmers */
+.liga-role-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  vertical-align: middle;
+}
+.liga-role-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.liga-role-chip-accent {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.18);
+}
+/* Superadmin: a teal-to-violet chip that
    slowly shimmers, with twinkling white sparkles */
 .liga-role-super {
   position: relative;

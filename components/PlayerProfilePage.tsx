@@ -18,7 +18,7 @@ import { PencilIcon } from './icons'
 import PlayerEditModal, { type EditContext } from '@/app/admin/team/PlayerEditModal'
 import { playerPhotoUrl } from '@/lib/photos'
 import { unwrap } from '@/lib/action-result'
-import type { Role } from '@/lib/roles'
+import type { Role, Title } from '@/lib/roles'
 
 /** Admin view, open season only: the player's place in the selected season's squad */
 export type SquadStatus = {
@@ -56,6 +56,7 @@ export type ProfilePlayer = PlayerLite & {
   is_active: boolean
   email?: string
   role?: Role
+  titles?: Title[]
   date_of_birth?: string | null
   photo_path?: string | null
 }
@@ -349,7 +350,7 @@ export function PlayerProfilePage({
       <div className="absolute bottom-0 left-0 right-0 pb-6">
         {/* Gradient fade for name */}
         <div className="liga-profile-identity bg-gradient-to-t from-black/90 via-black/60 to-transparent px-6 pt-12 pb-2">
-          <RoleTag role={player.role} className="mb-1.5" />
+          <RoleTag role={player.role} titles={player.titles} className="mb-1.5" />
           {/* Name — preferred words fixed at 48px wherever they sit in the full name,
               the rest auto-shrinks to stay one line. Spaces are non-breaking: a
               plain space at the edge of a flex item is stripped, which ran "AKASH"

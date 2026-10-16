@@ -10,7 +10,7 @@ import { getRequestUser } from '@/lib/supabase/request-user'
 import type { EditContext } from '@/app/admin/team/PlayerEditModal'
 import { recordedStats, seasonTitle } from '@/lib/season'
 
-const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path, role'
+const BASE_FIELDS = 'id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path, role, titles'
 // Admin view additionally exposes contact fields (+ auth link for account status).
 const ADMIN_FIELDS = `${BASE_FIELDS}, email, auth_user_id`
 

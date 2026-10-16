@@ -52,7 +52,7 @@ export default function AppShell({
       {/* Top bar — background spans the window; its contents align with the page column */}
       <header className="app-header sticky top-0 z-30 border-b border-white/10 bg-white/[0.03] backdrop-blur-xl">
         <div className="app-container flex items-center px-4 py-3.5 lg:py-2">
-          <span className="flex items-center gap-2">
+          <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
             <img src="/crest-white.png" alt={CLUB_NAME} className="h-8 w-8 object-contain" />
             <span className="app-wordmark font-display text-lg font-bold tracking-tight text-white">
               ORA <span className="text-brand-light">Hockey</span>
