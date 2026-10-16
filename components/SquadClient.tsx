@@ -25,7 +25,7 @@ import { LEAGUE } from '@/lib/constants'
 import { recordedStats, records, seasonTitle, type Season } from '@/lib/season'
 import { FormButtons, FormError, PositionPicker, hintCls, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
-import { FINEMASTER_HINT, ROLE_LABEL, assignableRoles, type Role } from '@/lib/roles'
+import { ROLES, ROLE_LABEL, type Role } from '@/lib/roles'
 
 /** A squad member; the account fields are only loaded for admins */
 export type SquadPlayer = RosterPlayer & PlayerLite & {
@@ -61,6 +61,7 @@ export default function SquadClient({
   attendance,
   cards,
   myPlayerId,
+  viewerIsSuperadmin = false,
   whitelist = [],
   notInSquad = [],
 }: {
@@ -74,6 +75,8 @@ export default function SquadClient({
   attendance: AttendanceRow[]
   cards: MatchCardRow[]
   myPlayerId: string | null
+  /** Only the superadmin picks a new player's role; others add plain players */
+  viewerIsSuperadmin?: boolean
   /** Admins: invites, for the account dots */
   whitelist?: WhitelistRow[]
   /** Admins: players on the books who aren't in this season's squad (for "+ Existing Player") */
@@ -144,7 +147,7 @@ export default function SquadClient({
       email: ((fd.get('email') as string) ?? '').trim() || null,
       jersey_number: jerseyRaw ? Number(jerseyRaw) : null,
       position: selectedPositions.length > 0 ? selectedPositions : null,
-      role: fd.get('role') as Role,
+      role: viewerIsSuperadmin ? (fd.get('role') as Role) : 'player',
     }
   }
 
@@ -276,15 +279,17 @@ export default function SquadClient({
                 <PositionPicker value={selectedPositions} onChange={setSelectedPositions} />
               </div>
             </div>
-            <div>
-              <label className={labelCls}>Role</label>
-              <select name="role" className={inputCls} defaultValue="player">
-                {assignableRoles(false).map((r) => (
-                  <option key={r} value={r}>{ROLE_LABEL[r]}</option>
-                ))}
-              </select>
-              <p className={hintCls}>{FINEMASTER_HINT}</p>
-            </div>
+            {viewerIsSuperadmin && (
+              <div>
+                <label className={labelCls}>Role</label>
+                <select name="role" className={inputCls} defaultValue="player">
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                  ))}
+                </select>
+                <p className={hintCls}>Set titles from their profile once they’re added.</p>
+              </div>
+            )}
             <label className="liga-join-season flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-surface-border px-3 py-2.5">
               <input
                 type="checkbox"

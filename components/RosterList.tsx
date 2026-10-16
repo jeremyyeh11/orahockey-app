@@ -14,7 +14,7 @@ export type RosterPlayer = {
   jersey_number: number | null
   position: string[] | null
   is_active: boolean
-  /** Shown as tags after the name (titles, finemaster, admin, superadmin) */
+  /** Shown as tags after the name (titles, admin, superadmin) */
   role?: Role
   titles?: Title[]
 }

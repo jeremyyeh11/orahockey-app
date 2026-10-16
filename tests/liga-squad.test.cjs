@@ -945,7 +945,7 @@ test('every admin server action checks is_admin() before doing anything', () => 
       assert.match(fn, /^[^{]*\{[\s\S]*?const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/, `${file}: ${name} calls requireAdmin first`)
     }
   }
-  // Fines are managed by finemasters and the superadmin, not admins: those actions
+  // Fines are managed by the Finemaster title and the superadmin, not admins: those actions
   // live outside app/admin and check can_manage_fines() first
   const fineActions = read('app/dashboard/fines/actions.ts')
   for (const name of ['setFineWaived', 'setFinePaid']) {
@@ -1001,24 +1001,43 @@ test('action errors reach the browser as values, and every call unwraps them', a
   }
 })
 
-test('roles: finemasters and the superadmin manage fines; admins and the superadmin get the admin area', () => {
+test('roles: the Finemaster title and the superadmin manage fines; admins and the superadmin get the admin area', () => {
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
-  const { isAdminRole, canManageFines, assignableRoles } = load('lib/roles.ts')
-  assert.deepEqual(['player', 'finemaster', 'admin', 'superadmin'].map(isAdminRole), [false, false, true, true])
-  assert.deepEqual(['player', 'finemaster', 'admin', 'superadmin'].map(canManageFines), [false, true, false, true])
+  const { ROLES, TITLES, isAdminRole, canManageFines } = load('lib/roles.ts')
+  assert.deepEqual(ROLES, ['player', 'admin', 'superadmin'])
+  assert.ok(TITLES.includes('finemaster'))
+  assert.deepEqual(['player', 'admin', 'superadmin'].map(isAdminRole), [false, true, true])
+  assert.deepEqual(['player', 'admin', 'superadmin'].map((r) => canManageFines(r, [])), [false, false, true])
+  assert.equal(canManageFines('player', ['finemaster']), true)
+  assert.equal(canManageFines('admin', ['coaching']), false)
 
-  // Only a superadmin can give superadmin; it stays listed for someone who has it
-  assert.deepEqual(assignableRoles(false), ['player', 'finemaster', 'admin'])
-  assert.deepEqual(assignableRoles(false, 'superadmin'), ['player', 'finemaster', 'admin', 'superadmin'])
-  assert.deepEqual(assignableRoles(true), ['player', 'finemaster', 'admin', 'superadmin'])
+  // Only the superadmin changes roles and titles: the edit form locks both
+  // for anyone else, the add form only offers a role to them, and the action
+  // only sends role/titles when they change (a DB trigger rejects the rest)
+  const modal = read('app/admin/team/PlayerEditModal.tsx')
+  assert.match(modal, /const canSetRole = context\.viewerIsSuperadmin && !context\.isSelf/)
+  assert.match(modal, /disabled=\{!canSetRole\}/)
+  assert.match(modal, /<TitlePicker value=\{titles\} onChange=\{setTitles\} disabled=\{!context\.viewerIsSuperadmin\} \/>/)
+  assert.match(modal, /titles: context\.viewerIsSuperadmin \? titles : player\.titles \?\? \[\]/)
+  const squad = read('components/SquadClient.tsx')
+  assert.match(squad, /role: viewerIsSuperadmin \? \(fd\.get\('role'\) as Role\) : 'player'/)
+  assert.match(squad, /\{viewerIsSuperadmin && \(\s+<div>\s+<label className=\{labelCls\}>Role<\/label>/)
+  assert.match(read('components/SquadView.tsx'), /viewerIsSuperadmin=\{me\?\.role === 'superadmin'\}/)
+  const actions = read('app/admin/team/actions.ts')
+  assert.match(actions, /\.\.\.\(data\.role !== current\.role \? \{ role: data\.role \} : \{\}\)/)
+  assert.match(actions, /\.\.\.\(titlesChanged \? \{ titles \} : \{\}\)/)
+  const sql = read('supabase/migrations/037_finemaster_title.sql')
+  assert.match(sql, /check \(role::text in \('player', 'admin', 'superadmin'\)\)/)
+  assert.match(sql, /role::text = 'superadmin' or 'finemaster' = any\(titles\)/)
+  assert.match(sql, /before insert or update of role, titles on public\.players/)
 
   // Paid / Waive follow the viewer's role, not the area they're in
   const view = read('components/FinesView.tsx')
-  assert.match(view, /canManage=\{canManageFines\(me\?\.role\)\}/)
+  assert.match(view, /canManage=\{canManageFines\(me\?\.role, me\?\.titles\)\}/)
   assert.doesNotMatch(view, /isAdmin/)
   assert.match(read('components/FinesClient.tsx'), /\{canManage && \(/)
 
-  // Routing: the superadmin is an admin, the finemaster a player
+  // Routing: the superadmin is an admin
   const mw = read('middleware.ts')
   assert.match(mw, /if \(isAdminRole\(role\) && pathname\.startsWith\('\/dashboard'\)/)
   assert.match(mw, /if \(!isAdminRole\(role\) && pathname\.startsWith\('\/admin'\)\)/)
@@ -1028,7 +1047,7 @@ test('roles: finemasters and the superadmin manage fines; admins and the superad
 test('debug mode (double-tap ADMIN): superadmin only, enforced in middleware', () => {
   const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
   const { isDebugRole } = load('lib/roles.ts')
-  assert.deepEqual(['player', 'finemaster', 'admin', 'superadmin'].map(isDebugRole), [false, false, false, true])
+  assert.deepEqual(['player', 'admin', 'superadmin'].map(isDebugRole), [false, false, true])
 
   // Middleware forwards the verdict (overwriting the client's header), honours
   // player view only in debug mode, and clears leftover debug cookies otherwise
@@ -1055,7 +1074,7 @@ test('role tags: grey chips for titles, Finemaster and untitled Admins, a shimme
   assert.equal(render(RoleTag, { role: 'player' }), '')
   assert.equal(render(RoleTag, {}), '')
   assert.match(render(RoleTag, { role: 'admin' }), /class="liga-role-tag liga-role-chip">Admin</)
-  assert.match(render(RoleTag, { role: 'finemaster' }), /class="liga-role-tag liga-role-chip">Finemaster</)
+  assert.match(render(RoleTag, { role: 'player', titles: ['finemaster'] }), /class="liga-role-tag liga-role-chip">Finemaster</)
   assert.match(render(RoleTag, { role: 'superadmin' }), /class="[^"]*liga-role-super[^"]*"><span class="relative">Superadmin</)
   // On your own green card the plain chips lighten
   assert.match(render(RoleTag, { role: 'admin', onAccent: true }), /liga-role-chip liga-role-chip-accent">Admin</)
@@ -1064,7 +1083,7 @@ test('role tags: grey chips for titles, Finemaster and untitled Admins, a shimme
   assert.deepEqual(roleLabels('admin', ['coaching', 'training']), ['Coaching', 'Training'])
   assert.deepEqual(roleLabels('admin', []), ['Admin'])
   assert.deepEqual(roleLabels('player', ['equipment']), ['Equipment'])
-  assert.deepEqual(roleLabels('finemaster', []), ['Finemaster'])
+  assert.deepEqual(roleLabels('player', ['finemaster']), ['Finemaster'])
   assert.deepEqual(roleLabels('superadmin', []), [])
   assert.match(render(RoleTag, { role: 'player', titles: ['equipment'] }), />Equipment</)
 
@@ -1086,8 +1105,7 @@ test('role tags: grey chips for titles, Finemaster and untitled Admins, a shimme
   }
 
   // Admins set titles in Edit player; the action only stores known ones
-  assert.match(read('app/admin/team/PlayerEditModal.tsx'), /<TitlePicker value=\{titles\} onChange=\{setTitles\} \/>/)
   const actions = read('app/admin/team/actions.ts')
   assert.match(actions, /if \(!data\.titles\.every\(\(t\) => TITLES\.includes\(t\)\)\) throw new Error\('Unknown title\.'\)/)
-  assert.match(actions, /titles: TITLES\.filter\(\(t\) => data\.titles\.includes\(t\)\)/)
+  assert.match(actions, /const titles = TITLES\.filter\(\(t\) => data\.titles\.includes\(t\)\)/)
 })

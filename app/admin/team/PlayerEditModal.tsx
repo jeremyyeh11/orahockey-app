@@ -8,7 +8,7 @@ import { updatePlayer } from './actions'
 import { PlayerPhotoField } from '@/components/PlayerPhotoField'
 import { FormButtons, FormError, PositionPicker, TitlePicker, hintCls, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
-import { FINEMASTER_HINT, ROLE_LABEL, assignableRoles, type Role, type Title } from '@/lib/roles'
+import { ROLES, ROLE_HINT, ROLE_LABEL, TITLE_HINT, type Role, type Title } from '@/lib/roles'
 
 /** What the admin profile knows about how this player can be edited */
 export type EditContext = {
@@ -23,7 +23,7 @@ export type EditContext = {
   hasAccount: boolean
   /** Viewing yourself — your own role can't be changed */
   isSelf: boolean
-  /** Only a superadmin can give or remove superadmin */
+  /** Only the superadmin changes roles and titles */
   viewerIsSuperadmin: boolean
 }
 
@@ -75,8 +75,8 @@ export default function PlayerEditModal({
           preferred_name: (fd.get('preferred_name') as string) || null,
           // Disabled inputs aren't submitted: keep the existing email then
           email: context.hasAccount ? player.email ?? null : ((fd.get('email') as string) || null),
-          role: context.isSelf ? player.role ?? 'player' : (fd.get('role') as Role),
-          titles,
+          role: canSetRole ? (fd.get('role') as Role) : player.role ?? 'player',
+          titles: context.viewerIsSuperadmin ? titles : player.titles ?? [],
           position: positions,
           date_of_birth: (fd.get('date_of_birth') as string) || null,
           is_active: fd.get('is_active') === 'on',
@@ -89,6 +89,8 @@ export default function PlayerEditModal({
       }
     })
   }
+
+  const canSetRole = context.viewerIsSuperadmin && !context.isSelf
 
   const jerseyLabel =
     context.jerseyMode === 'default' ? 'Jersey # (default for new seasons)' : `Jersey # (${LEAGUE} ${context.seasonLabel})`
@@ -151,19 +153,23 @@ export default function PlayerEditModal({
           </div>
           <div className="flex-1">
             <label className={labelCls} htmlFor="edit-role">Role</label>
-            <select id="edit-role" name="role" defaultValue={player.role ?? 'player'} disabled={context.isSelf} className={inputCls}>
-              {assignableRoles(context.viewerIsSuperadmin, player.role).map((r) => (
+            <select id="edit-role" name="role" defaultValue={player.role ?? 'player'} disabled={!canSetRole} className={inputCls}>
+              {ROLES.map((r) => (
                 <option key={r} value={r}>{ROLE_LABEL[r]}</option>
               ))}
             </select>
-            {context.isSelf ? <p className={hintCls}>You can’t change your own role.</p> : <p className={hintCls}>{FINEMASTER_HINT}</p>}
+            {!context.viewerIsSuperadmin ? (
+              <p className={hintCls}>{ROLE_HINT}</p>
+            ) : context.isSelf ? (
+              <p className={hintCls}>You can’t change your own role.</p>
+            ) : null}
           </div>
         </div>
 
         <div>
           <span className={labelCls}>Titles</span>
-          <TitlePicker value={titles} onChange={setTitles} />
-          <p className={hintCls}>Committee jobs, shown as tags after their name. Labels only: the role sets what they can do.</p>
+          <TitlePicker value={titles} onChange={setTitles} disabled={!context.viewerIsSuperadmin} />
+          <p className={hintCls}>{TITLE_HINT}</p>
         </div>
 
         <div>

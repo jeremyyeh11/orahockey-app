@@ -65,8 +65,8 @@ export function PositionPicker({ value, onChange }: { value: string[]; onChange:
 }
 
 /** Toggle buttons for a player's committee titles (Coaching, Fitness, ...), any number */
-export function TitlePicker({ value, onChange }: { value: Title[]; onChange: (titles: Title[]) => void }) {
-  return <TogglePicker label="Titles" options={TITLES} labelOf={(t) => TITLE_LABEL[t]} value={value} onChange={onChange} />
+export function TitlePicker({ value, onChange, disabled = false }: { value: Title[]; onChange: (titles: Title[]) => void; disabled?: boolean }) {
+  return <TogglePicker label="Titles" options={TITLES} labelOf={(t) => TITLE_LABEL[t]} value={value} onChange={onChange} disabled={disabled} />
 }
 
 function TogglePicker<T extends string>({
@@ -75,12 +75,14 @@ function TogglePicker<T extends string>({
   labelOf = (o) => o,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string
   options: readonly T[]
   labelOf?: (option: T) => string
   value: T[]
   onChange: (value: T[]) => void
+  disabled?: boolean
 }) {
   return (
     <div className="flex flex-wrap gap-1.5" role="group" aria-label={label}>
@@ -91,8 +93,9 @@ function TogglePicker<T extends string>({
             key={pos}
             type="button"
             aria-pressed={on}
+            disabled={disabled}
             onClick={() => onChange(on ? value.filter((p) => p !== pos) : [...value, pos])}
-            className={`liga-button min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+            className={`liga-button min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:pointer-events-none disabled:opacity-50 ${
               on
                 ? 'bg-accent border-transparent text-white ring-1 ring-white/10'
                 : 'border-surface-border text-slate-400 hover:border-slate-500 hover:text-white'

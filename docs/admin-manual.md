@@ -8,9 +8,9 @@ For coaches and managers with the **admin** role. Use the [user manual](user-man
 
 Players can view the schedule, squad, and polls, mark their own attendance, and vote. Admins can also add, edit, and delete players and events, and create, close, reopen, and delete polls. Admins are players too and can mark their own attendance and vote.
 
-Fines are handled by the **finemaster**: a player who can also waive fines and mark them paid, with no other admin powers. Admins see fines but can't waive or settle them. The **superadmin** is an admin who can also waive and settle fines, and use [debug mode](#previewing-the-player-experience). Only a superadmin can make someone a superadmin.
+There are three roles: **player**, **admin** and **superadmin**. The **superadmin** is an admin who can also waive and settle fines, use [debug mode](#previewing-the-player-experience), and is the only one who can change anyone's role or titles.
 
-**Titles** are committee jobs shown as tags after a player's name and in the top bar: Coaching, Fitness, Welfare, Equipment and Training. A player can have several. They're labels only - the role decides what someone can do, so a player with the Equipment title is still just a player. Admins without a title show **Admin**.
+**Titles** are committee jobs shown as tags after a player's name and in the top bar: Coaching, Fitness, Welfare, Equipment, Training and Finemaster. A player can have several. **Finemaster** lets them waive fines and mark them paid, even as a plain player; admins without it see fines but can't waive or settle them. The other titles are labels only - the role decides what someone can do, so a player with the Equipment title is still just a player. Admins without a title show **Admin**.
 
 ## Managing the club
 
@@ -40,7 +40,7 @@ Admins see the same Home as players (see the [user manual](user-manual.md#home))
 ### Squad
 Manage the roster.
 
-- **+ Add Player** (top right) adds a player to the selected season's squad - full name, preferred name, email, jersey number, position(s) (FWD / MID / DEF / GK), and role (player, finemaster or admin). Jersey numbers are kept per season; positions belong to the player across all seasons.
+- **+ Add Player** (top right) adds a player to the selected season's squad - full name, preferred name, email, jersey number, position(s) (FWD / MID / DEF / GK), and, for the superadmin, their role. Everyone else adds plain players; the superadmin sets roles and titles later. Jersey numbers are kept per season; positions belong to the player across all seasons.
 - **Email is optional.** Leave it blank to add someone before their onboarding details are in - they show as **Pending** (a hollow account dot). Add their email later from their profile's **Account** panel (**Save email**); the **Invite link** appears once it's saved. Once a player has an account, their login email can't be changed from the app.
 - **Past players:** untick **Add to the MHL1 2027 squad** to add someone who isn't playing this season - they're created inactive and in no season. Attaching them to an archived season (e.g. 2026) is a backend change: send the names and seasons to whoever manages the database.
 - **+ Existing Player** adds players who are already on the books but not in this season's squad (e.g. back after a season out). Tick one or more and tap **Add**. They're marked active, with their last jersey number. The button only shows when someone is missing from the squad.
@@ -61,7 +61,7 @@ Manage the roster.
 - **Positions** belong to the player, the same in every season - tick every position they play.
 - **Jersey number** is per season: the field shows which. In the selected season's squad it's that season's number (read-only for an archived season); otherwise it's the number they'll take into the next season they join.
 - **Email** can only be set or changed before they have an account - after that it's their login.
-- You can't change your own role (so you can't lock yourself out of admin).
+- **Role** and **titles** are greyed out unless you're the superadmin, who can't change their own role (so they can't lock themselves out).
 
 ### Schedule
 - **+ Event** / **+ Training** / **+ Game** add to the season's schedule. A game has an opponent, date/time, venue, home/away, notes and a **League / Friendly** switch. A training has date/time, venue and notes. An **event** is anything else - a gathering, meeting, social - and needs a **title** plus date/time; venue and notes are optional. Players can RSVP to all three. Each can also have an optional **Ends at** time (pick a time on the same day; one earlier than the start means it runs past midnight) and **Report early by** minutes, shown under the date and time as e.g. *Report 08:45 · 15 min early*. **Friendlies don't count** towards the season record, player stats or leaderboards - you can still enter their score, scorers and cards.
@@ -79,9 +79,9 @@ Manage the roster.
 ### Fines
 The **Fines** tab (between Squad and Profile). Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:
 - **Late reply** - first reply after the deadline, or none at all (counted in the month the deadline passed). Also a player still on **Update later** 24 hours before the start (or at the deadline, if that's later) - shown as *Still on Update later*.
-- **Late change** - a player changing their own answer in the 24 hours before the start (counted in the month of the change). The app can't see who PM'd the coaching committee, so every such change is fined - the finemaster waives the ones who did.
+- **Late change** - a player changing their own answer in the 24 hours before the start (counted in the month of the change). The app can't see who PM'd the coaching committee, so every such change is fined - the Finemaster waives the ones who did.
 - At most one fine per player per event - the first one that applies.
-- For the finemaster (and superadmin), each outstanding fine has **Paid** and **Waive**. **Waive** asks for a reason (e.g. *PM'd Ish before changing*), which shows on the fine for everyone. Paid and waived fines are greyed out and keep an **Undo**.
+- For the Finemaster (and superadmin), each outstanding fine has **Paid** and **Waive**. **Waive** asks for a reason (e.g. *PM'd Ish before changing*), which shows on the fine for everyone. Paid and waived fines are greyed out and keep an **Undo**.
 - The card under the month says **Outstanding** (with the amount still owed) or **Settled** once every fine is paid or waived. Players who still owe are listed first and open; settled players collapse.
 - **Copy outstanding for WhatsApp** copies what each player still owes that month, to paste into a message.
 - Only active squad members with an app account are fined. Everyone else, admins included, sees the same page without the Paid / Waive buttons.

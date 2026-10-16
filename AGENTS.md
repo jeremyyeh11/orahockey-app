@@ -14,21 +14,24 @@ Two teams (~30–70 players total). Players use it on phones.
 ## Roles
 - **admin** (coach/manager): full CRUD — squad, schedule, team lists, polls, invites, closing a season.
   Admins see fines but can't waive them or mark them paid
-- **superadmin** (Jeremy): an admin who can also waive fines, mark them paid and use debug mode
-- **finemaster**: a player who can also waive fines and mark them paid (player area, no other admin powers)
+- **superadmin** (Jeremy): an admin who can also waive fines, mark them paid, use debug mode and is the
+  only one who assigns roles and titles
 - **player**: RSVP to games/trainings/events, vote in polls and POTM, enter a played match's score,
   goals and cards, and edit their own preferred name, date of birth and positions
 
 Admins are players too: they RSVP and vote from the admin area. Auth is email/password via Supabase.
-Role is stored in `players.role` (`player` | `finemaster` | `admin` | `superadmin`, 034); `lib/roles.ts`
-mirrors the SQL checks: `isAdminRole()` = `is_admin()` (admin, superadmin) and `canManageFines()` =
-`can_manage_fines()` (finemaster, superadmin). Only a superadmin can give or remove superadmin (DB trigger).
+Role is stored in `players.role` (`player` | `admin` | `superadmin`; 037 retired `finemaster`, which stays in
+the enum but a check constraint forbids it); `lib/roles.ts` mirrors the SQL checks: `isAdminRole()` =
+`is_admin()` (admin, superadmin) and `canManageFines(role, titles)` = `can_manage_fines()` (superadmin or the
+Finemaster title). Only the superadmin can change anyone's role or titles from the app (`guard_player_roles`
+trigger, 037); other admins add players as untitled players.
 `middleware.ts` handles route protection and role-based redirects (admins are sent from `/dashboard` to
 `/admin` unless they switched to player view).
-Committee titles live in `players.titles` (036: coaching, fitness, welfare, equipment, training; several
-allowed). They're labels only — permissions stay on `role` (the coaches, fitness, welfare and training are
-admins; equipment is a player). `roleLabels()` turns role + titles into tags: titles replace Admin,
-Finemaster always shows. Admins set titles in Edit player.
+Committee titles live in `players.titles` (036/037: coaching, fitness, welfare, equipment, training,
+finemaster; several allowed). Finemaster grants waiving fines and marking them paid; the others are labels
+only — permissions otherwise come from `role` (the coaches, fitness, welfare and training are admins;
+equipment and finemaster are players). `roleLabels()` turns role + titles into tags: titles replace Admin.
+The superadmin sets titles in Edit player.
 
 ## Key files
 ```
@@ -92,7 +95,7 @@ Polls (027): `poll_votes` is one row per picked option; players vote only throug
 
 Fines (018–019) are derived, never stored (`lib/fines.ts` `computeFines`): from each entry's
 `respond_by` + `fines_enabled`, the RSVP history (`attendance_log`), poll votes and waivers
-(`fine_waivers`); `fine_payments` marks a fine paid. Waiving and paying are finemaster/superadmin only
+(`fine_waivers`); `fine_payments` marks a fine paid. Waiving and paying are Finemaster-title/superadmin only
 (`can_manage_fines()`, 035; actions in `app/dashboard/fines/actions.ts` start with `requireFineManager()`). At most one fine per player per entry. RSVP
 `maybe` is shown as "Update later" (`RSVP_LABEL`): anyone still on it 24h before the start (or at the
 respond-by, if later) gets a late reply (`undecided`). `attendance.reason` (033) is an optional,
@@ -148,7 +151,7 @@ Do not skip this step. Every session that modifies code must end with a commit +
   column is legacy and no longer read
 - Both areas have the same six tabs: Home, Schedule (games, trainings, team events + RSVP),
   Polls (incl. POTM voting), Squad (+ player profiles), Fines, Profile. Admin-only: adding/editing
-  players, invites, scheduling, team lists, poll management, closing a season. Finemaster/superadmin-only: fine waivers/payments
+  players, invites, scheduling, team lists, poll management, closing a season. Finemaster title/superadmin-only: fine waivers/payments
 - Login: dev shortcut admin/admin maps to `NEXT_PUBLIC_DEV_LOGIN_*` in `.env.local`, dev builds only
 - Seed data: historical caps 2016–2025 (2020/2021 cancelled) and the 2026 season, using the real roster
 - Debug mode (superadmin only, `isDebugRole()`): double-tap the ADMIN badge in the top bar — switch to

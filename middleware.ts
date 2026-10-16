@@ -124,7 +124,7 @@ export async function middleware(request: NextRequest) {
     return withRoleCookie(NextResponse.redirect(url))
   }
 
-  // Player (or finemaster) trying to access admin area → redirect to player dashboard
+  // Player trying to access admin area → redirect to player dashboard
   if (!isAdminRole(role) && pathname.startsWith('/admin')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
