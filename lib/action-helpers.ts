@@ -40,7 +40,7 @@ export async function requireAdmin(supabase: Supabase) {
 
 /**
  * Throws unless the caller can waive fines and mark them paid (the
- * can_manage_fines() SQL function: finemasters and the superadmin, not plain
+ * can_manage_fines() SQL function: the Finemaster title and the superadmin, not plain
  * admins). Every fine-management action calls this first.
  */
 export async function requireFineManager(supabase: Supabase) {

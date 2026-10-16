@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
+import { RoleTag } from '@/components/RoleTag'
+import type { ViewerRole } from '@/lib/supabase/request-user'
 import { startNavigationProgress } from '@/components/NavigationProgress'
 import { type NavItem } from '@/components/BottomNav'
 import { type SeasonNav } from '@/components/SeasonSwitcher'
@@ -19,15 +21,18 @@ const NAV: NavItem[] = [
 
 export default function DashboardShell({
   seasonNav,
+  viewer,
   children,
 }: {
   seasonNav: SeasonNav | null
+  /** Your role and titles: your tag in the top bar (Finemaster, Equipment, ...) */
+  viewer: ViewerRole
   children: React.ReactNode
 }) {
   const router = useRouter()
   const [isAdminPreview, setIsAdminPreview] = useState(false)
 
-  // Set when an admin switched to player view via the admin control panel
+  // Set when a superadmin switched to player view via debug mode
   useEffect(() => {
     setIsAdminPreview(document.cookie.split('; ').includes('ora-view=player'))
   }, [])
@@ -48,7 +53,12 @@ export default function DashboardShell({
   ) : null
 
   return (
-    <AppShell nav={NAV} headerActions={adminViewButton} seasonNav={seasonNav}>
+    <AppShell
+      nav={NAV}
+      titleExtra={<RoleTag role={viewer.role} titles={viewer.titles} className="ml-2" />}
+      headerActions={adminViewButton}
+      seasonNav={seasonNav}
+    >
       {children}
     </AppShell>
   )

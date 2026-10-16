@@ -8,13 +8,13 @@ import FinesClient from '@/components/FinesClient'
 
 /**
  * The Fines page for players and admins: one month at a time (`?month=YYYY-MM`,
- * default this month), everyone's fines. Finemasters and the superadmin get
+ * default this month), everyone's fines. The Finemaster title and the superadmin get
  * Paid / Waive buttons, in either area.
  */
 export async function FinesView({ basePath, month }: { basePath: '/dashboard' | '/admin'; month?: string }) {
   const user = await getRequestUser()
   const [{ data: me }, { fines, players }] = await Promise.all([
-    createClient().from('players').select('id, role').eq('auth_user_id', user?.id ?? '').maybeSingle(),
+    createClient().from('players').select('id, role, titles').eq('auth_user_id', user?.id ?? '').maybeSingle(),
     loadFines(),
   ])
 
@@ -31,7 +31,7 @@ export async function FinesView({ basePath, month }: { basePath: '/dashboard' | 
       fines={fines.filter((f) => fineMonth(f) === shown)}
       players={Object.fromEntries(Array.from(players, ([id, p]) => [id, { full_name: p.full_name, preferred_name: p.preferred_name }]))}
       myPlayerId={me?.id ?? null}
-      canManage={canManageFines(me?.role)}
+      canManage={canManageFines(me?.role, me?.titles)}
       basePath={basePath}
     />
   )

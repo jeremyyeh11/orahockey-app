@@ -19,7 +19,7 @@ export async function MyProfileView() {
 
   const { data: player } = await supabase
     .from('players')
-    .select('id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path, email, role, cap_number, debut:games!players_debut_game_id_fkey(game_date, opponent)')
+    .select('id, full_name, preferred_name, jersey_number, position, is_active, date_of_birth, photo_path, email, role, titles, cap_number, debut:games!players_debut_game_id_fkey(game_date, opponent)')
     .eq('auth_user_id', user?.id ?? '')
     .maybeSingle()
 
@@ -86,6 +86,7 @@ export async function MyProfileView() {
       date_of_birth: player.date_of_birth,
       email: player.email,
       role: player.role,
+      titles: player.titles ?? [],
       photoUrl: playerPhotoUrl(player.photo_path),
     },
     seasons: bySeason,

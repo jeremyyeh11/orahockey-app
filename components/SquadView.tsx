@@ -28,8 +28,8 @@ export async function SquadView({ basePath }: { basePath: '/dashboard' | '/admin
     { data: whitelist },
     { data: everyone },
   ] = await Promise.all([
-    supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
-    getSeasonSquad<SquadPlayer>(season.id, isAdmin ? 'role, email, auth_user_id' : 'role').catch((e: Error) => e),
+    supabase.from('players').select('id, role').eq('auth_user_id', user?.id ?? '').single(),
+    getSeasonSquad<SquadPlayer>(season.id, isAdmin ? 'role, titles, email, auth_user_id' : 'role, titles').catch((e: Error) => e),
     fetchAll(() => supabase.from('player_stats').select('player_id, game_id, goals_fg, goals_pc, goals_ps, goals_untyped, assists').order('id')),
     inSeason(supabase.from('games').select('id, game_date, result, goals_against, season_id, game_type'), season).order('game_date', { ascending: false }),
     fetchAll(() => supabase.from('potm').select('game_id, player_id, place').order('id')),
@@ -61,6 +61,7 @@ export async function SquadView({ basePath }: { basePath: '/dashboard' | '/admin
       attendance={att ?? []}
       cards={(cards ?? []) as MatchCardRow[]}
       myPlayerId={me?.id ?? null}
+      viewerIsSuperadmin={me?.role === 'superadmin'}
       whitelist={whitelist ?? []}
       notInSquad={(everyone ?? []).filter((p) => !players.some((m) => m.id === p.id))}
     />

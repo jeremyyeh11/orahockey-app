@@ -233,7 +233,7 @@ test('season switcher: header dropdown on desktop, pinned tabs on touch layouts,
   assert.match(switcher, /document\.cookie = `\$\{SEASON_COOKIE\}=\$\{encodeURIComponent\(season\.label\)\}; path=\/; samesite=lax`/, 'session cookie — fresh visits open the current season')
   assert.match(switcher, /startTransition\(\(\) => router\.refresh\(\)\)/, 'server pages re-render for the new season')
   for (const area of ['admin', 'dashboard']) {
-    assert.match(read(`app/${area}/layout.tsx`), /seasonNav=\{await getSeasonNav\(\)\}/, `${area} layout loads seasons on the server`)
+    assert.match(read(`app/${area}/layout.tsx`), /const \[seasonNav, viewer\] = await Promise\.all\(\[getSeasonNav\(\), getViewerRole\(\)\]\)[\s\S]*seasonNav=\{seasonNav\}/, `${area} layout loads seasons on the server`)
   }
 })
 

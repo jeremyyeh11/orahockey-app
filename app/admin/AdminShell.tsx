@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell'
 import { type NavItem } from '@/components/BottomNav'
 import { type SeasonNav } from '@/components/SeasonSwitcher'
 import AdminBadge from '@/components/AdminControlPanel'
+import type { ViewerRole } from '@/lib/supabase/request-user'
 import {
   HomeIcon,
   UsersIcon,
@@ -24,13 +25,19 @@ const NAV: NavItem[] = [
 
 export default function AdminShell({
   seasonNav,
+  viewer,
+  debug,
   children,
 }: {
   seasonNav: SeasonNav | null
+  /** Your role and titles: your tag in the top bar */
+  viewer: ViewerRole
+  /** Superadmin: double-tapping ADMIN opens debug mode */
+  debug: boolean
   children: React.ReactNode
 }) {
   return (
-    <AppShell nav={NAV} titleExtra={<AdminBadge />} seasonNav={seasonNav}>
+    <AppShell nav={NAV} titleExtra={<AdminBadge viewer={viewer} debug={debug} />} seasonNav={seasonNav}>
       {children}
     </AppShell>
   )

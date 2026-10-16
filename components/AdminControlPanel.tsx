@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import { startNavigationProgress } from '@/components/NavigationProgress'
+import { RoleTag } from '@/components/RoleTag'
+import type { ViewerRole } from '@/lib/supabase/request-user'
 
 const PREVIEW_COOKIE = 'ora-preview-date'
 const VIEW_COOKIE = 'ora-view'
@@ -23,11 +25,18 @@ function clearCookie(name: string) {
 }
 
 /**
- * The "ADMIN" badge in the top bar. Double-tap it to open the hidden
- * control panel: switch to player view, or set a preview date that the
- * whole app renders against (for testing).
+ * Your role tag in the admin top bar: your titles (Coaching, ...), Admin, or
+ * the Superadmin chip. For superadmins, double-tapping it opens debug mode:
+ * switch to player view, or set a preview date that the whole app renders
+ * against (for testing). For other admins it's a plain tag.
  */
-export default function AdminBadge() {
+export default function AdminBadge({ viewer, debug }: { viewer: ViewerRole; debug: boolean }) {
+  const tag = <RoleTag role={viewer.role} titles={viewer.titles} />
+  if (!debug) return <span className="ml-2">{tag}</span>
+  return <DebugBadge tag={tag} />
+}
+
+function DebugBadge({ tag }: { tag: React.ReactNode }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [previewDate, setPreviewDate] = useState<string | null>(null)
@@ -76,10 +85,10 @@ export default function AdminBadge() {
       <button
         type="button"
         onClick={handleTap}
-        className="ml-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 transition hover:text-slate-300"
+        className="ml-2 text-[10px] font-semibold transition hover:brightness-125"
       >
-        Admin
-        {previewDate && <span className="ml-1.5 normal-case tracking-normal text-amber-400">· {previewDate}</span>}
+        {tag}
+        {previewDate && <span className="ml-1.5 text-amber-400">· {previewDate}</span>}
       </button>
 
       {/* Portal to <body>: the sticky header's backdrop-blur creates a
@@ -87,8 +96,8 @@ export default function AdminBadge() {
       {open &&
         createPortal(
         <Modal onClose={() => setOpen(false)}>
-          <h2 className="text-lg font-bold text-white">Admin Controls</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Testing tools — double-tap ADMIN to open this panel.</p>
+          <h2 className="text-lg font-bold text-white">Debug mode</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Superadmin testing tools — double-tap your tag in the top bar to open this panel.</p>
 
           {/* View switcher */}
           <div className="mt-5">

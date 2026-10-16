@@ -1,5 +1,6 @@
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import type { Role, Title } from '@/lib/roles'
 
 // Middleware verifies the session with Supabase Auth, then forwards the user
 // on these request headers. It always overwrites them, so a client can't spoof them.
@@ -25,4 +26,14 @@ export async function getRequestUser(): Promise<RequestUser | null> {
     data: { user },
   } = await createClient().auth.getUser()
   return user ? { id: user.id, email: user.email ?? null } : null
+}
+
+export type ViewerRole = { role: Role | null; titles: Title[] }
+
+/** The signed-in player's role and titles, for their tag in the top bar */
+export async function getViewerRole(): Promise<ViewerRole> {
+  const user = await getRequestUser()
+  if (!user) return { role: null, titles: [] }
+  const { data } = await createClient().from('players').select('role, titles').eq('auth_user_id', user.id).maybeSingle()
+  return { role: (data?.role as Role | undefined) ?? null, titles: (data?.titles as Title[] | undefined) ?? [] }
 }

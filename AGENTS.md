@@ -14,17 +14,24 @@ Two teams (~30–70 players total). Players use it on phones.
 ## Roles
 - **admin** (coach/manager): full CRUD — squad, schedule, team lists, polls, invites, closing a season.
   Admins see fines but can't waive them or mark them paid
-- **superadmin** (Jeremy): an admin who can also waive fines and mark them paid
-- **finemaster**: a player who can also waive fines and mark them paid (player area, no other admin powers)
+- **superadmin** (Jeremy): an admin who can also waive fines, mark them paid, use debug mode and is the
+  only one who assigns roles and titles
 - **player**: RSVP to games/trainings/events, vote in polls and POTM, enter a played match's score,
   goals and cards, and edit their own preferred name, date of birth and positions
 
 Admins are players too: they RSVP and vote from the admin area. Auth is email/password via Supabase.
-Role is stored in `players.role` (`player` | `finemaster` | `admin` | `superadmin`, 034); `lib/roles.ts`
-mirrors the SQL checks: `isAdminRole()` = `is_admin()` (admin, superadmin) and `canManageFines()` =
-`can_manage_fines()` (finemaster, superadmin). Only a superadmin can give or remove superadmin (DB trigger).
+Role is stored in `players.role` (`player` | `admin` | `superadmin`; 037 retired `finemaster`, which stays in
+the enum but a check constraint forbids it); `lib/roles.ts` mirrors the SQL checks: `isAdminRole()` =
+`is_admin()` (admin, superadmin) and `canManageFines(role, titles)` = `can_manage_fines()` (superadmin or the
+Finemaster title). Only the superadmin can change anyone's role or titles from the app (`guard_player_roles`
+trigger, 037); other admins add players as untitled players.
 `middleware.ts` handles route protection and role-based redirects (admins are sent from `/dashboard` to
 `/admin` unless they switched to player view).
+Committee titles live in `players.titles` (036/037: coaching, fitness, welfare, equipment, training,
+finemaster; several allowed). Finemaster grants waiving fines and marking them paid; the others are labels
+only — permissions otherwise come from `role` (the coaches, fitness, welfare and training are admins;
+equipment and finemaster are players). `roleTags()` turns role + titles into tags: titles replace Admin.
+The superadmin sets titles in Edit player.
 
 ## Key files
 ```
@@ -50,7 +57,7 @@ lib/
   format.ts                 Dates in Singapore time
   preview.ts                getNow(): honours the admin preview date
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
-supabase/migrations/        001–035 — apply in filename order (prefixes 005 and 009 are each used twice)
+supabase/migrations/        001–036 — apply in filename order (prefixes 005 and 009 are each used twice)
 supabase/seed/              Historical caps 2016–2025 and the 2026 season
 tests/                      node:test suites (see Tests)
 docs/                       User and admin manuals
@@ -88,7 +95,7 @@ Polls (027): `poll_votes` is one row per picked option; players vote only throug
 
 Fines (018–019) are derived, never stored (`lib/fines.ts` `computeFines`): from each entry's
 `respond_by` + `fines_enabled`, the RSVP history (`attendance_log`), poll votes and waivers
-(`fine_waivers`); `fine_payments` marks a fine paid. Waiving and paying are finemaster/superadmin only
+(`fine_waivers`); `fine_payments` marks a fine paid. Waiving and paying are Finemaster-title/superadmin only
 (`can_manage_fines()`, 035; actions in `app/dashboard/fines/actions.ts` start with `requireFineManager()`). At most one fine per player per entry. RSVP
 `maybe` is shown as "Update later" (`RSVP_LABEL`): anyone still on it 24h before the start (or at the
 respond-by, if later) gets a late reply (`undecided`). `attendance.reason` (033) is an optional,
@@ -135,7 +142,7 @@ Do not skip this step. Every session that modifies code must end with a commit +
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–035 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–036 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance
@@ -144,12 +151,13 @@ Do not skip this step. Every session that modifies code must end with a commit +
   column is legacy and no longer read
 - Both areas have the same six tabs: Home, Schedule (games, trainings, team events + RSVP),
   Polls (incl. POTM voting), Squad (+ player profiles), Fines, Profile. Admin-only: adding/editing
-  players, invites, scheduling, team lists, poll management, closing a season. Finemaster/superadmin-only: fine waivers/payments
+  players, invites, scheduling, team lists, poll management, closing a season. Finemaster title/superadmin-only: fine waivers/payments
 - Login: dev shortcut admin/admin maps to `NEXT_PUBLIC_DEV_LOGIN_*` in `.env.local`, dev builds only
 - Seed data: historical caps 2016–2025 (2020/2021 cancelled) and the 2026 season, using the real roster
-- Admin control panel: double-tap the ADMIN badge in the top bar — switch to player view
-  (`ora-view` cookie, middleware bypass) or set a preview date (`ora-preview-date` cookie read
-  by `lib/preview.ts:getNow()`; server pages pass `now` down to client components)
+- Debug mode (superadmin only, `isDebugRole()`): double-tap the ADMIN badge in the top bar — switch to
+  player view (`ora-view` cookie, middleware bypass) or set a preview date (`ora-preview-date` cookie read
+  by `lib/preview.ts:getNow()`; server pages pass `now` down to client components). Middleware forwards
+  `x-ora-debug` for superadmins only; without it both cookies are ignored and cleared
 
 ## Conventions
 - Dates are stored timestamptz and always displayed in Singapore time via `lib/format.ts`
@@ -182,8 +190,9 @@ updates — run them before every commit.
 ## UI Preferences
 - Squad: cards with stats inline on touch layouts ("12G", value+label together); a sortable
   table on desktop (lg+)
-- No pill/badge backgrounds — plain text. One exception: role tags after names (`components/RoleTag.tsx`) —
-  green Admin and red Finemaster are plain text, the Superadmin tag is a shimmering teal-to-violet chip
+- No pill/badge backgrounds — plain text. One exception: role tags (`components/RoleTag.tsx`), after names
+  and in the top bar (your own) — each title is a chip tinted its own colour (`.liga-role-<title>`), an
+  untitled Admin a grey chip (`.liga-role-chip`), the Superadmin tag a shimmering teal-to-violet chip
 - Card/sanction indicators use shapes: green ▲, yellow ■, red ● with count always shown (even 1)
 - Mobile-first, compact, legible
 - Sort: user row first, then alphabetical only (no position grouping)
