@@ -30,7 +30,7 @@ trigger, 037); other admins add players as untitled players.
 Committee titles live in `players.titles` (036/037: coaching, fitness, welfare, equipment, training,
 finemaster; several allowed). Finemaster grants waiving fines and marking them paid; the others are labels
 only — permissions otherwise come from `role` (the coaches, fitness, welfare and training are admins;
-equipment and finemaster are players). `roleLabels()` turns role + titles into tags: titles replace Admin.
+equipment and finemaster are players). `roleTags()` turns role + titles into tags: titles replace Admin.
 The superadmin sets titles in Edit player.
 
 ## Key files
@@ -191,8 +191,8 @@ updates — run them before every commit.
 - Squad: cards with stats inline on touch layouts ("12G", value+label together); a sortable
   table on desktop (lg+)
 - No pill/badge backgrounds — plain text. One exception: role tags (`components/RoleTag.tsx`), after names
-  and in the top bar (your own) — titles, Finemaster and Admin are plain grey chips (`.liga-role-chip`), the
-  Superadmin tag is a shimmering teal-to-violet chip
+  and in the top bar (your own) — each title is a chip tinted its own colour (`.liga-role-<title>`), an
+  untitled Admin a grey chip (`.liga-role-chip`), the Superadmin tag a shimmering teal-to-violet chip
 - Card/sanction indicators use shapes: green ▲, yellow ■, red ● with count always shown (even 1)
 - Mobile-first, compact, legible
 - Sort: user row first, then alphabetical only (no position grouping)

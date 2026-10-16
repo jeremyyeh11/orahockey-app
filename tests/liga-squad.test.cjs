@@ -1068,23 +1068,35 @@ test('debug mode (double-tap ADMIN): superadmin only, enforced in middleware', (
   assert.match(badge, />Debug mode<\/h2>/)
 })
 
-test('role tags: grey chips for titles, Finemaster and untitled Admins, a shimmering Superadmin chip, nothing for players', () => {
+test('role tags: a coloured chip per title, grey for untitled Admins, a shimmering Superadmin chip, nothing for players', () => {
   const { RoleTag } = load('components/RoleTag.tsx')
-  const { roleLabels } = load('lib/roles.ts')
+  const { roleTags, TITLES } = load('lib/roles.ts')
+  const labels = (role, titles) => roleTags(role, titles).map((t) => t.label)
   assert.equal(render(RoleTag, { role: 'player' }), '')
   assert.equal(render(RoleTag, {}), '')
   assert.match(render(RoleTag, { role: 'admin' }), /class="liga-role-tag liga-role-chip">Admin</)
-  assert.match(render(RoleTag, { role: 'player', titles: ['finemaster'] }), /class="liga-role-tag liga-role-chip">Finemaster</)
+  assert.match(render(RoleTag, { role: 'player', titles: ['finemaster'] }), /class="liga-role-tag liga-role-chip liga-role-finemaster">Finemaster</)
   assert.match(render(RoleTag, { role: 'superadmin' }), /class="[^"]*liga-role-super[^"]*"><span class="relative">Superadmin</)
   // On your own green card the plain chips lighten
   assert.match(render(RoleTag, { role: 'admin', onAccent: true }), /liga-role-chip liga-role-chip-accent">Admin</)
 
   // Titles replace Admin; a player can hold several; Equipment is a titled player
-  assert.deepEqual(roleLabels('admin', ['coaching', 'training']), ['Coaching', 'Training'])
-  assert.deepEqual(roleLabels('admin', []), ['Admin'])
-  assert.deepEqual(roleLabels('player', ['equipment']), ['Equipment'])
-  assert.deepEqual(roleLabels('player', ['finemaster']), ['Finemaster'])
-  assert.deepEqual(roleLabels('superadmin', []), [])
+  assert.deepEqual(labels('admin', ['coaching', 'training']), ['Coaching', 'Training'])
+  assert.deepEqual(labels('admin', []), ['Admin'])
+  assert.deepEqual(labels('player', ['equipment']), ['Equipment'])
+  assert.deepEqual(labels('player', ['finemaster']), ['Finemaster'])
+  assert.deepEqual(labels('superadmin', []), [])
+
+  // Each title has its own colour; Admin stays grey; your own green card turns them white
+  assert.match(render(RoleTag, { role: 'admin', titles: ['coaching'] }), /class="liga-role-tag liga-role-chip liga-role-coaching">Coaching</)
+  const css = fs.readFileSync(path.join(root, 'app/globals.css'), 'utf8')
+  const colours = TITLES.map((t) => {
+    const m = css.match(new RegExp(`\.liga-role-${t} +\{ color: (#[0-9a-f]{6});`))
+    assert.ok(m, `${t} has a chip colour`)
+    return m[1]
+  })
+  assert.equal(new Set(colours).size, TITLES.length, 'every title a different colour')
+  assert.ok(css.indexOf('.liga-role-chip-accent {') > css.indexOf('.liga-role-finemaster'), 'accent override comes after the title colours')
   assert.match(render(RoleTag, { role: 'player', titles: ['equipment'] }), />Equipment</)
 
   // Everyone sees them: next to the name on squad cards, the table and profiles

@@ -1,11 +1,11 @@
-import { ROLE_LABEL, roleLabels, type Role, type Title } from '@/lib/roles'
+import { ROLE_LABEL, roleTags, type Role, type Title } from '@/lib/roles'
 
 /**
  * The role next to a player's name, as chips: their titles (Coaching, Fitness,
- * ...), Finemaster, or Admin for an untitled admin, all in a plain grey chip
- * (`.liga-role-chip`), plus the superadmin's shimmering purple chip
- * (`.liga-role-super`). Untitled players get nothing. `onAccent` (your own
- * green squad card) lightens the plain chips so they don't vanish into the green.
+ * ..., Finemaster), each tinted its own colour (`.liga-role-<title>`), or a
+ * grey Admin chip for an untitled admin, plus the superadmin's shimmering
+ * purple chip (`.liga-role-super`). Untitled players get nothing. `onAccent`
+ * (your own green squad card) turns the chips white so they don't clash with the green.
  */
 export function RoleTag({
   role,
@@ -18,8 +18,8 @@ export function RoleTag({
   onAccent?: boolean
   className?: string
 }) {
-  const labels = roleLabels(role, titles ?? [])
-  if (role !== 'superadmin' && labels.length === 0) return null
+  const tags = roleTags(role, titles ?? [])
+  if (role !== 'superadmin' && tags.length === 0) return null
   return (
     <span className={`liga-role-tags ${className}`}>
       {role === 'superadmin' && (
@@ -27,8 +27,11 @@ export function RoleTag({
           <span className="relative">{ROLE_LABEL.superadmin}</span>
         </span>
       )}
-      {labels.map((label) => (
-        <span key={label} className={`liga-role-tag liga-role-chip${onAccent ? ' liga-role-chip-accent' : ''}`}>
+      {tags.map(({ key, label }) => (
+        <span
+          key={key}
+          className={`liga-role-tag liga-role-chip${key === 'admin' ? '' : ` liga-role-${key}`}${onAccent ? ' liga-role-chip-accent' : ''}`}
+        >
           {label}
         </span>
       ))}

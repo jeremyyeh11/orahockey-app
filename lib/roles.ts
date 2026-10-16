@@ -41,14 +41,14 @@ export const canManageFines = (role: string | null | undefined, titles: readonly
   role === 'superadmin' || !!titles?.includes('finemaster')
 
 /**
- * The plain tags after a name and in the top bar: their titles, or Admin for
- * an admin with none. The superadmin's shimmering chip is drawn separately
- * (RoleTag).
+ * The chips after a name and in the top bar: their titles (each its own
+ * colour), or Admin for an admin with none. The superadmin's shimmering chip
+ * is drawn separately (RoleTag).
  */
-export function roleLabels(role: Role | null | undefined, titles: readonly Title[] = []): string[] {
-  const labels = titles.map((t) => TITLE_LABEL[t])
-  if (role === 'admin' && labels.length === 0) labels.push(ROLE_LABEL.admin)
-  return labels
+export function roleTags(role: Role | null | undefined, titles: readonly Title[] = []): { key: Title | 'admin'; label: string }[] {
+  const tags: { key: Title | 'admin'; label: string }[] = titles.map((t) => ({ key: t, label: TITLE_LABEL[t] }))
+  if (role === 'admin' && tags.length === 0) tags.push({ key: 'admin', label: ROLE_LABEL.admin })
+  return tags
 }
 
 /** Under the role picker, for admins who aren't the superadmin */
