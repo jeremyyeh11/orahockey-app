@@ -140,13 +140,20 @@ NEXT_PUBLIC_DEV_LOGIN_PASSWORD=...   #   (development builds only)
 ```
 
 ## Git workflow
-**Always commit and push after every code change** — Vercel auto-deploys on push to main.
+**Work on a branch and open a PR — never commit to `main` directly.** Vercel builds a preview for every PR and
+deploys `main` to production when a PR is merged.
 ```bash
+git switch -c feat/short-name        # or fix/…, chore/…, docs/…
 git add <changed files>
 git commit -m "description of change"
-git push
+git push -u origin HEAD
+gh pr create --fill
 ```
-Do not skip this step. Every session that modifies code must end with a commit + push.
+- Commit each finished item as its own commit; every session that modifies code ends with its branch pushed and a PR open.
+- Merge only when Jeremy says so.
+- The Supabase project is shared with production. Additive migrations (new columns, functions) can be applied before
+  merging; anything the code on `main` can't handle yet (dropped/changed policies, columns, functions) waits until the
+  PR is merged and the Vercel production deploy has succeeded.
 
 ## Deployment (Vercel)
 1. Env vars must be added manually in Vercel project settings (they're gitignored)
