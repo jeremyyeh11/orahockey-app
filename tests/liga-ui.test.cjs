@@ -379,3 +379,14 @@ test('polls are anonymous or public: picks are only readable on public polls', (
   assert.match(client, /nameOf=\{poll\.anonymous === false \?/, 'names only on public polls')
   assert.match(read('components/PollOptions.tsx'), /poll\.tallies\[optionId\]/, 'counts come from the tallies, not the readable rows')
 })
+
+test('Fines tab: "How fines work" sits under the intro, collapsed, with the club rules', () => {
+  const client = read('components/FinesClient.tsx')
+  assert.match(client, /coaching committee\.\s+<\/p>\s+<FineRules \/>/, 'right under the intro line')
+  const rules = read('components/FineRules.tsx')
+  assert.match(rules, /useState\(false\)/, 'collapsed by default so the fines stay on top')
+  assert.match(rules, /\$\$\{FINE_AMOUNT\} each/, 'amount comes from lib/fines')
+  for (const row of ['Weekend match or training', 'Thursday 23:59 before', 'Weekday training', 'Sunday 23:59 before', 'Weekday match', '72h before the start']) {
+    assert.ok(rules.includes(row), `deadline row: ${row} (mirrors defaultRespondBy)`)
+  }
+})

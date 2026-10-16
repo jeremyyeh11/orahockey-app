@@ -9,6 +9,7 @@ import { FINE_AMOUNT, FINE_KIND_NOUN, RSVP_LABEL, fineHref, fineKey, finesByPlay
 import { setFinePaid, setFineWaived } from '@/app/dashboard/fines/actions'
 import { preferredName } from '@/lib/names'
 import { unwrap } from '@/lib/action-result'
+import { FineRules } from '@/components/FineRules'
 
 /** What a fine was for, in a line */
 function fineLine(f: Fine) {
@@ -108,6 +109,7 @@ export default function FinesClient({
           ${FINE_AMOUNT} for a late or missing reply, or changing your RSVP within 24h before a training, match or event without telling the
           coaching committee.
         </p>
+        <FineRules />
       </div>
 
       {/* Month */}
@@ -257,11 +259,6 @@ export default function FinesClient({
           })}
         </div>
       )}
-
-      <p className="liga-meta mt-6 text-slate-500">
-        A late reply counts in the month its deadline passed; a late change in the month it was made. Every active squad member can be
-        fined for games, trainings and events; polls only fine players with an app account.
-      </p>
 
       {waiving && (
         <WaiveModal
