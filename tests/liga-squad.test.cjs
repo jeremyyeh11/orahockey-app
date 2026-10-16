@@ -1025,6 +1025,30 @@ test('roles: finemasters and the superadmin manage fines; admins and the superad
   assert.match(read('app/login/page.tsx'), /if \(isAdminRole\(player\?\.role\)\)/)
 })
 
+test('debug mode (double-tap ADMIN): superadmin only, enforced in middleware', () => {
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  const { isDebugRole } = load('lib/roles.ts')
+  assert.deepEqual(['player', 'finemaster', 'admin', 'superadmin'].map(isDebugRole), [false, false, false, true])
+
+  // Middleware forwards the verdict (overwriting the client's header), honours
+  // player view only in debug mode, and clears leftover debug cookies otherwise
+  const mw = read('middleware.ts')
+  assert.match(mw, /const debug = isDebugRole\(role\)/)
+  assert.match(mw, /if \(debug\) request\.headers\.set\(DEBUG_HEADER, '1'\)\s+else request\.headers\.delete\(DEBUG_HEADER\)/)
+  assert.match(mw, /const viewAsPlayer = debug && /)
+  assert.match(mw, /if \(!debug\) \{\s+for \(const name of \[VIEW_COOKIE, PREVIEW_DATE_COOKIE\]\)/)
+
+  // A preview date only moves "now" in debug mode
+  assert.match(read('lib/preview.ts'), /&& isDebugMode\(\)\) \{\s+return new Date\(`\$\{v\}T12:00:00\+08:00`\)/)
+
+  // Other admins get a plain label, not the double-tap button
+  assert.match(read('app/admin/layout.tsx'), /debug=\{isDebugMode\(\)\}/)
+  assert.match(read('app/admin/AdminShell.tsx'), /<AdminBadge debug=\{debug\} \/>/)
+  const badge = read('components/AdminControlPanel.tsx')
+  assert.match(badge, /if \(!debug\) return <span className=\{BADGE_CLASS\}>Admin<\/span>/)
+  assert.match(badge, />Debug mode<\/h2>/)
+})
+
 test('role tags: green Admin, red Finemaster, a shimmering Superadmin chip, nothing for players', () => {
   const { RoleTag } = load('components/RoleTag.tsx')
   assert.equal(render(RoleTag, { role: 'player' }), '')

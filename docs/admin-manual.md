@@ -8,7 +8,7 @@ For coaches and managers with the **admin** role. Use the [user manual](user-man
 
 Players can view the schedule, squad, and polls, mark their own attendance, and vote. Admins can also add, edit, and delete players and events, and create, close, reopen, and delete polls. Admins are players too and can mark their own attendance and vote.
 
-Fines are handled by the **finemaster**: a player who can also waive fines and mark them paid, with no other admin powers. Admins see fines but can't waive or settle them. The **superadmin** is an admin who can also waive and settle fines. Only a superadmin can make someone a superadmin.
+Fines are handled by the **finemaster**: a player who can also waive fines and mark them paid, with no other admin powers. Admins see fines but can't waive or settle them. The **superadmin** is an admin who can also waive and settle fines, and use [debug mode](#previewing-the-player-experience). Only a superadmin can make someone a superadmin.
 
 ## Managing the club
 
@@ -92,4 +92,4 @@ The same Profile tab every player has (see the [user manual](user-manual.md#prof
 
 ## Previewing the player experience
 
-Double-tap the **ADMIN** badge in the top bar to open the admin control panel. You can switch to the player view to check what the squad sees, or set a preview date for the season.
+Superadmins can double-tap the **ADMIN** badge in the top bar to open **debug mode**. You can switch to the player view to check what the squad sees, or set a preview date for the season. For other admins the badge is just a label.

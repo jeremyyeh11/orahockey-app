@@ -24,13 +24,16 @@ const NAV: NavItem[] = [
 
 export default function AdminShell({
   seasonNav,
+  debug,
   children,
 }: {
   seasonNav: SeasonNav | null
+  /** Superadmin: double-tapping ADMIN opens debug mode */
+  debug: boolean
   children: React.ReactNode
 }) {
   return (
-    <AppShell nav={NAV} titleExtra={<AdminBadge />} seasonNav={seasonNav}>
+    <AppShell nav={NAV} titleExtra={<AdminBadge debug={debug} />} seasonNav={seasonNav}>
       {children}
     </AppShell>
   )

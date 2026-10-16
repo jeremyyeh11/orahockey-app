@@ -27,7 +27,7 @@ export default function DashboardShell({
   const router = useRouter()
   const [isAdminPreview, setIsAdminPreview] = useState(false)
 
-  // Set when an admin switched to player view via the admin control panel
+  // Set when a superadmin switched to player view via debug mode
   useEffect(() => {
     setIsAdminPreview(document.cookie.split('; ').includes('ora-view=player'))
   }, [])

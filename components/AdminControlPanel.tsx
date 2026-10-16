@@ -22,12 +22,19 @@ function clearCookie(name: string) {
   document.cookie = `${name}=; path=/; max-age=0`
 }
 
+const BADGE_CLASS = 'ml-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500'
+
 /**
- * The "ADMIN" badge in the top bar. Double-tap it to open the hidden
- * control panel: switch to player view, or set a preview date that the
- * whole app renders against (for testing).
+ * The "ADMIN" badge in the top bar. For superadmins, double-tapping it opens
+ * debug mode: switch to player view, or set a preview date that the whole
+ * app renders against (for testing). For other admins it's a plain label.
  */
-export default function AdminBadge() {
+export default function AdminBadge({ debug }: { debug: boolean }) {
+  if (!debug) return <span className={BADGE_CLASS}>Admin</span>
+  return <DebugBadge />
+}
+
+function DebugBadge() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [previewDate, setPreviewDate] = useState<string | null>(null)
@@ -76,7 +83,7 @@ export default function AdminBadge() {
       <button
         type="button"
         onClick={handleTap}
-        className="ml-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 transition hover:text-slate-300"
+        className={`${BADGE_CLASS} transition hover:text-slate-300`}
       >
         Admin
         {previewDate && <span className="ml-1.5 normal-case tracking-normal text-amber-400">· {previewDate}</span>}
@@ -87,8 +94,8 @@ export default function AdminBadge() {
       {open &&
         createPortal(
         <Modal onClose={() => setOpen(false)}>
-          <h2 className="text-lg font-bold text-white">Admin Controls</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Testing tools — double-tap ADMIN to open this panel.</p>
+          <h2 className="text-lg font-bold text-white">Debug mode</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Superadmin testing tools — double-tap ADMIN to open this panel.</p>
 
           {/* View switcher */}
           <div className="mt-5">

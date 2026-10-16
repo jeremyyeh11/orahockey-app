@@ -14,7 +14,7 @@ Two teams (~30–70 players total). Players use it on phones.
 ## Roles
 - **admin** (coach/manager): full CRUD — squad, schedule, team lists, polls, invites, closing a season.
   Admins see fines but can't waive them or mark them paid
-- **superadmin** (Jeremy): an admin who can also waive fines and mark them paid
+- **superadmin** (Jeremy): an admin who can also waive fines, mark them paid and use debug mode
 - **finemaster**: a player who can also waive fines and mark them paid (player area, no other admin powers)
 - **player**: RSVP to games/trainings/events, vote in polls and POTM, enter a played match's score,
   goals and cards, and edit their own preferred name, date of birth and positions
@@ -147,9 +147,10 @@ Do not skip this step. Every session that modifies code must end with a commit +
   players, invites, scheduling, team lists, poll management, closing a season. Finemaster/superadmin-only: fine waivers/payments
 - Login: dev shortcut admin/admin maps to `NEXT_PUBLIC_DEV_LOGIN_*` in `.env.local`, dev builds only
 - Seed data: historical caps 2016–2025 (2020/2021 cancelled) and the 2026 season, using the real roster
-- Admin control panel: double-tap the ADMIN badge in the top bar — switch to player view
-  (`ora-view` cookie, middleware bypass) or set a preview date (`ora-preview-date` cookie read
-  by `lib/preview.ts:getNow()`; server pages pass `now` down to client components)
+- Debug mode (superadmin only, `isDebugRole()`): double-tap the ADMIN badge in the top bar — switch to
+  player view (`ora-view` cookie, middleware bypass) or set a preview date (`ora-preview-date` cookie read
+  by `lib/preview.ts:getNow()`; server pages pass `now` down to client components). Middleware forwards
+  `x-ora-debug` for superadmins only; without it both cookies are ignored and cleared
 
 ## Conventions
 - Dates are stored timestamptz and always displayed in Singapore time via `lib/format.ts`

@@ -1,7 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { USER_EMAIL_HEADER, USER_ID_HEADER } from '@/lib/supabase/request-user'
-import { isAdminRole } from '@/lib/roles'
+import { isAdminRole, isDebugRole } from '@/lib/roles'
+import { DEBUG_HEADER, PREVIEW_DATE_COOKIE, VIEW_COOKIE } from '@/lib/preview'
 
 // Role lookups hit the DB, so cache the result in a short-lived cookie.
 // Value is `${userId}:${role}` so a different login never reuses it.
@@ -50,14 +51,6 @@ export async function middleware(request: NextRequest) {
 
   const user = { id: claims.sub, email: claims.email }
 
-  // Forward the verified user so pages skip a second getUser() round-trip.
-  // set() overwrites any value the client sent, so these can't be spoofed.
-  request.headers.set(USER_ID_HEADER, user.id)
-  request.headers.set(USER_EMAIL_HEADER, encodeURIComponent(user.email ?? ''))
-  const forwarded = NextResponse.next({ request })
-  supabaseResponse.cookies.getAll().forEach((cookie) => forwarded.cookies.set(cookie))
-  supabaseResponse = forwarded
-
   // Role: cookie cache first, DB only on a miss
   let role: string | undefined
   let refreshRoleCookie = false
@@ -89,7 +82,27 @@ export async function middleware(request: NextRequest) {
     refreshRoleCookie = true
   }
 
+  // Debug mode (double-tap ADMIN) is superadmin only. Forward the verdict so
+  // getNow() ignores a preview date anyone else set by hand, and clear any
+  // debug cookies left over from before this was locked down.
+  const debug = isDebugRole(role)
+
+  // Forward the verified user so pages skip a second getUser() round-trip.
+  // set() overwrites any value the client sent, so these can't be spoofed.
+  request.headers.set(USER_ID_HEADER, user.id)
+  request.headers.set(USER_EMAIL_HEADER, encodeURIComponent(user.email ?? ''))
+  if (debug) request.headers.set(DEBUG_HEADER, '1')
+  else request.headers.delete(DEBUG_HEADER)
+  const forwarded = NextResponse.next({ request })
+  supabaseResponse.cookies.getAll().forEach((cookie) => forwarded.cookies.set(cookie))
+  supabaseResponse = forwarded
+
   const withRoleCookie = (res: NextResponse) => {
+    if (!debug) {
+      for (const name of [VIEW_COOKIE, PREVIEW_DATE_COOKIE]) {
+        if (request.cookies.has(name)) res.cookies.delete(name)
+      }
+    }
     if (refreshRoleCookie) {
       res.cookies.set(ROLE_COOKIE, `${user.id}:${role}`, {
         path: '/',
@@ -101,8 +114,8 @@ export async function middleware(request: NextRequest) {
     return res
   }
 
-  // Admins can opt into the player view from the admin control panel
-  const viewAsPlayer = request.cookies.get('ora-view')?.value === 'player'
+  // Superadmins can opt into the player view from debug mode
+  const viewAsPlayer = debug && request.cookies.get(VIEW_COOKIE)?.value === 'player'
 
   // Admin (or superadmin) trying to access player dashboard → redirect to admin
   if (isAdminRole(role) && pathname.startsWith('/dashboard') && !viewAsPlayer) {

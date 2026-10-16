@@ -21,6 +21,9 @@ export const isAdminRole = (role: string | null | undefined) => role === 'admin'
 /** Matches can_manage_fines() in SQL */
 export const canManageFines = (role: string | null | undefined) => role === 'finemaster' || role === 'superadmin'
 
+/** Debug mode (double-tap ADMIN: player view, preview date) */
+export const isDebugRole = (role: string | null | undefined) => role === 'superadmin'
+
 /**
  * Roles an admin can pick in the squad editor. Only a superadmin gives or
  * removes superadmin (a DB trigger enforces it), so it's listed for them, or
