@@ -90,6 +90,11 @@ export type FineEntry = {
   finesEnabled: boolean
   /** Players expected to reply (the squad with app accounts) */
   expected: string[]
+  /**
+   * When an admin cancelled / postponed it (040). Fines issued by then stay;
+   * anything that would fall due after it is never issued.
+   */
+  cancelledAt?: string | null
 }
 
 /** One attendance_log row */
@@ -150,7 +155,9 @@ export const fineKey = (f: { playerId: string; kind: FineKind; itemId: string; r
  *  - late change: a player changed their own RSVP within 24h of the start (at the
  *    first such change). The coaching committee can't be seen from here, so admins
  *    waive the ones who told them.
- * Entries with fines off or no respond-by never fine. `authIdOf` maps a player
+ * Entries with fines off or no respond-by never fine. A cancelled / postponed
+ * entry keeps the fines issued before `cancelledAt` and issues none after it.
+ * `authIdOf` maps a player
  * to their auth user, so changes someone else made aren't held against them.
  */
 export function computeFines({
@@ -209,6 +216,8 @@ export function computeFines({
 
   for (const e of entries) {
     if (!e.finesEnabled || !e.respondBy) continue
+    // Fines are issued up to now — or up to the cancellation, if it was called off
+    const untilMs = e.cancelledAt ? Math.min(nowMs, ms(e.cancelledAt)) : nowMs
     const dueMs = ms(e.respondBy)
     const history = changesBySession.get(`${e.kind}|${e.id}`) ?? []
     const startMs = e.kind === 'poll' || !e.start ? null : ms(e.start)
@@ -216,12 +225,12 @@ export function computeFines({
     const decideByMs = startMs === null ? null : Math.max(dueMs, startMs - LATE_CHANGE_WINDOW_MS)
     const fined = new Set<string>()
 
-    for (const playerId of dueMs <= nowMs ? e.expected : []) {
+    for (const playerId of dueMs <= untilMs ? e.expected : []) {
       const replied = firstReply.get(`${e.kind}|${e.id}|${playerId}`) ?? null
       if (!replied || ms(replied) > dueMs) {
         fined.add(playerId)
         add({ playerId, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_reply', at: e.respondBy, repliedAt: replied })
-      } else if (decideByMs !== null && decideByMs <= nowMs && statusAt(history, playerId, decideByMs) === 'maybe') {
+      } else if (decideByMs !== null && decideByMs <= untilMs && statusAt(history, playerId, decideByMs) === 'maybe') {
         fined.add(playerId)
         add({ playerId, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_reply', at: new Date(decideByMs).toISOString(), repliedAt: replied, undecided: true })
       }
@@ -236,7 +245,7 @@ export function computeFines({
         c.previous_status !== c.status &&
         t >= startMs - LATE_CHANGE_WINDOW_MS &&
         t < startMs &&
-        t <= nowMs &&
+        t <= untilMs &&
         c.changed_by !== null &&
         c.changed_by === authIdOf(c.player_id)
       ) {

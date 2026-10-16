@@ -346,7 +346,7 @@ test('admins cancel or postpone events instead of deleting them; those count for
   assert.match(actions, /status === 'postponed' && kind !== 'game'/, 'only matches are postponed')
 
   const fines = read('lib/fines-server.ts')
-  assert.equal((fines.match(/\.eq\('status', 'scheduled'\)/g) ?? []).length, 3, 'no fines for cancelled games, trainings or events')
+  assert.equal((fines.match(/cancelledAt: \w\.cancelled_at/g) ?? []).length, 3, 'cancelled games, trainings and events stop issuing fines (040)')
 
   const home = read('components/HomeView.tsx')
   assert.match(home, /\.from\('training_sessions'\)\.select\('id'\), season\)\.eq\('status', 'scheduled'\)/, 'attendance % skips cancelled trainings')

@@ -18,16 +18,17 @@ type SquadRow = {
  * reply: a season's squad members who are active and have an app account —
  * nobody else can reply in the app. Polls aren't season-scoped: their squad is
  * the season they were posted in (else the current one). Cancelled / postponed
- * games, trainings and events carry no fines. Deduped per request.
+ * games, trainings and events keep the fines issued before they were called off
+ * (cancelled_at) and issue no more. Deduped per request.
  */
 export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<string, FinePlayer> }> => {
   const supabase = createClient()
   const [seasons, { data: games }, { data: trainings }, { data: events }, { data: polls }, { data: squads }, { data: waivers }, { data: payments }] =
     await Promise.all([
       getSeasons(),
-      supabase.from('games').select('id, season_id, opponent, game_date, respond_by').eq('fines_enabled', true).eq('status', 'scheduled').not('respond_by', 'is', null),
-      supabase.from('training_sessions').select('id, season_id, session_date, respond_by').eq('fines_enabled', true).eq('status', 'scheduled').not('respond_by', 'is', null),
-      supabase.from('team_events').select('id, season_id, title, event_date, respond_by').eq('fines_enabled', true).eq('status', 'scheduled').not('respond_by', 'is', null),
+      supabase.from('games').select('id, season_id, opponent, game_date, respond_by, cancelled_at').eq('fines_enabled', true).not('respond_by', 'is', null),
+      supabase.from('training_sessions').select('id, season_id, session_date, respond_by, cancelled_at').eq('fines_enabled', true).not('respond_by', 'is', null),
+      supabase.from('team_events').select('id, season_id, title, event_date, respond_by, cancelled_at').eq('fines_enabled', true).not('respond_by', 'is', null),
       supabase.from('polls').select('id, question, created_at, respond_by').eq('fines_enabled', true).not('respond_by', 'is', null),
       supabase.from('season_players').select('season_id, player:players!inner(id, full_name, preferred_name, is_active, auth_user_id)'),
       supabase.from('fine_waivers').select('player_id, item_type, item_id, reason, note'),
@@ -49,9 +50,9 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
   }
 
   const entries: FineEntry[] = [
-    ...(games ?? []).map((g) => ({ kind: 'game' as const, id: g.id, title: `${gameTitle(g.opponent)} · ${fmtDate(g.game_date)}`, start: g.game_date, respondBy: g.respond_by, finesEnabled: true, expected: squadOf(g.season_id) })),
-    ...(trainings ?? []).map((t) => ({ kind: 'training' as const, id: t.id, title: `Training · ${fmtDate(t.session_date)}`, start: t.session_date, respondBy: t.respond_by, finesEnabled: true, expected: squadOf(t.season_id) })),
-    ...(events ?? []).map((e) => ({ kind: 'event' as const, id: e.id, title: `${e.title} · ${fmtDate(e.event_date)}`, start: e.event_date, respondBy: e.respond_by, finesEnabled: true, expected: squadOf(e.season_id) })),
+    ...(games ?? []).map((g) => ({ kind: 'game' as const, id: g.id, title: `${gameTitle(g.opponent)} · ${fmtDate(g.game_date)}`, start: g.game_date, respondBy: g.respond_by, finesEnabled: true, expected: squadOf(g.season_id), cancelledAt: g.cancelled_at })),
+    ...(trainings ?? []).map((t) => ({ kind: 'training' as const, id: t.id, title: `Training · ${fmtDate(t.session_date)}`, start: t.session_date, respondBy: t.respond_by, finesEnabled: true, expected: squadOf(t.season_id), cancelledAt: t.cancelled_at })),
+    ...(events ?? []).map((e) => ({ kind: 'event' as const, id: e.id, title: `${e.title} · ${fmtDate(e.event_date)}`, start: e.event_date, respondBy: e.respond_by, finesEnabled: true, expected: squadOf(e.season_id), cancelledAt: e.cancelled_at })),
     ...(polls ?? []).map((p) => ({ kind: 'poll' as const, id: p.id, title: `Poll: ${p.question}`, start: null, respondBy: p.respond_by, finesEnabled: true, expected: squadOf(seasonOn(p.created_at)) })),
   ]
 

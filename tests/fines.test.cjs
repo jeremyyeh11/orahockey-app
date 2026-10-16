@@ -245,3 +245,26 @@ test('years at ORA: from the first season with a league appearance to the curren
   assert.equal(yearsAtClub('2027', '2027'), 1)
   assert.equal(yearsAtClub(null, '2027'), null)
 })
+
+test('a cancelled entry keeps the fines issued before the cancel and issues none after it', () => {
+  const entry = {
+    kind: 'training', id: 't9', title: 'Training', start: sg('2026-10-10T09:00:00'), respondBy: sg('2026-10-08T23:59:59'),
+    finesEnabled: true, expected: ['never', 'undecided', 'changer'],
+  }
+  const change = (player_id, changed_at, status, previous_status = null) => ({
+    player_id, session_id: 't9', session_type: 'training', status, previous_status, changed_at, changed_by: `auth-${player_id}`,
+  })
+  const changes = [
+    change('undecided', sg('2026-10-07T12:00:00'), 'maybe'),
+    change('changer', sg('2026-10-07T12:00:00'), 'attending'),
+    change('changer', sg('2026-10-09T10:00:00'), 'not_attending', 'attending'), // within 24h of the start
+  ]
+  const args = { changes, votes: [], waivers: [], authIdOf: (p) => `auth-${p}`, now: new Date(sg('2026-10-12T00:00:00')) }
+  const reasons = (cancelledAt) =>
+    computeFines({ ...args, entries: [{ ...entry, cancelledAt }] }).map((f) => [f.playerId, f.reason])
+
+  assert.deepEqual(reasons(null), [['never', 'late_reply'], ['undecided', 'late_reply'], ['changer', 'late_change']], 'not cancelled: all three')
+  assert.deepEqual(reasons(sg('2026-10-08T12:00:00')), [], 'cancelled before the deadline: no fines at all')
+  assert.deepEqual(reasons(sg('2026-10-09T08:00:00')), [['never', 'late_reply']], 'after the deadline: the late reply stays, later fines are never issued')
+  assert.deepEqual(reasons(sg('2026-10-09T09:30:00')), [['never', 'late_reply'], ['undecided', 'late_reply']], 'the 24h "Update later" check had passed too')
+})

@@ -178,8 +178,9 @@ const STATUS_TABLE = { game: 'games', training: 'training_sessions', event: 'tea
 
 /**
  * Cancel a game, training or team event, postpone a game, or reinstate one
- * ('scheduled'). It stays on the schedule with its RSVPs but counts for nothing
- * — no appearances, attendance %, fines or POTM (038_cancelled_events.sql).
+ * ('scheduled'), with a reason the squad sees. It stays on the schedule with its
+ * RSVPs but counts for nothing — no appearances, attendance % or POTM, and no
+ * fines after the cancel (038, 040).
  */
 export const setEventStatus = action(async (
   kind: EventKind,
@@ -191,6 +192,7 @@ export const setEventStatus = action(async (
   await requireAdmin(supabase)
   if (status === 'postponed' && kind !== 'game') throw new Error('Only matches can be postponed.')
   const text = status === 'scheduled' ? null : reason?.trim() || null
+  if (status !== 'scheduled' && !text) throw new Error(`Give a reason for ${status === 'cancelled' ? 'cancelling' : 'postponing'}.`)
   if (text && text.length > STATUS_REASON_MAX) throw new Error(`Keep the reason under ${STATUS_REASON_MAX} characters.`)
 
   // A cancelled or postponed match has no result (the database checks too)

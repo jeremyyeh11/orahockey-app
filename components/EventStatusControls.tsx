@@ -8,8 +8,8 @@ const NOUN: Record<EventKind, string> = { game: 'match', training: 'training', e
 
 /**
  * Admin edit mode: cancel a game, training or team event, or postpone a game —
- * instead of deleting it. Picking one asks for an optional reason before it's
- * applied; a cancelled/postponed entry offers Reinstate. The confirm step is
+ * instead of deleting it. Picking one asks for the reason (required, shown on
+ * the event card) before it's applied; a cancelled/postponed entry offers Reinstate. The confirm step is
  * in the page, not a browser dialog.
  */
 export function EventStatusControls({
@@ -36,7 +36,7 @@ export function EventStatusControls({
     return (
       <div className="liga-event-status-controls space-y-2">
         <p className="text-xs text-slate-400">
-          This {noun} is {status}. It doesn&apos;t count for attendance, appearances or fines.
+          This {noun} is {status}. It doesn&apos;t count for attendance or appearances, and no more fines are issued.
         </p>
         <button type="button" onClick={() => onSetStatus('scheduled', null)} disabled={disabled} className={`${btn} w-full`}>
           Reinstate {noun}
@@ -47,22 +47,26 @@ export function EventStatusControls({
 
   if (picking) {
     const verb = picking === 'cancelled' ? 'Cancel' : 'Postpone'
+    const why = reason.trim()
     return (
       <div className="liga-event-status-controls space-y-2 rounded-xl border border-white/5 p-3">
         <label className={labelCls} htmlFor="event-status-reason">
-          Reason (optional, the squad sees it)
+          Reason for {picking === 'cancelled' ? 'cancelling' : 'postponing'} * (shown on the event card)
         </label>
         <input
           id="event-status-reason"
           type="text"
           value={reason}
+          required
+          autoFocus
           maxLength={STATUS_REASON_MAX}
           onChange={(e) => setReason(e.target.value)}
           className={inputCls}
           placeholder={picking === 'cancelled' ? 'Pitch closed, weather…' : 'New date to be confirmed'}
         />
         <p className="text-[11px] text-slate-500">
-          RSVPs are kept but replies close. It won&apos;t count for attendance, appearances or fines.
+          RSVPs are kept but replies close. It won&apos;t count for attendance or appearances, and no
+          more fines are issued (ones already issued stay).
         </p>
         <div className="flex gap-2">
           <button type="button" onClick={() => { setPicking(null); setReason('') }} disabled={disabled} className={btn}>
@@ -70,8 +74,8 @@ export function EventStatusControls({
           </button>
           <button
             type="button"
-            onClick={() => onSetStatus(picking, reason.trim() || null)}
-            disabled={disabled}
+            onClick={() => onSetStatus(picking, why)}
+            disabled={disabled || !why}
             className={dangerBtn}
           >
             {verb} {noun}

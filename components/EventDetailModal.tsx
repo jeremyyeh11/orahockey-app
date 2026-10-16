@@ -448,7 +448,7 @@ export function EventDetailModal({
                 {STATUS_LABEL[status]}
               </div>
               {statusReason && <p className="mt-0.5 text-xs text-slate-300">{statusReason}</p>}
-              <p className="mt-0.5 text-[11px] text-slate-500">Doesn&apos;t count for attendance, appearances or fines.</p>
+              <p className="mt-0.5 text-[11px] text-slate-500">Doesn&apos;t count for attendance or appearances. No more fines are issued.</p>
             </div>
           )}
 
