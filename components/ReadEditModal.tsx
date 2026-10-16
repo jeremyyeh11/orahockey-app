@@ -16,6 +16,8 @@ export type ReadEditModalProps = {
   isPending: boolean
   children: ReactNode
   onDelete?: () => void
+  /** Edit mode: more actions between Save and Delete (e.g. cancel / postpone an event) */
+  editActions?: ReactNode
   /** Render the admin Edit trigger in the header (next to titleAction) instead of the footer. */
   editInHeader?: boolean
   /** Render in place as a page panel (desktop master–detail) instead of a modal. No Close buttons. */
@@ -35,6 +37,7 @@ export function ReadEditModal({
   isPending,
   children,
   onDelete,
+  editActions,
   editInHeader = false,
   inline = false,
 }: ReadEditModalProps) {
@@ -104,12 +107,14 @@ export function ReadEditModal({
               {isPending ? 'Saving…' : 'Save'}
             </button>
           </div>
+          {editActions}
+          {/* Solid red: deleting is the most severe action */}
           {onDelete && (
             <button
               type="button"
               onClick={onDelete}
               disabled={isPending}
-              className="liga-button liga-button-danger w-full rounded-lg border border-red-900/60 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-900/20 disabled:opacity-50"
+              className="liga-button liga-button-danger-solid w-full rounded-lg py-2.5 text-sm font-semibold text-white transition disabled:opacity-50"
             >
               Delete
             </button>

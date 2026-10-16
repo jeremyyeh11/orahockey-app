@@ -427,6 +427,17 @@ export function EventDetailModal({
       onDiscard={() => { setEditMode(false); setSaveError(null) }}
       isPending={saving}
       onDelete={isAdmin && editMode && onDelete ? () => runAdminAction(onDelete) : undefined}
+      editActions={
+        // Cancel / postpone / reinstate — between Save and Delete, outside the form so Enter in the reason doesn't save the edit
+        isAdmin && onSetStatus ? (
+          <EventStatusControls
+            kind={kind}
+            status={status}
+            disabled={saving}
+            onSetStatus={(next, reason) => runAdminAction(() => onSetStatus(next, reason), () => setEditMode(false))}
+          />
+        ) : undefined
+      }
     >
       {/* READ MODE */}
       {!editMode && (
@@ -731,17 +742,6 @@ export function EventDetailModal({
         </form>
       )}
 
-      {/* Cancel / postpone / reinstate — outside the form so Enter in the reason doesn't save the edit */}
-      {editMode && isAdmin && onSetStatus && (
-        <div className="mt-5 border-t border-white/5 pt-4">
-          <EventStatusControls
-            kind={kind}
-            status={status}
-            disabled={saving}
-            onSetStatus={(next, reason) => runAdminAction(() => onSetStatus(next, reason), () => setEditMode(false))}
-          />
-        </div>
-      )}
     </ReadEditModal>
   )
 }

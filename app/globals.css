@@ -253,6 +253,17 @@
   background-image: none;
 }
 
+/* Delete: solid red, more severe than the outlined danger buttons */
+.liga-ui .liga-button-danger-solid {
+  background-color: #b42318;
+  background-image: none;
+  border: 1px solid transparent;
+}
+
+.liga-ui .liga-button-danger-solid:hover:not(:disabled) {
+  background-color: #c8321f;
+}
+
 .liga-ui .liga-compact-button {
   align-items: center;
   border-radius: 4px;

@@ -28,6 +28,9 @@ export function EventStatusControls({
   const noun = NOUN[kind]
   const btn =
     'liga-button liga-button-secondary flex-1 rounded-lg border border-surface-border py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-700 disabled:opacity-50'
+  // Cancelling is red (outlined); Delete below it is solid red, the more severe action
+  const dangerBtn =
+    'liga-button liga-button-danger flex-1 rounded-lg border border-red-900/60 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-900/20 disabled:opacity-50'
 
   if (status !== 'scheduled') {
     return (
@@ -69,7 +72,7 @@ export function EventStatusControls({
             type="button"
             onClick={() => onSetStatus(picking, reason.trim() || null)}
             disabled={disabled}
-            className="liga-button liga-button-danger flex-1 rounded-lg border border-red-900/60 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-900/20 disabled:opacity-50"
+            className={dangerBtn}
           >
             {verb} {noun}
           </button>
@@ -85,7 +88,7 @@ export function EventStatusControls({
           Postpone match
         </button>
       )}
-      <button type="button" onClick={() => setPicking('cancelled')} disabled={disabled} className={btn}>
+      <button type="button" onClick={() => setPicking('cancelled')} disabled={disabled} className={dangerBtn}>
         Cancel {noun}
       </button>
     </div>
