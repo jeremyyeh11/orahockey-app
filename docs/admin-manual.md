@@ -85,7 +85,7 @@ The **Fines** tab (between Squad and Profile). Fines are worked out by the app f
 - For the Finemaster (and superadmin), each outstanding fine has **Paid** and **Waive**. **Waive** asks for a reason (e.g. *PM'd Ish before changing*), which shows on the fine for everyone. Paid and waived fines are greyed out and keep an **Undo**.
 - The card under the month says **Outstanding** (with the amount still owed) or **Settled** once every fine is paid or waived. Players who still owe are listed first and open; settled players collapse.
 - **Copy outstanding for WhatsApp** copies what each player still owes that month, to paste into a message.
-- Only active squad members with an app account are fined. Everyone else, admins included, sees the same page without the Paid / Waive buttons.
+- Every active squad member can be fined for games, trainings and events, app account or not, so add sheet replies **before the reply deadline**: a reply added after it counts as late. Polls only fine players with an app account. Only the Finemaster and the superadmin see the Paid / Waive buttons.
 
 ### Profile
 The same Profile tab every player has (see the [user manual](user-manual.md#profile)): your card, details you can edit, stats by season, and **Sign out**.

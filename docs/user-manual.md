@@ -59,7 +59,7 @@ Your own page: your photo (taken and uploaded by the coaches), positions, career
 - **Late change** - changing your answer in the **24 hours before the start**. You must also PM a member of the coaching committee (Ish / Akash / Faris / Hiren / Jaspal); if you did, the Finemaster will waive the fine.
 - At most **one fine per event** - e.g. still on Update later 24h before, then changing to I'm in, is one fine, not two.
 - Some casual events and polls have fines switched off - their detail view says **No fines**. Team events start with fines off. Player-of-the-match voting never has fines.
-- Only players with an app account can be fined.
+- Every active squad member can be fined for games, trainings and events, app account or not (admins add replies from the sheet). Polls only fine players with an app account, since voting is in the app.
 
 
 ## Getting help

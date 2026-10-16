@@ -15,9 +15,11 @@ type SquadRow = {
 
 /**
  * Every fine (see computeFines), plus the players they belong to. Expected to
- * reply: a season's squad members who are active and have an app account —
- * nobody else can reply in the app. Polls aren't season-scoped: their squad is
- * the season they were posted in (else the current one). Cancelled / postponed
+ * reply to a game, training or team event: every active member of its season's
+ * squad, app account or not — admins record sheet replies for players without
+ * one. Polls can only be voted on in the app, so only active members with an
+ * account are expected. Polls aren't season-scoped: their squad is the season
+ * they were posted in (else the current one). Cancelled / postponed
  * games, trainings and events keep the fines issued before they were called off
  * (cancelled_at) and issue no more. Deduped per request.
  */
@@ -37,12 +39,16 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
 
   const players = new Map<string, FinePlayer & { auth_user_id: string | null }>()
   const expectedBySeason = new Map<string, string[]>()
+  const votersBySeason = new Map<string, string[]>()
   for (const row of (squads ?? []) as unknown as SquadRow[]) {
     const p = row.player
     players.set(p.id, { id: p.id, full_name: p.full_name, preferred_name: p.preferred_name, auth_user_id: p.auth_user_id })
-    if (p.is_active && p.auth_user_id) expectedBySeason.set(row.season_id, [...(expectedBySeason.get(row.season_id) ?? []), p.id])
+    if (!p.is_active) continue
+    expectedBySeason.set(row.season_id, [...(expectedBySeason.get(row.season_id) ?? []), p.id])
+    if (p.auth_user_id) votersBySeason.set(row.season_id, [...(votersBySeason.get(row.season_id) ?? []), p.id])
   }
   const squadOf = (seasonId: string | null) => (seasonId ? expectedBySeason.get(seasonId) ?? [] : [])
+  const votersOf = (seasonId: string | null) => (seasonId ? votersBySeason.get(seasonId) ?? [] : [])
   const current = seasons.find((s) => s.is_current) ?? seasons[0]
   const seasonOn = (iso: string) => {
     const day = iso.slice(0, 10)
@@ -53,7 +59,7 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
     ...(games ?? []).map((g) => ({ kind: 'game' as const, id: g.id, title: `${gameTitle(g.opponent)} · ${fmtDate(g.game_date)}`, start: g.game_date, respondBy: g.respond_by, finesEnabled: true, expected: squadOf(g.season_id), cancelledAt: g.cancelled_at })),
     ...(trainings ?? []).map((t) => ({ kind: 'training' as const, id: t.id, title: `Training · ${fmtDate(t.session_date)}`, start: t.session_date, respondBy: t.respond_by, finesEnabled: true, expected: squadOf(t.season_id), cancelledAt: t.cancelled_at })),
     ...(events ?? []).map((e) => ({ kind: 'event' as const, id: e.id, title: `${e.title} · ${fmtDate(e.event_date)}`, start: e.event_date, respondBy: e.respond_by, finesEnabled: true, expected: squadOf(e.season_id), cancelledAt: e.cancelled_at })),
-    ...(polls ?? []).map((p) => ({ kind: 'poll' as const, id: p.id, title: `Poll: ${p.question}`, start: null, respondBy: p.respond_by, finesEnabled: true, expected: squadOf(seasonOn(p.created_at)) })),
+    ...(polls ?? []).map((p) => ({ kind: 'poll' as const, id: p.id, title: `Poll: ${p.question}`, start: null, respondBy: p.respond_by, finesEnabled: true, expected: votersOf(seasonOn(p.created_at)) })),
   ]
 
   const sessionIds = entries.filter((e) => e.kind !== 'poll').map((e) => e.id)

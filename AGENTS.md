@@ -95,7 +95,9 @@ Polls (027): `poll_votes` is one row per picked option; players vote only throug
 
 Fines (018–019) are derived, never stored (`lib/fines.ts` `computeFines`): from each entry's
 `respond_by` + `fines_enabled`, the RSVP history (`attendance_log`), poll votes and waivers
-(`fine_waivers`); `fine_payments` marks a fine paid. Waiving and paying are Finemaster-title/superadmin only
+(`fine_waivers`); `fine_payments` marks a fine paid. Expected to reply: every active squad member for games,
+trainings and team events (app account or not — admins add sheet replies, before the deadline or they count late);
+polls only expect players with an account. Waiving and paying are Finemaster-title/superadmin only
 (`can_manage_fines()`, 035; actions in `app/dashboard/fines/actions.ts` start with `requireFineManager()`). At most one fine per player per entry. RSVP
 `maybe` is shown as "Update later" (`RSVP_LABEL`): anyone still on it 24h before the start (or at the
 respond-by, if later) gets a late reply (`undecided`). `attendance.reason` (033) is an optional,

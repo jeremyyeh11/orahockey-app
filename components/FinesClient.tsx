@@ -259,8 +259,8 @@ export default function FinesClient({
       )}
 
       <p className="liga-meta mt-6 text-slate-500">
-        A late reply counts in the month its deadline passed; a late change in the month it was made. Only players with an app account
-        can be fined.
+        A late reply counts in the month its deadline passed; a late change in the month it was made. Every active squad member can be
+        fined for games, trainings and events; polls only fine players with an app account.
       </p>
 
       {waiving && (

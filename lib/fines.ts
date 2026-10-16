@@ -88,7 +88,7 @@ export type FineEntry = {
   start: string | null
   respondBy: string | null
   finesEnabled: boolean
-  /** Players expected to reply (the squad with app accounts) */
+  /** Players expected to reply: the active squad (polls: those with an app account) */
   expected: string[]
   /**
    * When an admin cancelled / postponed it (040). Fines issued by then stay;

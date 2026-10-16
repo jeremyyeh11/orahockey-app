@@ -347,6 +347,8 @@ test('admins cancel or postpone events instead of deleting them; those count for
 
   const fines = read('lib/fines-server.ts')
   assert.equal((fines.match(/cancelledAt: \w\.cancelled_at/g) ?? []).length, 3, 'cancelled games, trainings and events stop issuing fines (040)')
+  assert.match(fines, /if \(!p\.is_active\) continue\s+expectedBySeason\.set/, 'every active squad member is expected to reply, account or not')
+  assert.match(fines, /expected: votersOf\(seasonOn\(p\.created_at\)\)/, 'polls only expect players who can vote in the app')
 
   const home = read('components/HomeView.tsx')
   assert.match(home, /\.from\('training_sessions'\)\.select\('id'\), season\)\.eq\('status', 'scheduled'\)/, 'attendance % skips cancelled trainings')
