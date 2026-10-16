@@ -2,18 +2,18 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { action, requireAdmin } from '@/lib/action-helpers'
+import { action, requireSuperadmin } from '@/lib/action-helpers'
 
 /**
- * Admin Danger zone: archive the current season and make the next one current
+ * Superadmin Danger zone: archive the current season and make the next one current
  * (close_current_season(), one transaction). The caller must have typed CLOSE;
- * the database function re-checks that the caller is an admin.
+ * the database function re-checks that the caller is the superadmin (039).
  */
 export const closeSeason = action(async (confirmation: string): Promise<{ newLabel: string }> => {
   if (confirmation !== 'CLOSE') throw new Error('Type CLOSE to confirm.')
 
   const supabase = createClient()
-  await requireAdmin(supabase)
+  await requireSuperadmin(supabase)
 
   const { data, error } = await supabase.rpc('close_current_season')
   if (error) throw new Error(error.message)

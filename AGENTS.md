@@ -12,10 +12,10 @@ Two teams (~30–70 players total). Players use it on phones.
 - **Vercel** — hosting (free tier)
 
 ## Roles
-- **admin** (coach/manager): full CRUD — squad, schedule, team lists, polls, invites, closing a season.
+- **admin** (coach/manager): full CRUD — squad, schedule, team lists, polls, invites.
   Admins see fines but can't waive them or mark them paid
-- **superadmin** (Jeremy): an admin who can also waive fines, mark them paid, use debug mode and is the
-  only one who assigns roles and titles
+- **superadmin** (Jeremy): an admin who can also waive fines, mark them paid, use debug mode, close a season
+  (039) and is the only one who assigns roles and titles
 - **player**: RSVP to games/trainings/events, vote in polls and POTM, enter a played match's score,
   goals and cards, and edit their own preferred name, date of birth and positions
 
@@ -57,7 +57,7 @@ lib/
   format.ts                 Dates in Singapore time
   preview.ts                getNow(): honours the admin preview date
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
-supabase/migrations/        001–038 — apply in filename order (prefixes 005 and 009 are each used twice)
+supabase/migrations/        001–039 — apply in filename order (prefixes 005 and 009 are each used twice)
 supabase/seed/              Historical caps 2016–2025 and the 2026 season
 tests/                      node:test suites (see Tests)
 docs/                       User and admin manuals
@@ -76,8 +76,8 @@ season's jersey number (positions live on `players`, across seasons). The select
 header switcher (`components/SeasonSwitcher.tsx`) sets it. A `season_lock` BEFORE trigger on every
 season-scoped table rejects app (JWT anon/authenticated) writes to a locked season — admins
 included; SQL editor / service-role writes pass. `seasons` has no app write policies.
-The one app path that writes `seasons` is `close_current_season()` (014, admin-checked definer fn)
-behind the admin Home Danger zone (button → Yes → type CLOSE). Season phase (pre-season / season /
+The one app path that writes `seasons` is `close_current_season()` (014; superadmin-checked definer fn since 039,
+`is_superadmin()`) behind the Home Danger zone, shown to the superadmin only (button → Yes → type CLOSE). Season phase (pre-season / season /
 post-season) is derived from the season's fixtures + today in `lib/season.ts:seasonPhase()`, never stored.
 
 Match results (goals/cards) are per-event rows: `match_goals` (scorer + assist slot `pc`/`ps`/player,
@@ -149,7 +149,7 @@ Do not skip this step. Every session that modifies code must end with a commit +
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–038 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–039 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance
@@ -158,7 +158,7 @@ Do not skip this step. Every session that modifies code must end with a commit +
   column is legacy and no longer read
 - Both areas have the same six tabs: Home, Schedule (games, trainings, team events + RSVP),
   Polls (incl. POTM voting), Squad (+ player profiles), Fines, Profile. Admin-only: adding/editing
-  players, invites, scheduling, team lists, poll management, closing a season. Finemaster title/superadmin-only: fine waivers/payments
+  players, invites, scheduling, team lists, poll management. Superadmin-only: closing a season. Finemaster title/superadmin-only: fine waivers/payments
 - Login: dev shortcut admin/admin maps to `NEXT_PUBLIC_DEV_LOGIN_*` in `.env.local`, dev builds only
 - Seed data: historical caps 2016–2025 (2020/2021 cancelled) and the 2026 season, using the real roster
 - Debug mode (superadmin only, `isDebugRole()`): double-tap the ADMIN badge in the top bar — switch to

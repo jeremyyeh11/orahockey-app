@@ -729,9 +729,10 @@ test('close season: admin-only Danger zone with three confirmations', () => {
   assert.match(panel, /disabled=\{typed !== CONFIRM_WORD \|\| isPending\}/, '3. final button only once CLOSE is typed exactly')
   const action = read('app/admin/dashboard/seasonActions.ts')
   assert.match(action, /if \(confirmation !== 'CLOSE'\) throw/, 'server re-checks the typed word')
-  assert.match(action, /await requireAdmin\(supabase\)[\s\S]*rpc\('close_current_season'\)/)
+  assert.match(action, /await requireSuperadmin\(supabase\)[\s\S]*rpc\('close_current_season'\)/, 'superadmin only')
   const home = read('components/HomeView.tsx')
-  assert.match(home, /basePath === '\/admin' && season\.is_current && !season\.locked \? await getCloseSeasonSummary\(season\)/, 'admin Home, current season only')
+  assert.match(home, /basePath === '\/admin' && me\?\.role === 'superadmin' && season\.is_current && !season\.locked \? await getCloseSeasonSummary\(season\)/, 'superadmin on admin Home, current season only')
+  assert.match(read('supabase/migrations/039_close_season_superadmin.sql'), /if not public\.is_superadmin\(\) then\s+raise exception/, 'the database checks superadmin too')
   const migration = read('supabase/migrations/014_close_season.sql')
   assert.match(migration, /if not public\.is_admin\(\) then\s+raise exception/)
   assert.match(migration, /update seasons set is_current = false, locked = true where id = cur\.id/)
@@ -942,7 +943,8 @@ test('every admin server action checks is_admin() before doing anything', () => 
     assert.ok(actions.length > 0, `${file} has actions`)
     for (const fn of actions) {
       const name = fn.match(/^export const (\w+) = action\(/)[1]
-      assert.match(fn, /^[^{]*\{[\s\S]*?const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/, `${file}: ${name} calls requireAdmin first`)
+      // requireSuperadmin is stricter (closing a season)
+      assert.match(fn, /^[^{]*\{[\s\S]*?const supabase = createClient\(\)\s+await require(Admin|Superadmin)\(supabase\)/, `${file}: ${name} calls requireAdmin first`)
     }
   }
   // Fines are managed by the Finemaster title and the superadmin, not admins: those actions

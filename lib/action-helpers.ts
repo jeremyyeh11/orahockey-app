@@ -38,6 +38,12 @@ export async function requireAdmin(supabase: Supabase) {
   if (error || data !== true) throw new Error('Only admins can do that.')
 }
 
+/** Throws unless the caller is the superadmin (the is_superadmin() SQL function), e.g. closing a season */
+export async function requireSuperadmin(supabase: Supabase) {
+  const { data, error } = await supabase.rpc('is_superadmin')
+  if (error || data !== true) throw new Error('Only the superadmin can do that.')
+}
+
 /**
  * Throws unless the caller can waive fines and mark them paid (the
  * can_manage_fines() SQL function: the Finemaster title and the superadmin, not plain

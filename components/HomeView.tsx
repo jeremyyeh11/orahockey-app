@@ -55,7 +55,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
 
   const { data: me } = await supabase
     .from('players')
-    .select('id, full_name, jersey_number, preferred_name')
+    .select('id, full_name, jersey_number, preferred_name, role')
     .eq('auth_user_id', user?.id ?? '')
     .single()
 
@@ -161,9 +161,9 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const preSeason = phase === 'pre-season'
   const quote = phase === 'pre-season' ? pickQuote(PRE_SEASON_QUOTES) : phase === 'post-season' ? pickQuote(POST_SEASON_QUOTES) : null
 
-  // Admin Danger zone: closing the current season (admin Home, viewing that season)
+  // Danger zone: closing the current season (superadmin only, admin Home, viewing that season)
   const closeSummary =
-    basePath === '/admin' && season.is_current && !season.locked ? await getCloseSeasonSummary(season) : null
+    basePath === '/admin' && me?.role === 'superadmin' && season.is_current && !season.locked ? await getCloseSeasonSummary(season) : null
 
   // Seasons imported from caps with no scores: games count as played, but there's no record to show
   const noScores = played.length > 0 && !played.some(hasScore)
