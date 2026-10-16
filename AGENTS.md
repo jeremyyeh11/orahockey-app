@@ -57,7 +57,7 @@ lib/
   format.ts                 Dates in Singapore time
   preview.ts                getNow(): honours the admin preview date
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
-supabase/migrations/        001–036 — apply in filename order (prefixes 005 and 009 are each used twice)
+supabase/migrations/        001–038 — apply in filename order (prefixes 005 and 009 are each used twice)
 supabase/seed/              Historical caps 2016–2025 and the 2026 season
 tests/                      node:test suites (see Tests)
 docs/                       User and admin manuals
@@ -107,6 +107,13 @@ Players: `cap_number` is the permanent debut order (#1 is the honorary cap for e
 of birth and positions; photos (`photo_path`, public `player-photos` bucket) are admin-written. Seasons record different stats (`seasons.recorded_stats`, 024) and
 can be cancelled (`cancelled_reason`, 026 — 2020/2021 COVID).
 
+Cancelled / postponed (038): `games.status` (`scheduled` | `cancelled` | `postponed`), `training_sessions.status`
+and `team_events.status` (`scheduled` | `cancelled`) plus optional `status_reason`. Admins set it from Edit in the event
+details (`setEventStatus`, `components/EventStatusControls.tsx`; Reinstate sets `scheduled`) instead of deleting. Such an
+entry counts for nothing: a check constraint keeps a non-scheduled game's `result` NULL (so no appearances/CS/record),
+`set_match_score()` and `ensure_potm_polls()` skip it, a trigger rejects app RSVPs to it (existing rows kept), and
+`loadFines()`, Home's attendance %/next up/day banner filter `status = 'scheduled'` (`lib/event-status.ts:isScheduled`).
+
 All tables have RLS enabled. `is_admin()` SQL function used in policies.
 
 ## Local dev
@@ -142,7 +149,7 @@ Do not skip this step. Every session that modifies code must end with a commit +
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–036 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–038 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance

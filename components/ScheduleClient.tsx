@@ -11,6 +11,7 @@ import {
   addEvent,
   updateEvent,
   deleteEvent,
+  setEventStatus,
   type EventInput,
   type GameInput,
   type TrainingInput,
@@ -18,7 +19,8 @@ import {
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
-import { EventRow, eventFinesEnabled, eventId, eventRespondBy, type EventItem, type MyStatus } from '@/components/EventRow'
+import { EventRow, eventFinesEnabled, eventId, eventRespondBy, eventStatus, type EventItem, type MyStatus } from '@/components/EventRow'
+import type { EventStatus } from '@/lib/event-status'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import { RespondBy, rowCountdownClass } from '@/components/RespondBy'
 import { RsvpButtons } from '@/components/RsvpButtons'
@@ -104,6 +106,7 @@ export default function ScheduleClient({
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   // Touch layouts show the reply countdown on this one (and on any under 48h) — see rowCountdownClass
   const firstOpen = upcoming.find((i) => {
+    if (eventStatus(i) !== 'scheduled') return false
     const r = eventRespondBy(i)
     return !!r && new Date(r).getTime() > nowMs
   })
@@ -155,6 +158,13 @@ export default function ScheduleClient({
 
   async function handleSaveEvent(id: string, data: EventInput) {
     await unwrap(updateEvent(id, data))
+    afterSave()
+  }
+
+  // Cancel / postpone / reinstate — the entry stays on the schedule
+  async function handleSetStatus(status: EventStatus, reason: string | null) {
+    if (!selectedItem) return
+    await unwrap(setEventStatus(selectedItem.kind, eventId(selectedItem), status, reason))
     afterSave()
   }
 
@@ -262,6 +272,7 @@ export default function ScheduleClient({
       onSaveGame={handleSaveGame}
       onSaveTraining={handleSaveTraining}
       onSaveEvent={handleSaveEvent}
+      onSetStatus={handleSetStatus}
       onDelete={handleDelete}
     />
   )
@@ -343,7 +354,9 @@ export default function ScheduleClient({
                 {upcoming.map((item) => {
                   const id = eventId(item)
                   const mine = myStatus[id]
-                  const countdown = readOnly
+                  // Cancelled / postponed: no replies, so no countdown or RSVP buttons
+                  const open = !readOnly && eventStatus(item) === 'scheduled'
+                  const countdown = !open
                     ? null
                     : rowCountdownClass({ respondBy: eventRespondBy(item), replied: !!mine, now, first: !!firstOpen && eventId(firstOpen) === id })
                   return (
@@ -361,10 +374,10 @@ export default function ScheduleClient({
                       {countdown !== null && (
                         <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} countdownOnly={!!mine} className={`${countdown} ml-14 mt-2`} />
                       )}
-                      {!readOnly && (
+                      {open && (
                         <RsvpButtons value={mine} onPick={(status) => respond(item, status)} disabled={isPending && respondingId === id} className="ml-14 mt-2" />
                       )}
-                      {!readOnly && mine === 'not_attending' && (
+                      {open && mine === 'not_attending' && (
                         <OutReason
                           key={`${id}-${myReason(id) ?? ''}`}
                           sessionId={id}

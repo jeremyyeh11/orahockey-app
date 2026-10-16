@@ -240,12 +240,12 @@ test('season switcher: header dropdown on desktop, pinned tabs on touch layouts,
 test('locked seasons are read-only in the app, admins included', () => {
   const detail = read('components/EventDetailModal.tsx')
   assert.match(detail, /const isAdmin = isAdminUser && !readOnly/, 'admin controls switch off in a locked season')
-  assert.match(detail, /isGame && !editMode && !readOnly \?/, 'no result entry')
+  assert.match(detail, /isGame && !editMode && !readOnly && !off \?/, 'no result entry')
   // One ScheduleClient serves both areas
   const schedule = read('components/ScheduleClient.tsx')
   assert.match(schedule, /const readOnly = season\.locked/)
   assert.match(schedule, /readOnly=\{readOnly\}/, 'schedule passes read-only to event details')
-  assert.match(schedule, /\{!readOnly && \(\s*<RsvpButtons /, 'schedule hides RSVP buttons')
+  assert.match(schedule, /const open = !readOnly && [\s\S]*\{open && \(\s*<RsvpButtons /, 'schedule hides RSVP buttons')
   assert.match(schedule, /\{isAdmin && !readOnly && \(\s*<div className="flex flex-wrap items-center gap-2">\s*<button\s+onClick=\{\(\) => setAddModal\('event'\)\}/, 'no add buttons')
   for (const fn of ['addGame', 'addTraining']) {
     assert.match(read('app/admin/schedule/actions.ts'), new RegExp(`export const ${fn} = action[\\s\\S]*?requireOpenSeason\\(\\)[\\s\\S]*?season_id: season\\.id`), `${fn} writes into the open selected season`)
@@ -323,11 +323,40 @@ test('RSVP: "Update later" (stored as maybe), and an optional reason box under t
   }
   // The reason box sits after the buttons, only while the answer is Out
   assert.match(read('components/HomeRsvp.tsx'), /<RsvpButtons [\s\S]*\{mine === 'not_attending' && \(\s*<OutReason /)
-  assert.match(read('components/ScheduleClient.tsx'), /<RsvpButtons [\s\S]*\{!readOnly && mine === 'not_attending' && \(\s*<OutReason/)
+  assert.match(read('components/ScheduleClient.tsx'), /<RsvpButtons [\s\S]*\{open && mine === 'not_attending' && \(\s*<OutReason/)
   assert.match(read('components/EventDetailModal.tsx'), /RSVP_LABEL\[status\][\s\S]*\{localMyStatus === 'not_attending' && \(\s*<OutReason/)
   // Everyone sees it in the attendance list; the database keeps it only while Out
   assert.match(read('components/EventDetailModal.tsx'), /\{reason && <span className=\{`liga-out-reason-text/)
   const migration = read('supabase/migrations/033_attendance_reason.sql')
   assert.match(migration, /if new\.status <> 'not_attending' then\s+new\.reason := null;/)
   assert.match(read('app/dashboard/schedule/actions.ts'), /export const setOutReason = action[\s\S]*?\.eq\('status', 'not_attending'\)/)
+})
+
+test('admins cancel or postpone events instead of deleting them; those count for nothing', () => {
+  const migration = read('supabase/migrations/038_cancelled_events.sql')
+  assert.match(migration, /check \(status in \('scheduled', 'cancelled', 'postponed'\)\)/, 'games can be cancelled or postponed')
+  assert.match(migration, /training_sessions_status_check\s+check \(status in \('scheduled', 'cancelled'\)\)/, 'trainings only cancelled')
+  assert.match(migration, /team_events_status_check\s+check \(status in \('scheduled', 'cancelled'\)\)/, 'events only cancelled')
+  assert.match(migration, /check \(status = 'scheduled' or result is null\)/, 'a cancelled/postponed game has no result, so no appearances')
+  assert.match(migration, /and g\.status = 'scheduled'/, 'no POTM poll')
+  assert.match(migration, /create trigger attendance_session_scheduled/, 'no RSVPs')
+
+  const actions = read('app/admin/schedule/actions.ts')
+  assert.match(actions, /export const setEventStatus = action\(async \([^)]*\) => \{\s+const supabase = createClient\(\)\s+await requireAdmin\(supabase\)/, 'admins only')
+  assert.match(actions, /status === 'postponed' && kind !== 'game'/, 'only matches are postponed')
+
+  const fines = read('lib/fines-server.ts')
+  assert.equal((fines.match(/\.eq\('status', 'scheduled'\)/g) ?? []).length, 3, 'no fines for cancelled games, trainings or events')
+
+  const home = read('components/HomeView.tsx')
+  assert.match(home, /\.from\('training_sessions'\)\.select\('id'\), season\)\.eq\('status', 'scheduled'\)/, 'attendance % skips cancelled trainings')
+  assert.match(home, /\.from\('team_events'\)\.select\('id'\), season\)\.eq\('status', 'scheduled'\)/, 'attendance % skips cancelled events')
+  assert.match(home, /inView\(g\) && isScheduled\(g\)/, 'attendance % skips cancelled games')
+
+  const schedule = read('components/ScheduleClient.tsx')
+  assert.match(schedule, /const open = !readOnly && eventStatus\(item\) === 'scheduled'/, 'no RSVP buttons on a cancelled entry')
+  const detail = read('components/EventDetailModal.tsx')
+  assert.match(detail, /\{!readOnly && !off && \(\s*<div className="mb-4">/, 'no RSVP in the details either')
+  assert.match(detail, /<EventStatusControls/, 'admin edit mode offers cancel / postpone / reinstate')
+  assert.doesNotMatch(read('components/EventStatusControls.tsx'), /confirm\(/, 'an in-page step, not a native confirm()')
 })

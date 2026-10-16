@@ -1,6 +1,7 @@
 import { fmtReport, fmtTimeRange, dateBlock } from '@/lib/format'
 import { GAME_TYPE_LABEL, gameTitle } from '@/lib/constants'
 import type { Game, Training, TeamEvent } from '@/components/EventDetailModal'
+import { STATUS_LABEL, type EventStatus } from '@/lib/event-status'
 
 export type EventItem =
   | { kind: 'game'; date: string; game: Game }
@@ -48,6 +49,16 @@ export function eventNotes(item: EventItem) {
   return item.kind === 'game' ? item.game.notes : item.kind === 'training' ? item.training.notes : item.event.notes
 }
 
+/** 'scheduled', or cancelled/postponed by an admin (038) */
+export function eventStatus(item: EventItem): EventStatus {
+  return (item.kind === 'game' ? item.game.status : item.kind === 'training' ? item.training.status : item.event.status) ?? 'scheduled'
+}
+
+/** Why it was cancelled/postponed (optional) */
+export function eventStatusReason(item: EventItem) {
+  return (item.kind === 'game' ? item.game.status_reason : item.kind === 'training' ? item.training.status_reason : item.event.status_reason) ?? null
+}
+
 export type MyStatus = 'attending' | 'not_attending' | 'maybe'
 
 const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
@@ -57,6 +68,12 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
   ot_win: { label: 'W·OT', cls: 'bg-green-900/60 text-green-300' },
   ot_loss: { label: 'L·OT', cls: 'bg-red-900/60 text-red-300' },
   unrecorded: { label: 'No score', cls: 'bg-slate-700 text-slate-400' },
+}
+
+/** Cancelled red, postponed amber */
+export const STATUS_CLS: Record<Exclude<EventStatus, 'scheduled'>, string> = {
+  cancelled: 'text-red-400',
+  postponed: 'text-amber-400',
 }
 
 const STATUS_CHIP: Record<MyStatus, { label: string; cls: string }> = {
@@ -89,8 +106,12 @@ export function EventRow({
   const location = eventLocation(item)
   const report = fmtReport(item.date, eventReportMinutes(item))
   const block = dateBlock(item.date)
-  const going = attending ? attending[id] ?? 0 : null
+  const status = eventStatus(item)
+  const off = status !== 'scheduled'
+  // A cancelled/postponed entry shows its status instead of a headcount
+  const going = attending && !off ? attending[id] ?? 0 : null
   const result = isGame ? item.game.result : null
+  const statusReason = eventStatusReason(item)
 
   return (
     <div className="liga-event-row flex w-full items-center gap-3">
@@ -101,7 +122,7 @@ export function EventRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="liga-event-title break-words text-lg font-semibold leading-snug text-white">
+          <span className={`liga-event-title break-words text-lg font-semibold leading-snug ${off ? 'text-slate-500 line-through' : 'text-white'}`}>
             {eventTitle(item)}
           </span>
           {isGame && item.game.game_type !== 'regular' && (
@@ -120,9 +141,16 @@ export function EventRow({
           {location && ` · ${location}`}
           {isGame && item.game.home_away && ` · ${item.game.home_away === 'home' ? 'Home' : 'Away'}`}
         </div>
+        {/* Cancelled / postponed — plain text, with the reason if given */}
+        {status !== 'scheduled' && (
+          <div className={`liga-event-status mt-0.5 text-[11px] font-semibold ${STATUS_CLS[status]}`}>
+            {STATUS_LABEL[status]}
+            {statusReason && <span className="font-normal text-slate-400"> · {statusReason}</span>}
+          </div>
+        )}
         {/* Report-early time — subtext under the date & time */}
         {report && <div className="liga-event-report mt-0.5 text-[11px] text-slate-500">{report}</div>}
-        {mine && (
+        {mine && !off && (
           <div className={`mt-0.5 text-[11px] ${STATUS_CHIP[mine].cls}`}>{STATUS_CHIP[mine].label}</div>
         )}
       </div>

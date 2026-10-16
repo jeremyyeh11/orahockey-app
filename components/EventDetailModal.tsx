@@ -5,7 +5,8 @@ import { ReadEditModal } from './ReadEditModal'
 import { preferredName } from '@/lib/names'
 import { fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
-import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventTitle, type EventItem } from './EventRow'
+import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventStatus, eventStatusReason, eventTitle, STATUS_CLS, type EventItem } from './EventRow'
+import { EventStatusControls } from './EventStatusControls'
 import { FINE_AMOUNT, FINE_KIND_NOUN, RSVP_LABEL, type FineReason } from '@/lib/fines'
 import { OutReason } from './OutReason'
 import { RespondBy } from './RespondBy'
@@ -27,6 +28,7 @@ import {
 import { ChevronRightIcon } from './icons'
 import type { GoalRow, CardRow } from '@/app/dashboard/schedule/resultActions'
 import { unwrap } from '@/lib/action-result'
+import { STATUS_LABEL, type EventStatus } from '@/lib/event-status'
 
 export type Game = {
   id: string
@@ -46,6 +48,9 @@ export type Game = {
   report_minutes?: number | null
   respond_by?: string | null
   fines_enabled?: boolean
+  /** Cancelled or postponed by an admin (038) — counts for nothing */
+  status?: EventStatus
+  status_reason?: string | null
 }
 
 export type Training = {
@@ -57,6 +62,8 @@ export type Training = {
   report_minutes?: number | null
   respond_by?: string | null
   fines_enabled?: boolean
+  status?: EventStatus
+  status_reason?: string | null
 }
 
 /** A titled team event — gathering, meeting, social… */
@@ -70,6 +77,8 @@ export type TeamEvent = {
   report_minutes?: number | null
   respond_by?: string | null
   fines_enabled?: boolean
+  status?: EventStatus
+  status_reason?: string | null
   /** When it was posted — team events' default respond-by counts from it */
   created_at?: string
 }
@@ -157,6 +166,7 @@ export function EventDetailModal({
   onSaveGame,
   onSaveTraining,
   onSaveEvent,
+  onSetStatus,
   onDelete,
   inline = false,
 }: {
@@ -183,6 +193,8 @@ export function EventDetailModal({
   onSaveGame?: (id: string, data: GameInput) => Promise<void>
   onSaveTraining?: (id: string, data: TrainingInput) => Promise<void>
   onSaveEvent?: (id: string, data: EventInput) => Promise<void>
+  /** Cancel / postpone (games) / reinstate — admin edit mode */
+  onSetStatus?: (status: EventStatus, reason: string | null) => Promise<void>
   onDelete?: () => Promise<void>
   /** Desktop master–detail: render as the Schedule page's side panel instead of a modal */
   inline?: boolean
@@ -217,6 +229,10 @@ export function EventDetailModal({
   const notes = eventNotes(currentItem)
 
   const title = eventTitle(currentItem)
+  // Cancelled / postponed: shown on the schedule, but no replies, result or team list changes
+  const status = eventStatus(currentItem)
+  const off = status !== 'scheduled'
+  const statusReason = eventStatusReason(currentItem)
   const endIso = eventEnd(currentItem)
   const editEnd = endIso ? toTimeLocal(endIso) : ''
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster)
@@ -386,7 +402,7 @@ export function EventDetailModal({
     <ReadEditModal
       title={title}
       titleAction={
-        isGame && !editMode && !readOnly ? (
+        isGame && !editMode && !readOnly && !off ? (
           <button
             type="button"
             onClick={() => setShowResult(true)}
@@ -415,6 +431,16 @@ export function EventDetailModal({
       {/* READ MODE */}
       {!editMode && (
         <div className="space-y-5">
+          {status !== 'scheduled' && (
+            <div className="liga-event-status-banner rounded-xl border border-white/5 px-3 py-2.5">
+              <div className={`text-sm font-semibold ${STATUS_CLS[status]}`}>
+                {STATUS_LABEL[status]}
+              </div>
+              {statusReason && <p className="mt-0.5 text-xs text-slate-300">{statusReason}</p>}
+              <p className="mt-0.5 text-[11px] text-slate-500">Doesn&apos;t count for attendance, appearances or fines.</p>
+            </div>
+          )}
+
           {/* Event details */}
           <div className="space-y-2">
             <DetailRow
@@ -433,7 +459,7 @@ export function EventDetailModal({
               </>
             )}
             <DetailRow label="Venue" value={location || 'TBD'} />
-            {eventRespondBy(currentItem) && (
+            {eventRespondBy(currentItem) && !off && (
               <DetailRow
                 label="Reply by"
                 value={fmtDateTime(eventRespondBy(currentItem)!)}
@@ -453,8 +479,8 @@ export function EventDetailModal({
             </CollapsibleSection>
           )}
 
-          {/* Team List — published view (all users) or admin button */}
-          {isGame && (
+          {/* Team List — published view (all users) or admin button; nothing to pick once called off */}
+          {isGame && !(off && !isTeamListPublished) && (
             <CollapsibleSection
               key={`teamlist-${stage}`}
               title="Team List"
@@ -478,7 +504,7 @@ export function EventDetailModal({
                   {selectedPlayers.length === 0 && (
                     <p className="text-xs text-slate-500">No players selected.</p>
                   )}
-                  {isAdmin && (
+                  {isAdmin && !off && (
                     <button
                       type="button"
                       onClick={() => setShowTeamList(true)}
@@ -511,7 +537,7 @@ export function EventDetailModal({
             defaultOpen={attendanceDefaultOpen}
             summary={`${attendingCount} in`}
           >
-            {!readOnly && (
+            {!readOnly && !off && (
             <div className="mb-4">
               {eventRespondBy(currentItem) &&
                 (!localMyStatus || new Date(eventRespondBy(currentItem)!).getTime() > new Date(now).getTime()) && (
@@ -703,6 +729,18 @@ export function EventDetailModal({
           )}
           <FormError error={saveError} />
         </form>
+      )}
+
+      {/* Cancel / postpone / reinstate — outside the form so Enter in the reason doesn't save the edit */}
+      {editMode && isAdmin && onSetStatus && (
+        <div className="mt-5 border-t border-white/5 pt-4">
+          <EventStatusControls
+            kind={kind}
+            status={status}
+            disabled={saving}
+            onSetStatus={(next, reason) => runAdminAction(() => onSetStatus(next, reason), () => setEditMode(false))}
+          />
+        </div>
       )}
     </ReadEditModal>
   )

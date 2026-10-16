@@ -7,6 +7,7 @@ import { LEAGUE, competitionLabel, gameTitle } from '@/lib/constants'
 import { POST_SEASON_QUOTES, PRE_SEASON_QUOTES, pickQuote } from '@/lib/quotes'
 import { getCloseSeasonSummary, getSelectedSeason, inSeason } from '@/lib/season-server'
 import { countsForRecord, hasScore } from '@/lib/stats'
+import { isScheduled } from '@/lib/event-status'
 import { PHASE_LABEL, records, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
 import HomeRsvp from '@/components/HomeRsvp'
@@ -27,6 +28,8 @@ type HomeGame = {
   result: string | null
   game_type: string
   season_id: string
+  /** Cancelled / postponed games count for nothing (038) */
+  status: string
 }
 
 function recordOf(games: HomeGame[]) {
@@ -74,20 +77,24 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   ] = await Promise.all([
     supabase
       .from('games')
-      .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id')
+      .select('id, opponent, game_date, goals_for, goals_against, result, game_type, season_id, status')
       .order('game_date', { ascending: false }),
-    // Next game, training and team event: within the season — or across every season for "All time"
+    // Next game, training and team event: within the season — or across every season for "All time".
+    // Cancelled / postponed ones are skipped (the Schedule still lists them).
     inSeason(supabase.from('games').select('id, opponent, game_date, location, ends_at, report_minutes, game_type, respond_by, fines_enabled'), season)
+      .eq('status', 'scheduled')
       .gte('game_date', now)
       .order('game_date')
       .limit(1)
       .maybeSingle(),
     inSeason(supabase.from('training_sessions').select('id, session_date, location, ends_at, report_minutes, respond_by, fines_enabled'), season)
+      .eq('status', 'scheduled')
       .gte('session_date', now)
       .order('session_date')
       .limit(1)
       .maybeSingle(),
     inSeason(supabase.from('team_events').select('id, title, event_date, location, ends_at, report_minutes, respond_by, fines_enabled'), season)
+      .eq('status', 'scheduled')
       .gte('event_date', now)
       .order('event_date')
       .limit(1)
@@ -95,9 +102,9 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     supabase.from('player_stats').select('game_id, goals, assists').eq('player_id', me?.id ?? ''),
     // Every RSVP of yours — games, trainings and team events (attendance %, Next up's buttons)
     supabase.from('attendance').select('session_id, session_type, status, reason').eq('player_id', me?.id ?? ''),
-    // Trainings and team events that have started, for attendance %
-    inSeason(supabase.from('training_sessions').select('id'), season).lte('session_date', now),
-    inSeason(supabase.from('team_events').select('id'), season).lte('event_date', now),
+    // Trainings and team events that have started, for attendance % (not cancelled ones)
+    inSeason(supabase.from('training_sessions').select('id'), season).eq('status', 'scheduled').lte('session_date', now),
+    inSeason(supabase.from('team_events').select('id'), season).eq('status', 'scheduled').lte('event_date', now),
     // Jersey number for the season being viewed ("All time": their latest, below)
     season.allTime
       ? Promise.resolve({ data: null })
@@ -126,7 +133,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     season.locked || season.allTime
       ? null
       : seasonPhase(
-          ((games ?? []) as HomeGame[]).filter((g) => g.season_id === season.id && countsForRecord(g)).map((g) => g.game_date),
+          ((games ?? []) as HomeGame[]).filter((g) => g.season_id === season.id && countsForRecord(g) && isScheduled(g)).map((g) => g.game_date),
           nowDate
         )
 
@@ -138,6 +145,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
       : await (async () => {
           const countToday = (table: 'games' | 'training_sessions' | 'team_events', column: string) =>
             inSeason(supabase.from(table).select('*', { count: 'exact', head: true }), season)
+              .eq('status', 'scheduled')
               .gte(column, today.start)
               .lt(column, today.end)
           const [{ count: g }, { count: t }, { count: e }] = await Promise.all([
@@ -178,11 +186,12 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
     }
   }
   // Apps: league games only. Attendance %: every event that has started — games
-  // (friendlies too, with or without a result), trainings and team events.
+  // (friendlies too, with or without a result), trainings and team events — except
+  // cancelled / postponed ones.
   const mine = myTotals(played)
   const pastSessions = new Set([
     ...((games ?? []) as HomeGame[])
-      .filter((g) => inView(g) && new Date(g.game_date).getTime() <= nowDate.getTime())
+      .filter((g) => inView(g) && isScheduled(g) && new Date(g.game_date).getTime() <= nowDate.getTime())
       .map((g) => `game-${g.id}`),
     ...(pastTrainings ?? []).map((t) => `training-${t.id}`),
     ...(pastEvents ?? []).map((e) => `event-${e.id}`),

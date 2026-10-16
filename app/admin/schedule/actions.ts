@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireOpenSeason } from '@/lib/season-server'
 import { action, requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
+import { STATUS_REASON_MAX, type EventKind, type EventStatus } from '@/lib/event-status'
 
 export type GameInput = {
   opponent: string
@@ -171,6 +172,37 @@ export const updateEvent = action(async (id: string, data: EventInput) => {
 
   if (error) throw new Error(error.message)
   revalidateTabs('schedule', 'home')
+})
+
+const STATUS_TABLE = { game: 'games', training: 'training_sessions', event: 'team_events' } as const
+
+/**
+ * Cancel a game, training or team event, postpone a game, or reinstate one
+ * ('scheduled'). It stays on the schedule with its RSVPs but counts for nothing
+ * — no appearances, attendance %, fines or POTM (038_cancelled_events.sql).
+ */
+export const setEventStatus = action(async (
+  kind: EventKind,
+  id: string,
+  status: EventStatus,
+  reason: string | null
+) => {
+  const supabase = createClient()
+  await requireAdmin(supabase)
+  if (status === 'postponed' && kind !== 'game') throw new Error('Only matches can be postponed.')
+  const text = status === 'scheduled' ? null : reason?.trim() || null
+  if (text && text.length > STATUS_REASON_MAX) throw new Error(`Keep the reason under ${STATUS_REASON_MAX} characters.`)
+
+  // A cancelled or postponed match has no result (the database checks too)
+  if (kind === 'game' && status !== 'scheduled') {
+    const { data: game } = await supabase.from('games').select('result').eq('id', id).single()
+    if (game?.result) throw new Error('This match has a result. Clear the score in Edit first.')
+  }
+
+  const { error } = await supabase.from(STATUS_TABLE[kind]).update({ status, status_reason: text }).eq('id', id)
+
+  if (error) throw new Error(error.message)
+  revalidateTabs('schedule', 'home', 'fines', 'team', 'profile')
 })
 
 export const deleteEvent = action(async (id: string) => {

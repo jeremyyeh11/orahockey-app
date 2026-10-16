@@ -60,12 +60,12 @@ export async function ScheduleView({ basePath, event }: { basePath: '/dashboard'
     inSeason(
       supabase
         .from('games')
-        .select('id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes, team_list_status, ends_at, report_minutes, respond_by, fines_enabled'),
+        .select('id, opponent, game_date, location, home_away, game_type, goals_for, goals_against, result, notes, team_list_status, ends_at, report_minutes, respond_by, fines_enabled, status, status_reason'),
       season
     ).order('game_date', { ascending: false }),
-    inSeason(supabase.from('training_sessions').select('id, session_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled'), season)
+    inSeason(supabase.from('training_sessions').select('id, session_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled, status, status_reason'), season)
       .order('session_date', { ascending: false }),
-    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled, created_at'), season)
+    inSeason(supabase.from('team_events').select('id, title, event_date, location, notes, ends_at, report_minutes, respond_by, fines_enabled, status, status_reason, created_at'), season)
       .order('event_date', { ascending: false }),
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     fetchAll(() =>
