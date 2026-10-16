@@ -72,10 +72,10 @@ Manage the roster.
 - For games, **Update result** (available once the match has started) records the score, scorers, assists, and cards - the W/D/L result is worked out from the score - and **Team list** picks and publishes the match squad.
 
 ### Polls
-- **+ New Poll** creates a poll: a question, 2-6 options, an optional close date, and a **Respond by** deadline (72 hours after posting, or the close date if that's sooner) with a **Fines ($5)** switch - on by default; switch it off for casual polls.
+- **+ New Poll** creates a poll: a question, 2-6 options, an optional close date, and a **Respond by** deadline (72 hours after posting, or the close date if that's sooner) with a **Fines ($5)** switch - on by default; switch it off for casual polls. **Anonymous voting** is on by default: nobody, admins included, sees what anyone picked. Untick it to show who picked each option. This can't be changed once the poll exists.
 - Open polls can be **Closed** (or reopened), and any poll can be **Deleted** (votes included).
 - Admins vote in polls just like players do.
-- The vote count on each poll (e.g. *12 voted · 18 haven't · 2 late*) opens a list of who has voted (with when) and who hasn't from the current season's active squad, with late voters in red - votes stay anonymous.
+- The vote count on each poll (e.g. *12 voted · 18 haven't · 2 late*) opens a list of who has voted (with when) and who hasn't from the current season's active squad, with late voters in red.
 
 ### Fines
 The **Fines** tab (between Squad and Profile). Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:

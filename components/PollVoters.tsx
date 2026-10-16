@@ -8,8 +8,8 @@ import { preferredName } from '@/lib/names'
 type Person = { id: string; full_name: string; preferred_name: string | null }
 
 /**
- * Who's voted on a poll and who hasn't — not what anyone picked, so votes stay
- * anonymous. Voters are listed in the order they voted, with when; anyone fined
+ * Who's voted on a poll and who hasn't — not what anyone picked (a public poll
+ * shows that by each option). Voters are listed in the order they voted, with when; anyone fined
  * for the poll (unwaived — a late or missing vote) is in red. Collapsed behind a
  * right-aligned summary ("12 voted · 18 haven't · 2 late") — tap it to open.
  * `actions` (admin Close poll / Delete) sit on the left of that row.

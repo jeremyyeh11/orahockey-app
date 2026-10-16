@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getRequestUser } from '@/lib/supabase/request-user'
 import PollsClient from '@/components/PollsClient'
-import { POLL_SELECT } from '@/lib/polls'
+import { POLL_SELECT, withVoteSummary, type PollTallyRow, type PollVoterRow } from '@/lib/polls'
 import { getPotmPolls } from '@/lib/potm'
 import { getSeasonSquad, getSeasons, seasonRoster } from '@/lib/season-server'
 import { loadFines } from '@/lib/fines-server'
@@ -21,12 +21,15 @@ export async function PollsView({ basePath }: { basePath: '/dashboard' | '/admin
   const seasons = await getSeasons()
   const current = seasons.find((s) => s.is_current) ?? seasons[0]
 
-  const [{ data: me }, { data: polls, error }, { polls: potmPolls }, squad, { fines }] = await Promise.all([
+  // Picks are only readable on public polls (and your own); who voted and the totals come from poll_voters() / poll_tallies()
+  const [{ data: me }, { data: polls, error }, { data: voters }, { data: tallies }, { polls: potmPolls }, squad, { fines }] = await Promise.all([
     supabase.from('players').select('id').eq('auth_user_id', user?.id ?? '').single(),
     supabase
       .from('polls')
       .select(POLL_SELECT)
       .order('created_at', { ascending: false }),
+    supabase.rpc('poll_voters'),
+    supabase.rpc('poll_tallies'),
     getPotmPolls(),
     current ? getSeasonSquad(current.id) : Promise.resolve([]),
     loadFines(),
@@ -42,7 +45,7 @@ export async function PollsView({ basePath }: { basePath: '/dashboard' | '/admin
 
   return (
     <PollsClient
-      polls={polls ?? []}
+      polls={withVoteSummary(polls ?? [], (voters ?? []) as PollVoterRow[], (tallies ?? []) as PollTallyRow[])}
       potmPolls={potmPolls}
       myPlayerId={me?.id ?? null}
       now={getNow().toISOString()}

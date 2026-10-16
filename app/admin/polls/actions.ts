@@ -8,6 +8,7 @@ export const createPoll = action(async (
   options: string[],
   closesAt: string | null,
   multipleChoice: boolean,
+  anonymous: boolean,
   fines: { respond_by: string | null; fines_enabled: boolean }
 ) => {
   if (fines.respond_by && Number.isNaN(new Date(fines.respond_by).getTime())) throw new Error('Respond by is not a valid date.')
@@ -25,6 +26,7 @@ export const createPoll = action(async (
       question,
       closes_at: closesAt,
       multiple_choice: multipleChoice,
+      anonymous,
       is_active: true,
       ...fines,
     })

@@ -362,3 +362,20 @@ test('admins cancel or postpone events instead of deleting them; those count for
   assert.match(detail, /<EventStatusControls/, 'admin edit mode offers cancel / postpone / reinstate')
   assert.doesNotMatch(read('components/EventStatusControls.tsx'), /confirm\(/, 'an in-page step, not a native confirm()')
 })
+
+test('polls are anonymous or public: picks are only readable on public polls', () => {
+  const migration = read('supabase/migrations/041_anonymous_polls.sql')
+  assert.match(migration, /add column if not exists anonymous boolean not null default true/, 'existing polls stay anonymous')
+  assert.match(migration, /raise exception 'A poll can''t switch between anonymous and public/, 'fixed after creation')
+  assert.match(migration, /drop policy if exists "Admins have full access to poll_votes"/, 'admins lose the blanket read too')
+  assert.match(migration, /player_id = \(select id from public\.players where auth_user_id = auth\.uid\(\)\)\s+or exists \(select 1 from public\.polls p where p\.id = poll_id and not p\.anonymous\)/, 'own picks, or a public poll')
+  assert.match(migration, /function public\.poll_voters\(\)\s+returns table \(poll_id uuid, player_id uuid, voted_at timestamptz\)/, 'who voted, never what')
+
+  assert.match(read('lib/fines-server.ts'), /supabase\.rpc\('poll_voters'\)\.in\('poll_id', pollIds\)/, 'fines see every voter on an anonymous poll')
+  const view = read('components/PollsView.tsx')
+  assert.match(view, /supabase\.rpc\('poll_voters'\),\s+supabase\.rpc\('poll_tallies'\)/)
+  const client = read('components/PollsClient.tsx')
+  assert.match(client, /name="anonymous" defaultChecked/, 'new polls default to anonymous')
+  assert.match(client, /nameOf=\{poll\.anonymous === false \?/, 'names only on public polls')
+  assert.match(read('components/PollOptions.tsx'), /poll\.tallies\[optionId\]/, 'counts come from the tallies, not the readable rows')
+})

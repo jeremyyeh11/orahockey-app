@@ -6,7 +6,7 @@ import { fmtDateTime, fromDatetimeLocal } from '@/lib/format'
 import PotmPolls from '@/components/PotmPolls'
 import { PollOptions } from '@/components/PollOptions'
 import type { PotmPoll } from '@/lib/potm'
-import { isPollOpen, voterCount, type Poll } from '@/lib/polls'
+import { isPollOpen, type Poll } from '@/lib/polls'
 import Modal from '@/components/Modal'
 import { FinesFields, readFinesFields } from '@/components/FinesFields'
 import { RespondBy } from '@/components/RespondBy'
@@ -14,12 +14,13 @@ import { PollVoters } from '@/components/PollVoters'
 import type { FineReason } from '@/lib/fines'
 import { FormButtons, FormError, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
+import { preferredName } from '@/lib/names'
 
 type Roster = { id: string; full_name: string; preferred_name: string | null }[]
 
 /**
  * The Polls tab for both areas (PollsView loads it). Everyone votes and sees
- * who voted; admins also create, close/reopen and delete polls, always see the
+ * who voted — and on a public poll who picked what; admins also create, close/reopen and delete polls, always see the
  * results, and group polls by their Active flag rather than by open/closed.
  */
 export default function PollsClient({
@@ -73,7 +74,7 @@ export default function PollsClient({
     setError(null)
     startTransition(async () => {
       try {
-        await unwrap(createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null, fd.get('multiple_choice') === 'on', readFinesFields(fd)))
+        await unwrap(createPoll(question, cleanOptions, closesRaw ? fromDatetimeLocal(closesRaw) : null, fd.get('multiple_choice') === 'on', fd.get('anonymous') === 'on', readFinesFields(fd)))
         setShowModal(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -198,6 +199,13 @@ export default function PollsClient({
                 <input type="checkbox" name="multiple_choice" className="h-4 w-4 accent-brand" />
                 Multiple answers
               </label>
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-300">
+                <input type="checkbox" name="anonymous" defaultChecked className="h-4 w-4 accent-brand" />
+                Anonymous voting
+              </label>
+              <p className="liga-meta mt-1 text-[11px] text-slate-500">
+                Off: everyone sees who picked each option. Can&apos;t be changed after the poll is created.
+              </p>
             </div>
 
             <div>
@@ -233,9 +241,10 @@ function PollCard({
   /** Admin controls; null for players */
   admin: { isPending: boolean; onToggle: () => void; onDelete: () => void } | null
 }) {
-  const total = voterCount(poll.poll_votes)
+  const total = poll.voters.length
   const open = isPollOpen(poll, new Date(now).getTime())
-  const voted = myPlayerId != null && poll.poll_votes.some((v) => v.player_id === myPlayerId)
+  const voted = myPlayerId != null && poll.voters.some((v) => v.player_id === myPlayerId)
+  const byId = new Map(roster.map((p) => [p.id, p]))
 
   return (
     <div className="liga-poll-card card p-4">
@@ -244,6 +253,7 @@ function PollCard({
           <div className="liga-poll-title text-sm font-semibold text-white">{poll.question}</div>
           <div className="liga-meta mt-0.5 text-slate-500">
             {total} vote{total === 1 ? '' : 's'}
+            {poll.anonymous === false ? ' · names shown' : ' · anonymous'}
             {poll.multiple_choice && ' · multiple answers'}
             {poll.closes_at && ` · ${open ? 'closes' : 'closed'} ${fmtDateTime(poll.closes_at)}`}
           </div>
@@ -263,10 +273,11 @@ function PollCard({
         open={open}
         alwaysShowResults={!!admin}
         mutedBarClass={admin ? 'bg-brand-light/80' : 'bg-brand-light/50'}
+        nameOf={poll.anonymous === false ? (id) => (byId.get(id) ? preferredName(byId.get(id)!) : 'Former player') : undefined}
       />
 
       <PollVoters
-        votes={poll.poll_votes}
+        votes={poll.voters}
         roster={roster}
         fined={fined}
         actions={

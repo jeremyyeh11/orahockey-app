@@ -68,7 +68,7 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
     sessionIds.length
       ? supabase.from('attendance_log').select('player_id, session_id, session_type, status, previous_status, changed_at, changed_by').in('session_id', sessionIds)
       : Promise.resolve({ data: [] }),
-    pollIds.length ? supabase.from('poll_votes').select('poll_id, player_id, voted_at').in('poll_id', pollIds) : Promise.resolve({ data: [] }),
+    pollIds.length ? supabase.rpc('poll_voters').in('poll_id', pollIds) : Promise.resolve({ data: [] }),
   ])
 
   const fines = computeFines({

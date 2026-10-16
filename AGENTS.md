@@ -57,7 +57,7 @@ lib/
   format.ts                 Dates in Singapore time
   preview.ts                getNow(): honours the admin preview date
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
-supabase/migrations/        001–040 — apply in filename order (prefixes 005 and 009 are each used twice)
+supabase/migrations/        001–041 — apply in filename order (prefixes 005 and 009 are each used twice)
 supabase/seed/              Historical caps 2016–2025 and the 2026 season
 tests/                      node:test suites (see Tests)
 docs/                       User and admin manuals
@@ -92,6 +92,9 @@ derived in `lib/stats.ts` (`computeSeason`), never stored. Players vote by secre
 auto-close and write the `potm` placings.
 
 Polls (027): `poll_votes` is one row per picked option; players vote only through `set_poll_vote()`.
+`polls.anonymous` (041, default true, fixed at creation by trigger): `poll_votes` rows are readable only for your own
+picks and on public polls — admins included. Who voted (`poll_voters()`) and per-option counts (`poll_tallies()`) come
+from definer functions; the poll UI and `loadFines` use them, never raw `poll_votes`, for counts and voters.
 
 Fines (018–019) are derived, never stored (`lib/fines.ts` `computeFines`): from each entry's
 `respond_by` + `fines_enabled`, the RSVP history (`attendance_log`), poll votes and waivers
@@ -153,7 +156,7 @@ Do not skip this step. Every session that modifies code must end with a commit +
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–040 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–041 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance

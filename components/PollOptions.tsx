@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { setPollVote } from '@/app/dashboard/polls/actions'
 import { CheckIcon } from '@/components/icons'
-import { voterCount, type Poll } from '@/lib/polls'
+import type { Poll } from '@/lib/polls'
 import { unwrap } from '@/lib/action-result'
 
 /**
@@ -12,7 +12,9 @@ import { unwrap } from '@/lib/action-result'
  * Multiple answers: each tap adds or removes that option. "Retract vote" clears
  * everything while the poll is open. Results (count, % of voters, bar) show once
  * you've voted, when the poll is closed, or always with `alwaysShowResults`
- * (admins). Shared by the admin and player poll cards.
+ * (admins). Counts come from the poll's tallies (an anonymous poll hides the
+ * picks); a public poll (`nameOf`) lists who picked each option, you first.
+ * Shared by the admin and player poll cards.
  */
 export function PollOptions({
   poll,
@@ -20,6 +22,7 @@ export function PollOptions({
   open,
   alwaysShowResults = false,
   mutedBarClass,
+  nameOf,
 }: {
   poll: Poll
   myPlayerId: string | null
@@ -27,6 +30,8 @@ export function PollOptions({
   open: boolean
   alwaysShowResults?: boolean
   mutedBarClass: string
+  /** Public polls: names under each option */
+  nameOf?: (playerId: string) => string
 }) {
   const [picked, setPicked] = useState<string[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -39,10 +44,20 @@ export function PollOptions({
 
   const saved = poll.poll_votes.filter((v) => v.player_id === myPlayerId).map((v) => v.poll_option_id)
   const mine = picked ?? saved
-  const votes = myPlayerId
-    ? [...poll.poll_votes.filter((v) => v.player_id !== myPlayerId), ...mine.map((id) => ({ player_id: myPlayerId, poll_option_id: id }))]
-    : poll.poll_votes
-  const voters = voterCount(votes)
+  // The saved totals, with your unsaved taps swapped in for your saved picks
+  const countOf = (optionId: string) =>
+    (poll.tallies[optionId] ?? 0) - (saved.includes(optionId) ? 1 : 0) + (mine.includes(optionId) ? 1 : 0)
+  const voters = poll.voters.length - (saved.length > 0 ? 1 : 0) + (mine.length > 0 ? 1 : 0)
+  const namesFor = (optionId: string) =>
+    nameOf
+      ? [
+          ...(myPlayerId && mine.includes(optionId) ? [nameOf(myPlayerId)] : []),
+          ...poll.poll_votes
+            .filter((v) => v.poll_option_id === optionId && v.player_id !== myPlayerId)
+            .map((v) => nameOf(v.player_id))
+            .sort((a, b) => a.localeCompare(b)),
+        ]
+      : []
   const sorted = [...poll.poll_options].sort((a, b) => a.sort_order - b.sort_order)
   const multi = !!poll.multiple_choice
   const canVote = open && myPlayerId != null
@@ -72,7 +87,8 @@ export function PollOptions({
       {showResults ? (
         <div className="liga-poll-results space-y-1">
           {sorted.map((opt) => {
-            const count = votes.filter((v) => v.poll_option_id === opt.id).length
+            const count = countOf(opt.id)
+            const names = namesFor(opt.id)
             const pct = voters > 0 ? Math.round((count / voters) * 100) : 0
             const isMine = mine.includes(opt.id)
             const body = (
@@ -92,6 +108,7 @@ export function PollOptions({
                     style={{ width: `${pct}%` }}
                   />
                 </div>
+                {names.length > 0 && <div className="liga-poll-names liga-meta mt-1 text-[11px] text-slate-500">{names.join(', ')}</div>}
               </>
             )
             return canVote ? (
