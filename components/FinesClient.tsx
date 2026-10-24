@@ -108,7 +108,7 @@ export default function FinesClient({
 
   return (
     <div className="liga-page liga-fines p-4">
-      <div className="liga-page-header mb-4 flex items-start justify-between gap-3">
+      <div className="liga-page-header mb-4 flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="liga-page-title text-white">Fines</h1>
           <p className="liga-meta mt-1 text-slate-400">
