@@ -434,7 +434,8 @@ function AddFineModal({ players, onClose }: { players: { id: string; name: strin
             required
             inputMode="numeric"
             autoComplete="off"
-            value={`$${(cents / 100).toFixed(2)}`}
+            value={cents ? `$${(cents / 100).toFixed(2)}` : ''}
+            placeholder="$0.00"
             onChange={(e) => setCents(centsFromDigits(e.target.value))}
             className={`${inputCls} font-mono tabular-nums`}
           />
