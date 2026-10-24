@@ -9,7 +9,7 @@ import FinesClient from '@/components/FinesClient'
 /**
  * The Fines page for players and admins: one month at a time (`?month=YYYY-MM`,
  * default this month), everyone's fines. The Finemaster title and the superadmin get
- * Paid / Waive buttons, in either area.
+ * Add fine, Paid and Waive buttons, in either area.
  */
 export async function FinesView({ basePath, month }: { basePath: '/dashboard' | '/admin'; month?: string }) {
   const user = await getRequestUser()
@@ -29,7 +29,7 @@ export async function FinesView({ basePath, month }: { basePath: '/dashboard' | 
       prevHref={href(shiftMonth(shown, -1))}
       nextHref={shown < thisMonth ? href(shiftMonth(shown, 1)) : null}
       fines={fines.filter((f) => fineMonth(f) === shown)}
-      players={Object.fromEntries(Array.from(players, ([id, p]) => [id, { full_name: p.full_name, preferred_name: p.preferred_name }]))}
+      players={Object.fromEntries(Array.from(players, ([id, p]) => [id, { full_name: p.full_name, preferred_name: p.preferred_name, is_active: p.is_active }]))}
       myPlayerId={me?.id ?? null}
       canManage={canManageFines(me?.role, me?.titles)}
       basePath={basePath}

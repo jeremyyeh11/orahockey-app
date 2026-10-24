@@ -4,9 +4,9 @@ import { getNow } from '@/lib/preview'
 import { getSeasons } from '@/lib/season-server'
 import { gameTitle } from '@/lib/constants'
 import { fmtDate } from '@/lib/format'
-import { computeFines, type Fine, type FineEntry, type FinePayment, type FineWaiver, type PollVote, type RsvpChange } from '@/lib/fines'
+import { computeFines, type Fine, type FineEntry, type FinePayment, type ManualFine, type FineWaiver, type PollVote, type RsvpChange } from '@/lib/fines'
 
-export type FinePlayer = { id: string; full_name: string; preferred_name: string | null }
+export type FinePlayer = { id: string; full_name: string; preferred_name: string | null; is_active: boolean }
 
 type SquadRow = {
   season_id: string
@@ -21,11 +21,12 @@ type SquadRow = {
  * account are expected. Polls aren't season-scoped: their squad is the season
  * they were posted in (else the current one). Cancelled / postponed
  * games, trainings and events keep the fines issued before they were called off
- * (cancelled_at) and issue no more. Deduped per request.
+ * (cancelled_at) and issue no more. Fines the finemaster added by hand
+ * (manual_fines, 042) are listed as they are. Deduped per request.
  */
 export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<string, FinePlayer> }> => {
   const supabase = createClient()
-  const [seasons, { data: games }, { data: trainings }, { data: events }, { data: polls }, { data: squads }, { data: waivers }, { data: payments }] =
+  const [seasons, { data: games }, { data: trainings }, { data: events }, { data: polls }, { data: squads }, { data: waivers }, { data: payments }, { data: manual }] =
     await Promise.all([
       getSeasons(),
       supabase.from('games').select('id, season_id, opponent, game_date, respond_by, cancelled_at').eq('fines_enabled', true).not('respond_by', 'is', null),
@@ -35,6 +36,7 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
       supabase.from('season_players').select('season_id, player:players!inner(id, full_name, preferred_name, is_active, auth_user_id)'),
       supabase.from('fine_waivers').select('player_id, item_type, item_id, reason, note'),
       supabase.from('fine_payments').select('player_id, item_type, item_id, reason, paid_at'),
+      supabase.from('manual_fines').select('id, player_id, reason, amount_cents, fined_at'),
     ])
 
   const players = new Map<string, FinePlayer & { auth_user_id: string | null }>()
@@ -42,7 +44,7 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
   const votersBySeason = new Map<string, string[]>()
   for (const row of (squads ?? []) as unknown as SquadRow[]) {
     const p = row.player
-    players.set(p.id, { id: p.id, full_name: p.full_name, preferred_name: p.preferred_name, auth_user_id: p.auth_user_id })
+    players.set(p.id, { id: p.id, full_name: p.full_name, preferred_name: p.preferred_name, is_active: p.is_active, auth_user_id: p.auth_user_id })
     if (!p.is_active) continue
     expectedBySeason.set(row.season_id, [...(expectedBySeason.get(row.season_id) ?? []), p.id])
     if (p.auth_user_id) votersBySeason.set(row.season_id, [...(votersBySeason.get(row.season_id) ?? []), p.id])
@@ -77,6 +79,7 @@ export const loadFines = cache(async (): Promise<{ fines: Fine[]; players: Map<s
     votes: (votes ?? []) as PollVote[],
     waivers: (waivers ?? []) as FineWaiver[],
     payments: (payments ?? []) as FinePayment[],
+    manual: (manual ?? []) as ManualFine[],
     authIdOf: (id) => players.get(id)?.auth_user_id ?? null,
     now: getNow(),
   })
