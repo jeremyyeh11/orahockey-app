@@ -108,27 +108,27 @@ export default function FinesClient({
 
   return (
     <div className="liga-page liga-fines p-4">
-      <div className="liga-page-header mb-4">
-        <div className="flex items-center justify-between gap-3">
+      <div className="liga-page-header mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="liga-page-title text-white">Fines</h1>
-          {canManage && (
-            <button
-              type="button"
-              onClick={() => {
-                setError(null)
-                setAdding(true)
-              }}
-              className="liga-button liga-button-primary bg-accent rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
-            >
-              + Fine
-            </button>
-          )}
+          <p className="liga-meta mt-1 text-slate-400">
+            ${FINE_AMOUNT} for a late or missing reply, or changing your RSVP within 24h before a training, match or event without telling the
+            coaching committee.
+          </p>
+          <FineRules />
         </div>
-        <p className="liga-meta mt-1 text-slate-400">
-          ${FINE_AMOUNT} for a late or missing reply, or changing your RSVP within 24h before a training, match or event without telling the
-          coaching committee.
-        </p>
-        <FineRules />
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => {
+              setError(null)
+              setAdding(true)
+            }}
+            className="liga-button liga-button-primary bg-accent shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:brightness-110"
+          >
+            + Fine
+          </button>
+        )}
       </div>
 
       {/* Month */}
