@@ -1,7 +1,8 @@
 // Fines for late replies and last-minute changes — pure rules, no React or
 // Supabase, shared by server pages and client forms. Fines are never stored:
 // they're derived from each entry's respond-by, the RSVP history
-// (attendance_log), poll votes and admin waivers. See 018_fines.sql.
+// (attendance_log), poll votes and admin waivers. See 018_fines.sql. The one
+// exception is a fine the finemaster adds by hand (manual_fines, 042).
 import { toDatetimeLocal } from '@/lib/format'
 
 /** Dollars per fine */
@@ -19,7 +20,9 @@ export type FineKind = 'game' | 'training' | 'event' | 'poll'
 
 /** What players call each kind in fine wording: "24h before the match" */
 export const FINE_KIND_NOUN: Record<FineKind, string> = { game: 'match', training: 'training', event: 'event', poll: 'poll' }
-export type FineReason = 'late_reply' | 'late_change'
+/** What a fine hangs off: a derived entry, or one added by hand (042) */
+export type FineItemKind = FineKind | 'manual'
+export type FineReason = 'late_reply' | 'late_change' | 'manual'
 export type RsvpStatus = 'attending' | 'not_attending' | 'maybe'
 
 /** What players see for each RSVP answer ('maybe' is stored, "Update later" is shown) */
@@ -111,15 +114,21 @@ export type RsvpChange = {
 
 export type PollVote = { poll_id: string; player_id: string; voted_at: string }
 
-export type FineWaiver = { player_id: string; item_type: FineKind; item_id: string; reason: FineReason; note?: string | null }
-export type FinePayment = { player_id: string; item_type: FineKind; item_id: string; reason: FineReason; paid_at: string }
+export type FineWaiver = { player_id: string; item_type: FineItemKind; item_id: string; reason: FineReason; note?: string | null }
+export type FinePayment = { player_id: string; item_type: FineItemKind; item_id: string; reason: FineReason; paid_at: string }
+
+/** One manual_fines row: added by the finemaster with its own reason and amount */
+export type ManualFine = { id: string; player_id: string; reason: string; amount_cents: number; fined_at: string }
 
 export type Fine = {
   playerId: string
-  kind: FineKind
+  kind: FineItemKind
   itemId: string
+  /** The entry it's for — or, added by hand, the finemaster's reason */
   title: string
   reason: FineReason
+  /** Dollars: FINE_AMOUNT, or whatever the finemaster set */
+  amount: number
   /** When the fine happened: the deadline passing (late reply) or the change (late change) */
   at: string
   /** Late reply: when they did reply (null = never) */
@@ -137,10 +146,16 @@ export type Fine = {
   paidAt?: string | null
 }
 
+/** '$5', '$2.20' */
+export const fmtMoney = (dollars: number) => `$${Number.isInteger(dollars) ? dollars : dollars.toFixed(2)}`
+
+/** Cents from an amount keyed as digits only, the last two being cents: '220' → 220 ($2.20) */
+export const centsFromDigits = (digits: string) => Number(digits.replace(/\D/g, '').slice(0, 7) || '0')
+
 /** Neither paid nor waived */
 export const isOutstanding = (f: Pick<Fine, 'waived' | 'paid'>) => !f.waived && !f.paid
 
-export const fineKey = (f: { playerId: string; kind: FineKind; itemId: string; reason: FineReason }) =>
+export const fineKey = (f: { playerId: string; kind: FineItemKind; itemId: string; reason: FineReason }) =>
   `${f.playerId}|${f.kind}|${f.itemId}|${f.reason}`
 
 /**
@@ -155,7 +170,8 @@ export const fineKey = (f: { playerId: string; kind: FineKind; itemId: string; r
  *  - late change: a player changed their own RSVP within 24h of the start (at the
  *    first such change). The coaching committee can't be seen from here, so admins
  *    waive the ones who told them.
- * Entries with fines off or no respond-by never fine. A cancelled / postponed
+ * Entries with fines off or no respond-by never fine. Fines added by hand
+ * (`manual`) are passed through with their own reason and amount. A cancelled / postponed
  * entry keeps the fines issued before `cancelledAt` and issues none after it.
  * `authIdOf` maps a player
  * to their auth user, so changes someone else made aren't held against them.
@@ -166,6 +182,7 @@ export function computeFines({
   votes,
   waivers,
   payments = [],
+  manual = [],
   authIdOf,
   now,
 }: {
@@ -174,10 +191,11 @@ export function computeFines({
   votes: PollVote[]
   waivers: FineWaiver[]
   payments?: FinePayment[]
+  manual?: ManualFine[]
   authIdOf: (playerId: string) => string | null
   now: Date
 }): Fine[] {
-  const keyOf = (r: { player_id: string; item_type: FineKind; item_id: string; reason: FineReason }) =>
+  const keyOf = (r: { player_id: string; item_type: FineItemKind; item_id: string; reason: FineReason }) =>
     fineKey({ playerId: r.player_id, kind: r.item_type, itemId: r.item_id, reason: r.reason })
   const waived = new Map(waivers.map((w) => [keyOf(w), w.note ?? null]))
   const paid = new Map(payments.map((p) => [keyOf(p), p.paid_at]))
@@ -209,9 +227,9 @@ export function computeFines({
   }
 
   const fines: Fine[] = []
-  const add = (f: Omit<Fine, 'waived' | 'waiveNote' | 'paid' | 'paidAt'>) => {
+  const add = (f: Omit<Fine, 'amount' | 'waived' | 'waiveNote' | 'paid' | 'paidAt'> & { amount?: number }) => {
     const key = fineKey(f)
-    fines.push({ ...f, waived: waived.has(key), waiveNote: waived.get(key) ?? null, paid: paid.has(key), paidAt: paid.get(key) ?? null })
+    fines.push({ amount: FINE_AMOUNT, ...f, waived: waived.has(key), waiveNote: waived.get(key) ?? null, paid: paid.has(key), paidAt: paid.get(key) ?? null })
   }
 
   for (const e of entries) {
@@ -255,6 +273,10 @@ export function computeFines({
     }
   }
 
+  for (const m of manual) {
+    add({ playerId: m.player_id, kind: 'manual', itemId: m.id, title: m.reason, reason: 'manual', at: m.fined_at, amount: m.amount_cents / 100 })
+  }
+
   return fines.sort((a, b) => ms(a.at) - ms(b.at))
 }
 
@@ -262,7 +284,7 @@ export function computeFines({
 export function finedBySession(fines: Fine[]) {
   const by: Record<string, Record<string, FineReason[]>> = {}
   for (const f of fines) {
-    if (f.waived) continue
+    if (f.waived || f.kind === 'manual') continue
     const forEntry = (by[`${f.kind}-${f.itemId}`] ??= {})
     ;(forEntry[f.playerId] ??= []).push(f.reason)
   }
@@ -280,11 +302,12 @@ export function finesByPlayer(fines: Fine[]) {
   const by = new Map<string, Fine[]>()
   for (const f of fines) by.set(f.playerId, [...(by.get(f.playerId) ?? []), f])
   return Array.from(by, ([playerId, list]) => {
-    const count = list.filter(isOutstanding).length
+    const owed = list.filter(isOutstanding)
+    const count = owed.length
     return {
       playerId,
       count,
-      total: count * FINE_AMOUNT,
+      total: Math.round(owed.reduce((sum, f) => sum + f.amount, 0) * 100) / 100,
       paid: list.filter((f) => f.paid && !f.waived).length,
       waived: list.filter((f) => f.waived).length,
       settled: count === 0,
@@ -293,8 +316,9 @@ export function finesByPlayer(fines: Fine[]) {
   }).sort((a, b) => b.total - a.total)
 }
 
-/** Where a fine's entry lives in the app: the event on the schedule, or the Polls tab */
-export function fineHref(basePath: '/dashboard' | '/admin', f: { kind: FineKind; itemId: string }) {
+/** Where a fine's entry lives in the app: the event on the schedule, or the Polls tab (null: added by hand) */
+export function fineHref(basePath: '/dashboard' | '/admin', f: { kind: FineItemKind; itemId: string }) {
+  if (f.kind === 'manual') return null
   return f.kind === 'poll' ? `${basePath}/polls` : `${basePath}/schedule?event=${f.kind}-${f.itemId}`
 }
 

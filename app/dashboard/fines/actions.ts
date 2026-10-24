@@ -2,9 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { action, requireFineManager, requirePlayerId, revalidateTabs } from '@/lib/action-helpers'
-import type { FineKind, FineReason } from '@/lib/fines'
+import type { FineItemKind, FineReason } from '@/lib/fines'
 
-type FineRef = { playerId: string; kind: FineKind; itemId: string; reason: FineReason }
+type FineRef = { playerId: string; kind: FineItemKind; itemId: string; reason: FineReason }
 
 const keyOf = (fine: FineRef) => ({ player_id: fine.playerId, item_type: fine.kind, item_id: fine.itemId, reason: fine.reason })
 
@@ -45,4 +45,27 @@ export const setFinePaid = action(async (fine: FineRef, paid: boolean) => {
     if (error) throw new Error(error.message)
   }
   revalidateTabs('fines', 'schedule')
+})
+
+/**
+ * Add a fine by hand: a player, a reason and an amount in cents (220 = $2.20).
+ * Finemasters and the superadmin only.
+ */
+export const addFine = action(async (input: { playerId: string; reason: string; amountCents: number }) => {
+  const supabase = createClient()
+  await requireFineManager(supabase)
+  const reason = input.reason.trim()
+  if (!input.playerId) throw new Error('Pick a player.')
+  if (!reason) throw new Error('Give a reason for the fine.')
+  if (!Number.isInteger(input.amountCents) || input.amountCents < 1 || input.amountCents > 100000) {
+    throw new Error('Enter an amount between $0.01 and $1000.')
+  }
+  const { error } = await supabase.from('manual_fines').insert({
+    player_id: input.playerId,
+    reason,
+    amount_cents: input.amountCents,
+    created_by: await requirePlayerId(supabase),
+  })
+  if (error) throw new Error(error.message)
+  revalidateTabs('fines')
 })

@@ -22,7 +22,7 @@ function load(file, cache = new Map()) {
   return mod.exports
 }
 
-const { defaultRespondBy, defaultFinesEnabled, computeFines, finesByPlayer, fineMonth, FINE_AMOUNT } = load('lib/fines.ts')
+const { defaultRespondBy, defaultFinesEnabled, computeFines, finesByPlayer, fineMonth, fmtMoney, centsFromDigits, FINE_AMOUNT } = load('lib/fines.ts')
 const sg = (local) => new Date(`${local}+08:00`).toISOString()
 const posted = new Date(sg('2026-10-01T10:00:00'))
 
@@ -267,4 +267,40 @@ test('a cancelled entry keeps the fines issued before the cancel and issues none
   assert.deepEqual(reasons(sg('2026-10-08T12:00:00')), [], 'cancelled before the deadline: no fines at all')
   assert.deepEqual(reasons(sg('2026-10-09T08:00:00')), [['never', 'late_reply']], 'after the deadline: the late reply stays, later fines are never issued')
   assert.deepEqual(reasons(sg('2026-10-09T09:30:00')), [['never', 'late_reply'], ['undecided', 'late_reply']], 'the 24h "Update later" check had passed too')
+})
+
+test('fines added by hand keep their own reason and amount, and can be waived or paid', () => {
+  const manual = [
+    { id: 'm1', player_id: 'a', reason: 'Forgot the team kit', amount_cents: 220, fined_at: sg('2026-10-05T20:00:00') },
+    { id: 'm2', player_id: 'a', reason: 'Late to warm-up', amount_cents: 1000, fined_at: sg('2026-10-06T20:00:00') },
+    { id: 'm3', player_id: 'b', reason: 'Yellow card', amount_cents: 500, fined_at: sg('2026-10-06T21:00:00') },
+  ]
+  const fines = computeFines({
+    entries: [],
+    changes: [],
+    votes: [],
+    waivers: [{ player_id: 'b', item_type: 'manual', item_id: 'm3', reason: 'manual', note: 'Ref was wrong' }],
+    payments: [{ player_id: 'a', item_type: 'manual', item_id: 'm2', reason: 'manual', paid_at: sg('2026-10-07T10:00:00') }],
+    manual,
+    authIdOf: () => null,
+    now: new Date(sg('2026-10-12T00:00:00')),
+  })
+  assert.deepEqual(fines.map((f) => [f.itemId, f.kind, f.reason, f.title, f.amount]), [
+    ['m1', 'manual', 'manual', 'Forgot the team kit', 2.2],
+    ['m2', 'manual', 'manual', 'Late to warm-up', 10],
+    ['m3', 'manual', 'manual', 'Yellow card', 5],
+  ])
+  assert.equal(fineMonth(fines[0]), '2026-10')
+  const totals = Object.fromEntries(finesByPlayer(fines).map((r) => [r.playerId, [r.count, r.total, r.settled]]))
+  assert.deepEqual(totals.a, [1, 2.2, false], 'only the unpaid one counts')
+  assert.deepEqual(totals.b, [0, 0, true], 'waived costs nothing')
+})
+
+test('amounts are keyed as digits, the last two being cents', () => {
+  assert.equal(centsFromDigits('220'), 220)
+  assert.equal(centsFromDigits('$2.205'), 2205, 'a digit typed after the shown amount')
+  assert.equal(centsFromDigits('$2.2'), 22, 'backspace drops the last digit')
+  assert.equal(centsFromDigits(''), 0)
+  assert.equal(fmtMoney(5), '$5')
+  assert.equal(fmtMoney(2.2), '$2.20')
 })

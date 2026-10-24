@@ -57,7 +57,7 @@ lib/
   format.ts                 Dates in Singapore time
   preview.ts                getNow(): honours the admin preview date
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
-supabase/migrations/        001–041 — apply in filename order (prefixes 005 and 009 are each used twice)
+supabase/migrations/        001–042 — apply in filename order (prefixes 005 and 009 are each used twice)
 supabase/seed/              Historical caps 2016–2025 and the 2026 season
 tests/                      node:test suites (see Tests)
 docs/                       User and admin manuals
@@ -67,7 +67,7 @@ docs/                       User and admin manuals
 `teams`, `players`, `player_whitelist`, `seasons`, `season_players`, `games`, `training_sessions`,
 `team_events`, `opponents`, `attendance`, `attendance_log`, `polls`, `poll_options`, `poll_votes`,
 `player_stats`, `potm`, `potm_polls`, `potm_ballots`, `potm_votes`, `match_team_lists`, `match_goals`,
-`match_cards`, `fine_waivers`, `fine_payments`
+`match_cards`, `fine_waivers`, `fine_payments`, `manual_fines`
 
 Seasons (`011_seasons.sql`): `seasons` (label, dates, one `is_current`, `locked`) scopes
 `games`/`training_sessions` via `season_id`; `season_players` is each season's squad with that
@@ -98,7 +98,7 @@ from definer functions; the poll UI and `loadFines` use them, never raw `poll_vo
 
 Fines (018–019) are derived, never stored (`lib/fines.ts` `computeFines`): from each entry's
 `respond_by` + `fines_enabled`, the RSVP history (`attendance_log`), poll votes and waivers
-(`fine_waivers`); `fine_payments` marks a fine paid. Expected to reply: every active squad member for games,
+(`fine_waivers`); `fine_payments` marks a fine paid. The one stored kind: fines the Finemaster adds by hand (`manual_fines`, 042 — player, reason, `amount_cents`; "Add fine" on the Fines tab, `addFine`), waived/paid with `item_type`/`reason` `manual`. Amounts are per fine (`Fine.amount`). Expected to reply: every active squad member for games,
 trainings and team events (app account or not — admins add sheet replies, before the deadline or they count late);
 polls only expect players with an account. Waiving and paying are Finemaster-title/superadmin only
 (`can_manage_fines()`, 035; actions in `app/dashboard/fines/actions.ts` start with `requireFineManager()`). At most one fine per player per entry. RSVP
@@ -163,7 +163,7 @@ gh pr create --fill
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–041 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–042 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance
