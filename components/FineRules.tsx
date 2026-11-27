@@ -53,7 +53,7 @@ export function FineRules() {
             list([
               <><span className="font-semibold text-white">Late reply</span> — replying after the Reply by deadline, or not replying at all. Your first reply is the one that counts.</>,
               <><span className="font-semibold text-white">Late change</span> — changing your RSVP within 24h of the start without telling the coaching committee.</>,
-              <><span className="font-semibold text-white">Still on {RSVP_LABEL.maybe}</span> — counts as a late reply if you haven’t picked In or Out by 24h before the start (or by the Reply by deadline, if that’s later).</>,
+              <><span className="font-semibold text-white">Still on {RSVP_LABEL.maybe}</span> — counts as a late reply if you haven’t picked In or Out by 24h before the start (or by the initial deadline, if that’s later).</>,
               'At most one fine per person per match, training, event or poll.',
             ])
           )}

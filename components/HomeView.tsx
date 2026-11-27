@@ -12,6 +12,7 @@ import { PHASE_LABEL, records, seasonPhase, seasonTitle } from '@/lib/season'
 import CloseSeasonPanel from '@/app/admin/dashboard/CloseSeasonPanel'
 import HomeRsvp from '@/components/HomeRsvp'
 import { RespondBy } from '@/components/RespondBy'
+import { myRespondBy } from '@/lib/fines'
 import type { MyStatus } from '@/components/EventRow'
 
 function firstName(full: string) {
@@ -476,9 +477,9 @@ function NextUpCard({
           <div className={`liga-meta mt-2 ${featured ? 'text-white' : 'text-slate-300'}`}>{fmtDateTimeRange(next.when, next.ends)}</div>
           {next.place && <div className={`liga-meta break-words ${featured ? 'text-white/85' : 'text-slate-400'}`}>{next.place}</div>}
           {report && <div className={`liga-meta ${featured ? 'text-white/85' : 'text-slate-400'}`}>{report}</div>}
-          {/* No reply yet: when it's due */}
-          {rsvp === null && (
-            <RespondBy respondBy={next.respondBy} finesEnabled={next.finesEnabled} now={now} onAccent={featured} className="mt-1.5" />
+          {/* No reply yet, or on Update later: when it's due (Update later moves it to 24h before the start) */}
+          {(rsvp === null || rsvp === 'maybe') && (
+            <RespondBy respondBy={myRespondBy(next.respondBy, next.when, rsvp)} finesEnabled={next.finesEnabled} now={now} onAccent={featured} className="mt-1.5" />
           )}
         </div>
         <Link

@@ -110,7 +110,7 @@ trainings and team events (app account or not — admins add sheet replies, befo
 polls only expect players with an account. Waiving and paying are Finemaster-title/superadmin only
 (`can_manage_fines()`, 035; actions in `app/dashboard/fines/actions.ts` start with `requireFineManager()`). At most one fine per player per entry. RSVP
 `maybe` is shown as "Update later" (`RSVP_LABEL`): anyone still on it 24h before the start (or at the
-respond-by, if later) gets a late reply (`undecided`). `attendance.reason` (033) is an optional,
+respond-by, if later) gets a late reply (`undecided`). Their countdown shows that later time (`myRespondBy()` in `lib/fines.ts`), so picking Update later on time visibly buys time. `attendance.reason` (033) is an optional,
 squad-visible "why I'm out", cleared by trigger when the answer isn't Out.
 
 Players: `cap_number` is the permanent debut order (#1 is the honorary cap for everyone before 2016,

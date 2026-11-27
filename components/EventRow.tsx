@@ -2,6 +2,7 @@ import { fmtReport, fmtTimeRange, dateBlock } from '@/lib/format'
 import { GAME_TYPE_LABEL, gameTitle } from '@/lib/constants'
 import type { Game, Training, TeamEvent } from '@/components/EventDetailModal'
 import { STATUS_LABEL, type EventStatus } from '@/lib/event-status'
+import { myRespondBy } from '@/lib/fines'
 
 export type EventItem =
   | { kind: 'game'; date: string; game: Game }
@@ -38,6 +39,11 @@ export function eventReportMinutes(item: EventItem) {
 /** Reply deadline (null = none) */
 export function eventRespondBy(item: EventItem) {
   return (item.kind === 'game' ? item.game.respond_by : item.kind === 'training' ? item.training.respond_by : item.event.respond_by) ?? null
+}
+
+/** My reply deadline: on "Update later" it moves to 24h before the start (lib/fines.ts myRespondBy) */
+export function eventMyRespondBy(item: EventItem, status: string | null | undefined) {
+  return myRespondBy(eventRespondBy(item), item.date, status)
 }
 
 /** Whether a late or missing reply is fined */

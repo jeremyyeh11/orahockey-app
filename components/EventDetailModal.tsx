@@ -7,7 +7,7 @@ import { fmtDate, fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toT
 import { chaseText } from '@/lib/chase'
 import { CopyNamesButton } from './CopyNamesButton'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
-import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventStatus, eventStatusReason, eventTitle, STATUS_CLS, type EventItem } from './EventRow'
+import { eventEnd, eventFinesEnabled, eventId, eventMyRespondBy, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventStatus, eventStatusReason, eventTitle, STATUS_CLS, type EventItem } from './EventRow'
 import { EventStatusControls } from './EventStatusControls'
 import { FINE_AMOUNT, FINE_KIND_NOUN, RSVP_LABEL, type FineReason } from '@/lib/fines'
 import { OutReason } from './OutReason'
@@ -564,9 +564,9 @@ export function EventDetailModal({
                   className="mb-3 w-full justify-center"
                 />
               )}
-              {eventRespondBy(currentItem) &&
-                (!localMyStatus || new Date(eventRespondBy(currentItem)!).getTime() > new Date(now).getTime()) && (
-                  <RespondBy respondBy={eventRespondBy(currentItem)} finesEnabled={eventFinesEnabled(currentItem)} now={now} countdownOnly className="mb-3" />
+              {eventMyRespondBy(currentItem, localMyStatus) &&
+                (!localMyStatus || new Date(eventMyRespondBy(currentItem, localMyStatus)!).getTime() > new Date(now).getTime()) && (
+                  <RespondBy respondBy={eventMyRespondBy(currentItem, localMyStatus)} finesEnabled={eventFinesEnabled(currentItem)} now={now} countdownOnly className="mb-3" />
                 )}
               <div className="mb-2 text-[11px] font-medium text-slate-500">Your response</div>
               <div className="flex gap-2">
