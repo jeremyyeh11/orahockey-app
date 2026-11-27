@@ -22,7 +22,7 @@ function load(file, cache = new Map()) {
   return mod.exports
 }
 
-const { defaultRespondBy, defaultFinesEnabled, computeFines, finesByPlayer, fineMonth, fmtMoney, centsFromDigits, finedAtFromDate, FINE_AMOUNT } = load('lib/fines.ts')
+const { defaultRespondBy, defaultFinesEnabled, computeFines, finesByPlayer, fineMonth, fmtMoney, centsFromDigits, finedAtFromDate, presetFineReason, FINE_AMOUNT } = load('lib/fines.ts')
 const sg = (local) => new Date(`${local}+08:00`).toISOString()
 const posted = new Date(sg('2026-10-01T10:00:00'))
 
@@ -329,4 +329,9 @@ test('amounts are keyed as digits, the last two being cents', () => {
   assert.equal(centsFromDigits(''), 0)
   assert.equal(fmtMoney(5), '$5')
   assert.equal(fmtMoney(2.2), '$2.20')
+})
+
+test('reason buttons fill in starter text worded like the automatic fines', () => {
+  assert.equal(presetFineReason('Late arrival', '2026-11-24'), 'Late arrival · Training · Tue 24 Nov')
+  assert.equal(presetFineReason('No-show', '2026-11-28', 'Match'), 'No-show · Match · Sat 28 Nov')
 })
