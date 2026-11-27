@@ -4,11 +4,23 @@ import { useEffect, useRef, useState } from 'react'
 import { CheckIcon, CopyIcon } from './icons'
 
 /**
- * Icon-only copy button beside a "Hasn't responded" / "Hasn't voted" heading: copies
- * the names (see lib/chase.ts) so anyone can paste them into a group chat to chase replies.
- * The icon turns into a green tick for 2s once copied.
+ * Copy icon + short label ("Hasn't responded" / "Hasn't voted"), in the Fines tab's copy-button
+ * style: copies who still hasn't replied to an event or voted on a poll (see lib/chase.ts) so
+ * anyone can paste it into a group chat to chase them. A tick and "Copied" for 2s afterwards.
  */
-export function CopyNamesButton({ text, label }: { text: string; label: string }) {
+export function CopyNamesButton({
+  text,
+  label,
+  title,
+  className = '',
+}: {
+  text: string
+  /** Short visible label */
+  label: string
+  /** Fuller description for the tooltip / screen readers */
+  title: string
+  className?: string
+}) {
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>()
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -28,13 +40,14 @@ export function CopyNamesButton({ text, label }: { text: string; label: string }
     <button
       type="button"
       onClick={copy}
-      aria-label={copied ? 'Copied' : label}
-      title={copied ? 'Copied' : label}
-      className={`liga-copy-names -my-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded transition ${
-        copied ? 'text-green-400' : 'text-slate-500 hover:text-white'
-      }`}
+      title={title}
+      aria-label={copied ? 'Copied' : title}
+      className={`liga-button liga-button-secondary liga-copy-names inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition hover:text-white ${
+        copied ? 'text-green-400' : 'text-slate-300'
+      } ${className}`}
     >
       {copied ? <CheckIcon className="h-3.5 w-3.5" aria-hidden="true" /> : <CopyIcon className="h-3.5 w-3.5" aria-hidden="true" />}
+      {copied ? 'Copied' : label}
     </button>
   )
 }

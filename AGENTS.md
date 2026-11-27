@@ -55,6 +55,8 @@ lib/
   stats.ts                  Derived stats (computeSeason): appearances, clean sheets, POTM points
   fines.ts, fines-server.ts Derived fines
   format.ts                 Dates in Singapore time
+  chase.ts                  Copied text for chasing replies: the "Hasn't responded" / "Hasn't voted"
+                            buttons (components/CopyNamesButton.tsx) on events and open polls
   preview.ts                getNow(): honours the admin preview date
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
 supabase/migrations/        001–044 — apply in filename order (prefixes 005 and 009 are each used twice)

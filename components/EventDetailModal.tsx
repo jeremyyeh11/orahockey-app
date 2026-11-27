@@ -240,6 +240,7 @@ export function EventDetailModal({
   const endIso = eventEnd(currentItem)
   const editEnd = endIso ? toTimeLocal(endIso) : ''
   const breakdown = buildBreakdown(attendanceBySession[sessionId], roster)
+  const noReply = breakdown.find((g) => g.label === NO_REPLY)?.players ?? []
   // Reply times: open seasons only (archived ones carry import times)
   const showTimes = !readOnly && breakdown.some((g) => g.players.some((p) => p.at))
 
@@ -554,6 +555,15 @@ export function EventDetailModal({
           >
             {!readOnly && !off && (
             <div className="mb-4">
+              {/* Copy who still needs to reply, to chase them in a group chat — everyone, while replies are open */}
+              {noReply.length > 0 && (
+                <CopyNamesButton
+                  label="Hasn't responded"
+                  title="Copy who hasn't responded, for WhatsApp"
+                  text={chaseText(`Still need replies for ${fmtDate(dateStr)} · ${title}`, noReply.map((p) => p.name))}
+                  className="mb-3 w-full justify-center"
+                />
+              )}
               {eventRespondBy(currentItem) &&
                 (!localMyStatus || new Date(eventRespondBy(currentItem)!).getTime() > new Date(now).getTime()) && (
                   <RespondBy respondBy={eventRespondBy(currentItem)} finesEnabled={eventFinesEnabled(currentItem)} now={now} countdownOnly className="mb-3" />
@@ -596,15 +606,8 @@ export function EventDetailModal({
                 {breakdown.map((group, i) => (
                   <div key={group.label}>
                     <div className="mb-1 flex items-baseline justify-between gap-3 text-[11px] font-medium text-slate-500">
-                      <span className="inline-flex items-center gap-1">
+                      <span>
                         {group.label} ({group.players.length})
-                        {/* Copy who still needs to reply, to chase them in a group chat — everyone, while replies are open */}
-                        {group.label === NO_REPLY && !readOnly && !off && (
-                          <CopyNamesButton
-                            label="Copy names of players who haven't responded"
-                            text={chaseText(`Still need replies for ${fmtDate(dateStr)} · ${title}`, group.players.map((p) => p.name))}
-                          />
-                        )}
                       </span>
                       {/* Heading for the times column (once, on the first group) */}
                       {i === 0 && showTimes && <span className="liga-section-title shrink-0 normal-case tracking-normal">Responded on</span>}
