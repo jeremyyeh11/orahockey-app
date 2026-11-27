@@ -1,9 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { action, revalidateTabs } from '@/lib/action-helpers'
+import { action, requirePlayerId, revalidateTabs } from '@/lib/action-helpers'
 import { POSITIONS } from '@/lib/constants'
 import { savePlayerPhoto } from '@/lib/photos-server'
+import { LATEST_RELEASE_ID } from '@/lib/whats-new'
 
 /**
  * A player editing their own profile: preferred name, date of birth and
@@ -54,4 +55,29 @@ export const setMyPhoto = action(async (playerId: string, path: string | null) =
   if (me.id !== playerId) throw new Error('You can only change your own photo.')
 
   await savePlayerPhoto(supabase, me.id, path)
+})
+
+/**
+ * The tour finished or skipped for the first time (player_onboarding, 045): it
+ * won't start by itself again. `markSeen` for a new account: every current
+ * What's new release counts as seen too, since there's nothing to catch up on.
+ */
+export const finishTour = action(async (markSeen: boolean) => {
+  const supabase = createClient()
+  const playerId = await requirePlayerId(supabase)
+  const now = new Date().toISOString()
+  const row: Record<string, string | null> = { player_id: playerId, tour_done_at: now, updated_at: now }
+  if (markSeen) row.seen_release = LATEST_RELEASE_ID
+  const { error } = await supabase.from('player_onboarding').upsert(row, { onConflict: 'player_id' })
+  if (error) throw new Error(error.message)
+})
+
+/** The What's new modal closed: the latest release counts as seen */
+export const markWhatsNewSeen = action(async () => {
+  const supabase = createClient()
+  const playerId = await requirePlayerId(supabase)
+  const { error } = await supabase
+    .from('player_onboarding')
+    .upsert({ player_id: playerId, seen_release: LATEST_RELEASE_ID, updated_at: new Date().toISOString() }, { onConflict: 'player_id' })
+  if (error) throw new Error(error.message)
 })

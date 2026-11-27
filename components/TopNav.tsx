@@ -21,6 +21,7 @@ export default function TopNav({ items }: { items: NavItem[] }) {
             key={item.href}
             href={item.href}
             aria-current={active ? 'page' : undefined}
+            data-tour={`nav-${item.label.toLowerCase()}`}
             className={`flex min-h-[44px] items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors ${
               active ? 'bg-brand text-white' : 'text-slate-400 hover:bg-white/[0.05] hover:text-white'
             }`}

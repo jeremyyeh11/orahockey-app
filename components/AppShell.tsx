@@ -8,6 +8,8 @@ import TopNav from '@/components/TopNav'
 import PullToRefresh from '@/components/PullToRefresh'
 import NavigationProgress from '@/components/NavigationProgress'
 import { LockedSeasonStrip, SeasonMenu, SeasonTabs, type SeasonNav } from '@/components/SeasonSwitcher'
+import Onboarding from '@/components/onboarding/Onboarding'
+import type { OnboardingState } from '@/lib/onboarding-server'
 
 // Pages whose data isn't season-scoped don't show the season switcher (Fines go by month)
 const NOT_SEASON_SCOPED = /\/(polls|profile|fines)(\/|$)/
@@ -20,6 +22,8 @@ const NOT_SEASON_SCOPED = /\/(polls|profile|fines)(\/|$)/
  *  - `titleExtra`   — rendered inside the wordmark (admin control badge)
  *  - `headerActions` — rendered left of the logout button (player "Admin view")
  *
+ * It also runs the first-time tour and the What's new modal (`onboarding`).
+ *
  * The season switcher is a dropdown in the header row on desktop (lg+) and a
  * row of tabs under it on touch layouts; both stay pinned with the header.
  */
@@ -28,12 +32,21 @@ export default function AppShell({
   titleExtra,
   headerActions,
   seasonNav,
+  onboarding,
+  isAdmin = false,
+  fineManager = false,
   children,
 }: {
   nav: NavItem[]
   titleExtra?: React.ReactNode
   headerActions?: React.ReactNode
   seasonNav?: SeasonNav | null
+  /** Tour / What's new state (null: show neither) */
+  onboarding?: OnboardingState | null
+  /** Admin tour steps and admin-only What's new items */
+  isAdmin?: boolean
+  /** Finemaster title or superadmin: fine-management What's new items */
+  fineManager?: boolean
   children: React.ReactNode
 }) {
   const router = useRouter()
@@ -90,6 +103,8 @@ export default function AppShell({
       <BottomNav items={nav} />
 
       <NavigationProgress />
+
+      <Onboarding state={onboarding ?? null} isAdmin={isAdmin} fineManager={fineManager} homeHref={nav[0].href} />
     </div>
   )
 }

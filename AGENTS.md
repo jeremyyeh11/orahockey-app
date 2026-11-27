@@ -58,8 +58,13 @@ lib/
   chase.ts                  Copied text for chasing replies: the "Hasn't responded" / "Hasn't voted"
                             buttons (components/CopyNamesButton.tsx) on events and open polls
   preview.ts                getNow(): honours the admin preview date
+  whats-new.ts              What's new releases (newest first) + unseenReleases(); screenshots in public/whats-new/<id>/
+  tour.ts                   First-time tour steps (data-tour targets, admin captions)
+  onboarding-server.ts      getOnboarding(): the player's tour / What's new state, loaded by both layouts
+components/onboarding/      Onboarding (decides what shows, rendered by AppShell), Tour (spotlight), WhatsNew (modal)
+scripts/whats-new-shots.cjs Playwright: signs in and takes a release's What's new screenshots
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
-supabase/migrations/        001–044 — apply in filename order (prefixes 005 and 009 are each used twice)
+supabase/migrations/        001–045 — apply in filename order (prefixes 005 and 009 are each used twice)
 supabase/seed/              Historical caps 2016–2025 and the 2026 season
 tests/                      node:test suites (see Tests)
 docs/                       User and admin manuals
@@ -69,7 +74,7 @@ docs/                       User and admin manuals
 `teams`, `players`, `player_whitelist`, `seasons`, `season_players`, `games`, `training_sessions`,
 `team_events`, `opponents`, `attendance`, `attendance_log`, `polls`, `poll_options`, `poll_votes`,
 `player_stats`, `potm`, `potm_polls`, `potm_ballots`, `potm_votes`, `match_team_lists`, `match_goals`,
-`match_cards`, `fine_waivers`, `fine_payments`, `manual_fines`, `fine_deletions`
+`match_cards`, `fine_waivers`, `fine_payments`, `manual_fines`, `fine_deletions`, `player_onboarding`
 
 Seasons (`011_seasons.sql`): `seasons` (label, dates, one `is_current`, `locked`) scopes
 `games`/`training_sessions` via `season_id`; `season_players` is each season's squad with that
@@ -124,6 +129,14 @@ entry counts for nothing: a check constraint keeps a non-scheduled game's `resul
 Home's attendance %/next up/day banner filter `status = 'scheduled'` (`lib/event-status.ts:isScheduled`). Fines issued
 before `cancelled_at` stay; none are issued after it (`computeFines`, `FineEntry.cancelledAt`).
 
+Tour and What's new (045): `player_onboarding` (one row per account, own row only: `tour_done_at`, `seen_release`).
+Every player, new or existing, gets the spotlight tour on Home until they finish or skip it once (`tour_done_at`;
+`lib/tour.ts`, targets are `data-tour="…"` attributes, a missing target's step is skipped); after that only Profile →
+Take the tour starts it. Releases in `lib/whats-new.ts` newer than `seen_release` open the What's new modal, right
+after the tour for an existing player; items with `only: 'admin'` / `only: 'fines'` go to admins / fine managers
+only. A new account (no row) has its tour count as seeing every current release (`finishTour(markSeen)`,
+`markWhatsNewSeen` in `app/dashboard/profile/actions.ts`). Profile has Take the tour / What's new.
+
 All tables have RLS enabled. `is_admin()` SQL function used in policies.
 
 ## Local dev
@@ -166,7 +179,7 @@ gh pr create --fill
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–044 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–045 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance
@@ -202,6 +215,23 @@ gh pr create --fill
   user, and `fetchAll()` for any select that can pass 1000 rows
 - Game `result` is derived from the score: `deriveResult()` when admins save a game,
   `set_match_score()` when anyone enters a played match's score
+
+## What's new (every major feature)
+**Every PR that ships a major, user-visible feature adds a What's new release** in the same PR:
+1. Add a release at the top of `RELEASES` in `lib/whats-new.ts`: `id` `YYYY-MM-short-name` (never renamed), `date`,
+   1–5 items. Each item: a short `title`, a `body` of one or two sentences saying what it is and how to use it
+   (≤ 160 chars, plain words, e.g. "+ Fine → pick the player…"), an `image`, and `only: 'admin'` (admins) or
+   `only: 'fines'` (Finemaster title / superadmin) for features only they can use.
+   Small fixes and tweaks don't get one.
+2. Take the screenshots: add the release's shots to `SHOTS` in `scripts/whats-new-shots.cjs` (page, setup steps,
+   selectors to clip to), run `npm run dev`, then
+   `SHOT_EMAIL=… SHOT_PASSWORD=… node scripts/whats-new-shots.cjs <release id>`. They land in
+   `public/whats-new/<release id>/`: 390px-wide phone shots at 2x, clipped to the part that matters. Sign in with an
+   account that has data and the right role (admin for admin items), and look at every image before committing.
+3. Show Jeremy the screenshots and wording for approval before the PR merges.
+4. If a feature adds or moves a Home element or a tab, check the tour (`lib/tour.ts`) still points at the right
+   `data-tour` targets. `tests/onboarding.test.cjs` checks the release shape, that the images exist and that every
+   tour target is tagged.
 
 ## Tests
 ```bash
