@@ -561,7 +561,7 @@ export function EventDetailModal({
                   label="Hasn't responded"
                   title="Copy who hasn't responded, for WhatsApp"
                   text={chaseText(`Still need replies for ${fmtDate(dateStr)} · ${title}`, noReply.map((p) => p.name))}
-                  className="mb-3"
+                  className="mb-3 w-full justify-center"
                 />
               )}
               {eventRespondBy(currentItem) &&
