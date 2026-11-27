@@ -12,6 +12,8 @@ For players using the ORA Hockey team app on a phone or in a browser. Coaches an
 
 After setup, sign in with your roster email and chosen password. Players see **Home**, **Schedule**, **Polls**, **Squad**, **Fines**, and **Profile** - in the bar along the bottom on a phone, or in the top bar on a computer. A thin green line across the top of the screen means a page is loading.
 
+The first time you sign in, a short **tour** highlights each part of the app: tap anywhere (or **Next**) to move on, **Skip** to leave. After an update, a **What's new** window shows the new features once. Both are under **Profile** → **Replay tour** / **What's new**.
+
 ## Using the app
 
 ### Seasons
@@ -49,7 +51,7 @@ A list of the season's games, training sessions and team **events** (gatherings,
 Open polls show voting options - pick one and tap **Vote**. Until you vote, the poll shows a countdown to its reply deadline. Once you've voted (or for closed polls) you'll see the live results with your choice marked "your vote". Each poll says whether it's **anonymous** (nobody, admins included, can see what you picked - only that you voted) or **names shown** (everyone sees who picked each option, listed under it). Tap the vote count on any poll (e.g. *12 voted · 18 haven't*) to see who has voted (and when) and who hasn't. On an open poll, the copy button **Hasn't voted** (top right of the poll) copies those names to paste into a group chat. Anyone fined for a late or missing vote is in red. Closed polls are kept below for reference.
 
 ### Profile
-Your own page: your photo (taken and uploaded by the coaches), positions, career apps / goals / assists / POTM, per-appearance rates, your details, and your **stats by season** with a career total (league games only). **Edit profile** lets you change your **preferred name**, **date of birth** (shown to the whole team) and **positions** - your name, jersey number, email and photo are managed by the coaches. **Sign out** is at the bottom of your card. Your card in **Squad** still opens the public profile everyone sees.
+Your own page: your photo (taken and uploaded by the coaches), positions, career apps / goals / assists / POTM, per-appearance rates, your details, and your **stats by season** with a career total (league games only). **Edit profile** lets you change your **preferred name**, **date of birth** (shown to the whole team) and **positions** - your name, jersey number, email and photo are managed by the coaches. **Replay tour** and **What's new** sit under Edit profile, and **Sign out** is at the bottom of your card. Your card in **Squad** still opens the public profile everyone sees.
 
 ### Fines
 **$5** a time, collated at the end of each month. The **Fines** tab shows everyone's fines, one month at a time: a card says whether the month is **Outstanding** or **Settled** (and, in smaller text, what's owed across all months), then each player with what each fine was for. Paid and waived fines are greyed out (a waived fine shows why). Tap **How fines work** under the title for the full rules.

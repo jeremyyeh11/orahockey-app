@@ -90,7 +90,7 @@ The **Fines** tab (between Squad and Profile). Fines are worked out by the app f
 - Every active squad member can be fined for games, trainings and events, app account or not, so add sheet replies **before the reply deadline**: a reply added after it counts as late. Polls only fine players with an app account. Only the Finemaster and the superadmin see the + Fine, Paid, Waive and Delete buttons.
 
 ### Profile
-The same Profile tab every player has (see the [user manual](user-manual.md#profile)): your card, details you can edit, stats by season, and **Sign out**.
+The same Profile tab every player has (see the [user manual](user-manual.md#profile)): your card, details you can edit, stats by season, **Replay tour** / **What's new**, and **Sign out**. Admins get a few extra tour steps (the admin area, adding events, players and polls).
 
 **Player photos:** open a player in **Squad** → **Edit** → **Photo** → **Upload photo** (or **Replace** / **Remove**). It's saved straight away (separately from the form's Save) and shows immediately - portrait photos work best, the card crops to the top. Only admins can upload.
 
