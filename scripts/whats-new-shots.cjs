@@ -34,6 +34,8 @@ async function toMonthWithUnpaidFines(page) {
 }
 
 const SHOTS = {
+  // '2026-11-update-later' isn't here: its shots need a click on Update later, which would change a real RSVP.
+  // They were taken from the Schedule row components rendered with demo data instead.
   // Sign in as a Finemaster (or the superadmin) for the + Fine and Delete shots.
   // The account should have the tour done and this release seen, so nothing covers the page.
   '2026-11-fines': [

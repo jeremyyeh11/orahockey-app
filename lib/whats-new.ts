@@ -27,6 +27,22 @@ export type WhatsNewViewer = { isAdmin: boolean; fineManager: boolean }
 
 export const RELEASES: Release[] = [
   {
+    id: '2026-11-update-later',
+    date: '2026-11-28',
+    items: [
+      {
+        title: 'Not sure? Pick Update later',
+        body: 'Picking Update later before the reply-by counts as a reply, so no late fine. Then pick I’m in or Out by 24h before the start.',
+        image: '/whats-new/2026-11-update-later/no-reply.png',
+      },
+      {
+        title: 'Your reply-by moves',
+        body: 'On Update later, your countdown shows your new reply-by: 24h before the start. Still on Update later then counts as a late reply.',
+        image: '/whats-new/2026-11-update-later/update-later.png',
+      },
+    ],
+  },
+  {
     id: '2026-11-fines',
     date: '2026-11-27',
     items: [
