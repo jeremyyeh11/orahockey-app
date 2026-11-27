@@ -5,6 +5,7 @@ import { type NavItem } from '@/components/BottomNav'
 import { type SeasonNav } from '@/components/SeasonSwitcher'
 import AdminBadge from '@/components/AdminControlPanel'
 import type { ViewerRole } from '@/lib/supabase/request-user'
+import type { OnboardingState } from '@/lib/onboarding-server'
 import {
   HomeIcon,
   UsersIcon,
@@ -27,6 +28,7 @@ export default function AdminShell({
   seasonNav,
   viewer,
   debug,
+  onboarding,
   children,
 }: {
   seasonNav: SeasonNav | null
@@ -34,10 +36,11 @@ export default function AdminShell({
   viewer: ViewerRole
   /** Superadmin: double-tapping ADMIN opens debug mode */
   debug: boolean
+  onboarding: OnboardingState | null
   children: React.ReactNode
 }) {
   return (
-    <AppShell nav={NAV} titleExtra={<AdminBadge viewer={viewer} debug={debug} />} seasonNav={seasonNav}>
+    <AppShell nav={NAV} titleExtra={<span data-tour="admin-badge"><AdminBadge viewer={viewer} debug={debug} /></span>} seasonNav={seasonNav} onboarding={onboarding} isAdmin>
       {children}
     </AppShell>
   )

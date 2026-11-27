@@ -32,6 +32,7 @@ export default function BottomNav({ items }: { items: NavItem[] }) {
               key={item.href}
               href={item.href}
               aria-label={item.label}
+              data-tour={`nav-${item.label.toLowerCase()}`}
               aria-current={active ? 'page' : undefined}
               className={`flex h-10 items-center rounded-full transition-colors duration-300 ${
                 // Six tabs: slimmer padding on the narrowest phones (< 360px) so the dock fits

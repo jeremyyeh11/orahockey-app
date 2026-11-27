@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Modal from '@/components/Modal'
 import SignOutButton from '@/components/SignOutButton'
+import { OPEN_WHATS_NEW_EVENT, START_TOUR_EVENT } from '@/lib/tour'
 import { preferredName } from '@/lib/names'
 import { RoleTag } from './RoleTag'
 import { sortPositions } from '@/lib/constants'
@@ -182,6 +183,22 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
               >
                 Edit profile
               </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event(START_TOUR_EVENT))}
+                  className="liga-button liga-button-secondary rounded-2xl border px-3 py-3 text-sm font-semibold text-slate-300 transition hover:text-white"
+                >
+                  Replay tour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event(OPEN_WHATS_NEW_EVENT))}
+                  className="liga-button liga-button-secondary rounded-2xl border px-3 py-3 text-sm font-semibold text-slate-300 transition hover:text-white"
+                >
+                  What&apos;s new
+                </button>
+              </div>
               <SignOutButton />
             </div>
           </div>

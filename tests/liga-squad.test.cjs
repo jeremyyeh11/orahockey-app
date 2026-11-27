@@ -1116,7 +1116,7 @@ test('role tags: a coloured chip per title, grey for untitled Admins, a shimmeri
   assert.match(read('app/dashboard/DashboardShell.tsx'), /titleExtra=\{<RoleTag role=\{viewer\.role\} titles=\{viewer\.titles\}/)
   assert.match(read('components/AdminControlPanel.tsx'), /const tag = <RoleTag role=\{viewer\.role\} titles=\{viewer\.titles\} \/>/)
   for (const f of ['app/admin/layout.tsx', 'app/dashboard/layout.tsx']) {
-    assert.match(read(f), /Promise\.all\(\[getSeasonNav\(\), getViewerRole\(\)\]\)/)
+    assert.match(read(f), /Promise\.all\(\[getSeasonNav\(\), getViewerRole\(\), getOnboarding\(\)\]\)/)
   }
 
   // Admins set titles in Edit player; the action only stores known ones

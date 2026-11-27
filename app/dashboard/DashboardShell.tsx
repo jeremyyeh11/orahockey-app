@@ -8,6 +8,8 @@ import type { ViewerRole } from '@/lib/supabase/request-user'
 import { startNavigationProgress } from '@/components/NavigationProgress'
 import { type NavItem } from '@/components/BottomNav'
 import { type SeasonNav } from '@/components/SeasonSwitcher'
+import type { OnboardingState } from '@/lib/onboarding-server'
+import { isAdminRole } from '@/lib/roles'
 import { HomeIcon, UsersIcon, CalendarIcon, PollIcon, ReceiptIcon, UserIcon } from '@/components/icons'
 
 const NAV: NavItem[] = [
@@ -22,9 +24,11 @@ const NAV: NavItem[] = [
 export default function DashboardShell({
   seasonNav,
   viewer,
+  onboarding,
   children,
 }: {
   seasonNav: SeasonNav | null
+  onboarding: OnboardingState | null
   /** Your role and titles: your tag in the top bar (Finemaster, Equipment, ...) */
   viewer: ViewerRole
   children: React.ReactNode
@@ -58,6 +62,8 @@ export default function DashboardShell({
       titleExtra={<RoleTag role={viewer.role} titles={viewer.titles} className="ml-2" />}
       headerActions={adminViewButton}
       seasonNav={seasonNav}
+      onboarding={onboarding}
+      isAdmin={isAdminRole(viewer.role)}
     >
       {children}
     </AppShell>

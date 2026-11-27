@@ -121,7 +121,7 @@ export function SeasonMenu({ seasons, selectedId }: SeasonNav) {
   }
 
   return (
-    <div ref={rootRef} className="liga-season-menu relative hidden items-center lg:flex">
+    <div ref={rootRef} className="liga-season-menu relative hidden items-center lg:flex" data-tour="season">
       <button
         ref={buttonRef}
         type="button"
@@ -204,7 +204,7 @@ export function SeasonTabs({ seasons, selectedId }: SeasonNav) {
   const active = seasons.find((s) => s.id === activeId)
 
   return (
-    <div className="liga-season-bar border-t border-white/10 lg:hidden">
+    <div className="liga-season-bar border-t border-white/10 lg:hidden" data-tour="season">
       <div className="flex items-center gap-3 px-4">
         <div
           role="group"

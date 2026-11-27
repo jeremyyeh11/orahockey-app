@@ -282,7 +282,7 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
   const RESULT_LABEL: Record<string, string> = { win: 'Win', loss: 'Loss', tie: 'Draw', ot_win: 'OT Win', ot_loss: 'OT Loss', unrecorded: 'No scoreline recorded' }
 
   return (
-    <div className="liga-page liga-home p-4">
+    <div className="liga-page liga-home p-4" data-tour="home">
       {/* Greeting */}
       <div className="liga-page-header mb-4 flex items-end justify-between gap-3">
         <div className="min-w-0">
@@ -324,8 +324,10 @@ export async function HomeView({ basePath }: { basePath: '/dashboard' | '/admin'
           </div>
 
           {/* Next up — the featured card, straight under the season record */}
-          <h2 className="liga-section-title mt-6">{nextUpTitle}</h2>
-          {nextUpCard}
+          <div data-tour="next-up">
+            <h2 className="liga-section-title mt-6">{nextUpTitle}</h2>
+            {nextUpCard}
+          </div>
 
           {/* Your stats — phones: under Next up (desktop: right column) */}
           <div className="lg:hidden">{yourStats}</div>
