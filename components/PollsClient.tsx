@@ -280,6 +280,7 @@ function PollCard({
         votes={poll.voters}
         roster={roster}
         fined={fined}
+        chaseHeading={open ? `Still need votes for "${poll.question}"` : undefined}
         actions={
           admin && (
             <>
