@@ -1,9 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { action, revalidateTabs } from '@/lib/action-helpers'
+import { action, requirePlayerId, revalidateTabs } from '@/lib/action-helpers'
 import { POSITIONS } from '@/lib/constants'
 import { savePlayerPhoto } from '@/lib/photos-server'
+import { LATEST_RELEASE_ID } from '@/lib/whats-new'
 
 /**
  * A player editing their own profile: preferred name, date of birth and
@@ -54,4 +55,28 @@ export const setMyPhoto = action(async (playerId: string, path: string | null) =
   if (me.id !== playerId) throw new Error('You can only change your own photo.')
 
   await savePlayerPhoto(supabase, me.id, path)
+})
+
+/**
+ * The first-time tour finished or skipped (player_onboarding, 045). Marks every
+ * current What's new release as seen too: a new player doesn't need both.
+ */
+export const finishTour = action(async () => {
+  const supabase = createClient()
+  const playerId = await requirePlayerId(supabase)
+  const now = new Date().toISOString()
+  const { error } = await supabase
+    .from('player_onboarding')
+    .upsert({ player_id: playerId, tour_done_at: now, seen_release: LATEST_RELEASE_ID, updated_at: now }, { onConflict: 'player_id' })
+  if (error) throw new Error(error.message)
+})
+
+/** The What's new modal closed: the latest release counts as seen */
+export const markWhatsNewSeen = action(async () => {
+  const supabase = createClient()
+  const playerId = await requirePlayerId(supabase)
+  const { error } = await supabase
+    .from('player_onboarding')
+    .upsert({ player_id: playerId, seen_release: LATEST_RELEASE_ID, updated_at: new Date().toISOString() }, { onConflict: 'player_id' })
+  if (error) throw new Error(error.message)
 })
