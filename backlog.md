@@ -38,10 +38,12 @@ player stats page (shot zones, monthly trend line, side tiles with bars).
 
 ### 10. Copy "Hasn't responded" names ✓ Nov 2026
 
-An icon-only copy button beside **Hasn't responded** in the event details, visible to every player.
-It copies a heading line and then one preferred name per line, e.g. "Still need replies for Sat 29 Nov ·
-ORA vs Hollandse:", ready to paste into a group chat. Polls get the same button beside **Hasn't voted**
-in the vote-count list ("Still need votes for "…":"). The icon turns into a green tick for 2s. It's
+A labelled **Copy who hasn't responded for WhatsApp** button at the top of an event's Attendance (above
+Your response), styled like the Fines tab's copy button and visible to every player. It copies a heading
+line and then one preferred name per line, e.g. "Still need replies for Sat 29 Nov · ORA vs Hollandse:",
+ready to paste into a group chat. Open polls get **Copy who hasn't voted** in the card's top row, left of
+Active ("Still need votes for "…":"). The label reads "Copied" for 2s. (First built as an icon beside
+the headings; changed to labelled buttons at Jeremy's request before merging.) It's
 hidden once replies are closed: an event in a locked season or a cancelled/postponed event, and a
 closed poll. POTM's "Yet to vote" tags don't have the button (POTM voting is exempt from fines).
 Decided Nov 2026: header + one per line, preferred names, polls too.

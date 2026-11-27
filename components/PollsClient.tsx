@@ -15,6 +15,8 @@ import type { FineReason } from '@/lib/fines'
 import { FormButtons, FormError, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
 import { preferredName } from '@/lib/names'
+import { chaseText } from '@/lib/chase'
+import { CopyNamesButton } from '@/components/CopyNamesButton'
 
 type Roster = { id: string; full_name: string; preferred_name: string | null }[]
 
@@ -245,6 +247,10 @@ function PollCard({
   const open = isPollOpen(poll, new Date(now).getTime())
   const voted = myPlayerId != null && poll.voters.some((v) => v.player_id === myPlayerId)
   const byId = new Map(roster.map((p) => [p.id, p]))
+  // Who still hasn't voted (same list as PollVoters' "Hasn't voted"), as text to chase them with
+  const votedIds = new Set(poll.voters.map((v) => v.player_id))
+  const notVoted = roster.filter((p) => !votedIds.has(p.id)).map(preferredName).sort((a, b) => a.localeCompare(b))
+  const chase = open && notVoted.length > 0 ? chaseText(`Still need votes for "${poll.question}"`, notVoted) : null
 
   return (
     <div className="liga-poll-card card p-4">
@@ -259,10 +265,16 @@ function PollCard({
           </div>
           {open && !voted && <RespondBy respondBy={poll.respond_by} finesEnabled={poll.fines_enabled} now={now} className="mt-0.5" />}
         </div>
-        {admin && poll.is_active && (
-          <span className="liga-status-label shrink-0 text-[10px] font-semibold uppercase text-green-300">
-            Active
-          </span>
+        {(chase || (admin && poll.is_active)) && (
+          <div className="flex shrink-0 items-center gap-3">
+            {/* Copy who still needs to vote, to chase them in a group chat — everyone, open polls only */}
+            {chase && <CopyNamesButton label="Copy who hasn't voted" text={chase} className="px-3 py-1.5" />}
+            {admin && poll.is_active && (
+              <span className="liga-status-label text-[10px] font-semibold uppercase text-green-300">
+                Active
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -280,7 +292,6 @@ function PollCard({
         votes={poll.voters}
         roster={roster}
         fined={fined}
-        chaseHeading={open ? `Still need votes for "${poll.question}"` : undefined}
         actions={
           admin && (
             <>
