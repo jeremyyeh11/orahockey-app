@@ -6,14 +6,14 @@ import Modal from '@/components/Modal'
 import { FormButtons, FormError, hintCls, inputCls, labelCls } from '@/components/form'
 import { fmtDate, fmtDateTime } from '@/lib/format'
 import { FINE_AMOUNT, FINE_KIND_NOUN, RSVP_LABEL, centsFromDigits, fineHref, fineKey, finesByPlayer, fmtMoney, isOutstanding, type Fine } from '@/lib/fines'
-import { addFine, setFinePaid, setFineWaived } from '@/app/dashboard/fines/actions'
+import { addFine, deleteFine, setFinePaid, setFineWaived } from '@/app/dashboard/fines/actions'
 import { preferredName } from '@/lib/names'
 import { unwrap } from '@/lib/action-result'
 import { FineRules } from '@/components/FineRules'
 
 /** What a fine was for, in a line */
 function fineLine(f: Fine) {
-  if (f.kind === 'manual') return `Added ${fmtDateTime(f.at)}`
+  if (f.kind === 'manual') return `Incurred ${fmtDate(f.at)}`
   if (f.reason === 'late_change') {
     return `Changed ${RSVP_LABEL[f.from!]} → ${RSVP_LABEL[f.to!]} · ${fmtDateTime(f.at)} (within 24h before the ${FINE_KIND_NOUN[f.kind]})`
   }
@@ -26,20 +26,36 @@ const fineHeading = (f: Fine) => (f.reason === 'manual' ? f.title : `${f.reason 
 
 const actionCls =
   'liga-compact-button liga-button-secondary border px-2.5 text-[11px] font-semibold text-slate-300 transition hover:text-white disabled:opacity-40'
+const deleteCls =
+  'liga-compact-button liga-button-danger border border-red-900/60 px-2.5 text-[11px] font-semibold text-red-400 transition hover:bg-red-900/20 disabled:opacity-40'
+
+/** 'Fri 27 Nov' from a Singapore 'YYYY-MM-DD' */
+const fmtYmd = (ymd: string) => fmtDate(`${ymd}T12:00:00+08:00`)
+
+/** Who owes what, most owed first, then by name */
+const byOwed = (fines: Fine[], nameOf: (id: string) => string) =>
+  finesByPlayer(fines).sort(
+    (a, b) => Number(a.settled) - Number(b.settled) || b.total - a.total || nameOf(a.playerId).localeCompare(nameOf(b.playerId))
+  )
+const sumOwed = (rows: { total: number }[]) => Math.round(rows.reduce((s, r) => s + r.total, 0) * 100) / 100
 
 /**
  * One month's fines for the whole team (everyone sees everyone's): a status card
- * (outstanding / settled), then each player, most owed first. Players with
- * anything outstanding start expanded; fully settled ones collapse. Paid and
- * waived fines are greyed out. Finemasters and the superadmin add fines by hand,
- * mark fines paid or waive them (with a reason); anyone can copy what's still owed to paste
- * into WhatsApp.
+ * (this month outstanding / settled, plus what's owed across every month), then
+ * each player, most owed first. Players with anything outstanding start
+ * expanded; fully settled ones collapse. Paid and waived fines are greyed out.
+ * Finemasters and the superadmin add fines by hand (backdated if need be), mark
+ * fines paid, waive them (with a reason: still on record, at $0) or delete one
+ * charged by mistake; anyone can copy everything still owed, every month, to
+ * paste into WhatsApp.
  */
 export default function FinesClient({
   monthTitle,
   prevHref,
   nextHref,
   fines,
+  outstandingAll,
+  today,
   players,
   myPlayerId,
   canManage,
@@ -50,18 +66,22 @@ export default function FinesClient({
   prevHref: string
   nextHref: string | null
   fines: Fine[]
+  /** Every fine still owed, any month: the card's all-months total and the WhatsApp copy */
+  outstandingAll: Fine[]
+  /** 'YYYY-MM-DD' in Singapore: Add fine's default and latest date */
+  today: string
   players: Record<string, { full_name: string; preferred_name: string | null; is_active: boolean }>
   myPlayerId: string | null
-  /** Finemaster or superadmin: Add fine, Paid and Waive buttons */
+  /** Finemaster or superadmin: Add fine, Paid, Waive and Delete buttons */
   canManage: boolean
   basePath: '/dashboard' | '/admin'
 }) {
   const nameOf = (id: string) => (players[id] ? preferredName(players[id]) : 'Unknown player')
-  const rows = finesByPlayer(fines).sort(
-    (a, b) => Number(a.settled) - Number(b.settled) || b.total - a.total || nameOf(a.playerId).localeCompare(nameOf(b.playerId))
-  )
+  const rows = byOwed(fines, nameOf)
   const owing = rows.filter((r) => !r.settled)
-  const outstanding = Math.round(owing.reduce((s, r) => s + r.total, 0) * 100) / 100
+  const outstanding = sumOwed(owing)
+  const owingAll = byOwed(outstandingAll, nameOf)
+  const outstandingAllTotal = sumOwed(owingAll)
   const outstandingCount = owing.reduce((s, r) => s + r.count, 0)
   const paidCount = rows.reduce((s, r) => s + r.paid, 0)
   const waivedCount = rows.reduce((s, r) => s + r.waived, 0)
@@ -77,11 +97,12 @@ export default function FinesClient({
 
   const isOpen = (r: { playerId: string; settled: boolean }) => toggled[r.playerId] ?? !r.settled
 
+  /** Everything still owed, every month, not just the month on screen */
   function copy() {
     const text = [
-      `ORA Hockey fines · ${monthTitle}${fines.some((f) => f.kind === 'manual') ? '' : ` ($${FINE_AMOUNT} each)`}`,
-      ...owing.map((r) => `${nameOf(r.playerId)} — ${fmtMoney(r.total)} (${r.count})`),
-      `Outstanding: ${fmtMoney(outstanding)}`,
+      `ORA Hockey fines · outstanding as of ${fmtYmd(today)}${outstandingAll.some((f) => f.kind === 'manual') ? '' : ` ($${FINE_AMOUNT} each)`}`,
+      ...owingAll.map((r) => `${nameOf(r.playerId)} — ${fmtMoney(r.total)} (${r.count})`),
+      `Outstanding: ${fmtMoney(outstandingAllTotal)}`,
     ].join('\n')
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
@@ -105,6 +126,12 @@ export default function FinesClient({
     })
   }
   const ref = (f: Fine) => ({ playerId: f.playerId, kind: f.kind, itemId: f.itemId, reason: f.reason })
+  /** Delete a fine charged by mistake, after a confirm */
+  function remove(f: Fine) {
+    const what = `${nameOf(f.playerId)}'s ${fmtMoney(f.amount)} fine (${fineHeading(f)})`
+    if (!confirm(`Delete ${what}? It's removed for everyone, as if it was never charged. To excuse a fine but keep it on record, waive it instead.`)) return
+    change(f, () => unwrap(deleteFine(ref(f))))
+  }
 
   return (
     <div className="liga-page liga-fines p-4">
@@ -146,8 +173,8 @@ export default function FinesClient({
         )}
       </div>
 
-      {/* Outstanding / settled */}
-      {rows.length > 0 && (
+      {/* This month outstanding / settled, plus every month's total */}
+      {(rows.length > 0 || outstandingAllTotal > 0) && (
         <div
           data-state={outstanding > 0 ? 'outstanding' : 'settled'}
           className={`liga-fines-status card mb-4 flex items-center justify-between gap-3 p-4 ${
@@ -161,24 +188,33 @@ export default function FinesClient({
             <div className="liga-meta mt-1 text-slate-400">
               {outstanding > 0
                 ? `${outstandingCount} unpaid fine${outstandingCount === 1 ? '' : 's'} · ${owing.length} player${owing.length === 1 ? '' : 's'}`
-                : 'Every fine paid or waived'}
+                : rows.length > 0
+                  ? 'Every fine paid or waived'
+                  : 'Nothing owed this month'}
               {paidCount > 0 && ` · ${paidCount} paid`}
               {waivedCount > 0 && ` · ${waivedCount} waived`}
             </div>
           </div>
-          <div className={`shrink-0 font-mono text-2xl font-bold tabular-nums ${outstanding > 0 ? 'text-white' : 'text-brand-light'}`}>
-            {outstanding > 0 ? fmtMoney(outstanding) : '✓'}
+          <div className="shrink-0 text-right">
+            <div className={`font-mono text-2xl font-bold tabular-nums ${outstanding > 0 ? 'text-white' : 'text-brand-light'}`}>
+              {outstanding > 0 ? fmtMoney(outstanding) : '✓'}
+            </div>
+            {outstandingAllTotal > 0 && (
+              <div className="liga-fines-all liga-meta mt-0.5 text-slate-400">
+                All months <span className="font-mono font-semibold tabular-nums text-slate-300">{fmtMoney(outstandingAllTotal)}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {outstanding > 0 && (
+      {outstandingAllTotal > 0 && (
         <button
           type="button"
           onClick={copy}
           className="liga-button liga-button-secondary mb-4 w-full rounded-lg border text-xs font-semibold text-slate-300 transition hover:text-white"
         >
-          {copied ? 'Copied' : 'Copy outstanding for WhatsApp'}
+          {copied ? 'Copied' : 'Copy all outstanding for WhatsApp'}
         </button>
       )}
 
@@ -270,6 +306,9 @@ export default function FinesClient({
                                     </button>
                                   </>
                                 )}
+                                <button type="button" disabled={pendingKey === key} onClick={() => remove(f)} className={deleteCls}>
+                                  Delete
+                                </button>
                               </div>
                             )}
                           </div>
@@ -304,6 +343,7 @@ export default function FinesClient({
             .filter(([, p]) => p.is_active)
             .map(([id]) => ({ id, name: nameOf(id) }))
             .sort((a, b) => a.name.localeCompare(b.name))}
+          today={today}
           onClose={() => setAdding(false)}
         />
       )}
@@ -368,16 +408,18 @@ function WaiveModal({
 }
 
 /**
- * Adds a fine by hand: player, reason and amount. The amount is keyed as digits
- * only and fills in from the cents: 2 → $0.02, 22 → $0.22, 220 → $2.20.
+ * Adds a fine by hand: player, reason, amount and the date it was incurred
+ * (today by default; backdating only). The amount is keyed as digits only and
+ * fills in from the cents: 2 → $0.02, 22 → $0.22, 220 → $2.20.
  */
-function AddFineModal({ players, onClose }: { players: { id: string; name: string }[]; onClose: () => void }) {
+function AddFineModal({ players, today, onClose }: { players: { id: string; name: string }[]; today: string; onClose: () => void }) {
   const [playerId, setPlayerId] = useState('')
+  const [date, setDate] = useState(today)
   const [reason, setReason] = useState('')
   const [cents, setCents] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
-  const ready = !!playerId && !!reason.trim() && cents > 0
+  const ready = !!playerId && !!reason.trim() && cents > 0 && !!date && date <= today
 
   return (
     <Modal onClose={onClose}>
@@ -388,7 +430,7 @@ function AddFineModal({ players, onClose }: { players: { id: string; name: strin
           setError(null)
           startTransition(async () => {
             try {
-              await unwrap(addFine({ playerId, reason: reason.trim(), amountCents: cents }))
+              await unwrap(addFine({ playerId, reason: reason.trim(), amountCents: cents, date }))
               onClose()
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -441,6 +483,13 @@ function AddFineModal({ players, onClose }: { players: { id: string; name: strin
             className={`${inputCls} font-mono tabular-nums`}
           />
           <p className={hintCls}>Type the digits only: 220 is $2.20.</p>
+        </div>
+        <div>
+          <label htmlFor="fine-date" className={labelCls}>
+            Date incurred *
+          </label>
+          <input id="fine-date" type="date" required max={today} value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
+          <p className={hintCls}>The fine counts towards that month.</p>
         </div>
         <FormError error={error} />
         <FormButtons isPending={pending} disabled={!ready} onCancel={onClose} label="Add fine" pendingLabel="Adding…" />

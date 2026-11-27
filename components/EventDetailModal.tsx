@@ -3,7 +3,9 @@
 import { useState, useTransition } from 'react'
 import { ReadEditModal } from './ReadEditModal'
 import { preferredName } from '@/lib/names'
-import { fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
+import { fmtDate, fmtDateTime, fmtDateTimeRange, fmtReport, toDatetimeLocal, toTimeLocal, fromDatetimeLocal } from '@/lib/format'
+import { chaseText } from '@/lib/chase'
+import { CopyNamesButton } from './CopyNamesButton'
 import type { EventInput, GameInput, TrainingInput } from '@/app/admin/schedule/actions'
 import { eventEnd, eventFinesEnabled, eventId, eventLocation, eventNotes, eventReportMinutes, eventRespondBy, eventStatus, eventStatusReason, eventTitle, STATUS_CLS, type EventItem } from './EventRow'
 import { EventStatusControls } from './EventStatusControls'
@@ -113,6 +115,8 @@ const RESULT_BADGE: Record<string, { label: string; cls: string }> = {
 }
 
 
+const NO_REPLY = "Hasn't responded"
+
 type BreakdownGroup = { label: string; players: { id: string; name: string; at?: string; reason?: string | null }[] }
 
 function buildBreakdown(
@@ -144,7 +148,7 @@ function buildBreakdown(
     { label: 'Attending', players: groups.attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
     { label: RSVP_LABEL.maybe, players: groups.maybe.map((p) => ({ id: p.id, name: preferredName(p), at: p.at })) },
     { label: 'Not attending', players: groups.not_attending.map((p) => ({ id: p.id, name: preferredName(p), at: p.at, reason: p.reason })) },
-    { label: "Hasn't responded", players: noResponse.map((p) => ({ id: p.id, name: preferredName(p) })) },
+    { label: NO_REPLY, players: noResponse.map((p) => ({ id: p.id, name: preferredName(p) })) },
   ].filter((g) => g.players.length > 0)
 }
 
@@ -592,8 +596,15 @@ export function EventDetailModal({
                 {breakdown.map((group, i) => (
                   <div key={group.label}>
                     <div className="mb-1 flex items-baseline justify-between gap-3 text-[11px] font-medium text-slate-500">
-                      <span>
+                      <span className="inline-flex items-center gap-1">
                         {group.label} ({group.players.length})
+                        {/* Copy who still needs to reply, to chase them in a group chat — everyone, while replies are open */}
+                        {group.label === NO_REPLY && !readOnly && !off && (
+                          <CopyNamesButton
+                            label="Copy names of players who haven't responded"
+                            text={chaseText(`Still need replies for ${fmtDate(dateStr)} · ${title}`, group.players.map((p) => p.name))}
+                          />
+                        )}
                       </span>
                       {/* Heading for the times column (once, on the first group) */}
                       {i === 0 && showTimes && <span className="liga-section-title shrink-0 normal-case tracking-normal">Responded on</span>}

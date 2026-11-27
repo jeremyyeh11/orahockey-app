@@ -12,19 +12,6 @@
 
 ## Backlog
 
-## 10. Copy "Hasn't responded" names
-
-In the event detail modal's attendance breakdown, add an icon-only copy button beside the
-**Hasn't responded** heading. Tapping it copies those players' names to the clipboard so
-anyone can paste them into a separate group chat to chase replies. Show brief "Copied" feedback
-(icon swap or toast). **Visible to every player, not just admins** (decided Oct 2026).
-
-Open questions to resolve at build time:
-- Format: one name per line, comma-separated, or with a header line
-  (e.g. "Still need replies for Sat vs X: …")?
-- Preferred names or full names? (WhatsApp @-mentions won't resolve from pasted text either way.)
-- Same button on the Polls tab "Yet to vote" list?
-
 ## 14. Player card redesign (Squad)
 
 The Squad tab's player card (the public profile that opens over the list) becomes a **condensed
@@ -48,6 +35,16 @@ player stats page (shot zones, monthly trend line, side tiles with bars).
 ---
 
 ## Archived
+
+### 10. Copy "Hasn't responded" names ✓ Nov 2026
+
+An icon-only copy button beside **Hasn't responded** in the event details, visible to every player.
+It copies a heading line and then one preferred name per line, e.g. "Still need replies for Sat 29 Nov ·
+ORA vs Hollandse:", ready to paste into a group chat. Polls get the same button beside **Hasn't voted**
+in the vote-count list ("Still need votes for "…":"). The icon turns into a green tick for 2s. It's
+hidden once replies are closed: an event in a locked season or a cancelled/postponed event, and a
+closed poll. POTM's "Yet to vote" tags don't have the button (POTM voting is exempt from fines).
+Decided Nov 2026: header + one per line, preferred names, polls too.
 
 ### 16. Players upload their own photo ✓ Nov 2026
 

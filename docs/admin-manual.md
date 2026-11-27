@@ -75,7 +75,7 @@ Manage the roster.
 - **+ New Poll** creates a poll: a question, 2-6 options, an optional close date, and a **Respond by** deadline (72 hours after posting, or the close date if that's sooner) with a **Fines ($5)** switch - on by default; switch it off for casual polls. **Anonymous voting** is on by default: nobody, admins included, sees what anyone picked. Untick it to show who picked each option. This can't be changed once the poll exists.
 - Open polls can be **Closed** (or reopened), and any poll can be **Deleted** (votes included).
 - Admins vote in polls just like players do.
-- The vote count on each poll (e.g. *12 voted · 18 haven't · 2 late*) opens a list of who has voted (with when) and who hasn't from the current season's active squad, with late voters in red.
+- The vote count on each poll (e.g. *12 voted · 18 haven't · 2 late*) opens a list of who has voted (with when) and who hasn't from the current season's active squad, with late voters in red. On an open poll, the copy icon beside **Hasn't voted** copies those names for chasing in a group chat (players have the same button, and the same one beside **Hasn't responded** in an event's details).
 
 ### Fines
 The **Fines** tab (between Squad and Profile). Fines are worked out by the app from the deadlines, each player's RSVP history and poll votes - nothing to enter by hand:
@@ -83,9 +83,11 @@ The **Fines** tab (between Squad and Profile). Fines are worked out by the app f
 - **Late change** - a player changing their own answer in the 24 hours before the start (counted in the month of the change). The app can't see who PM'd the coaching committee, so every such change is fined - the Finemaster waives the ones who did.
 - At most one fine per player per event - the first one that applies.
 - For the Finemaster (and superadmin), each outstanding fine has **Paid** and **Waive**. **Waive** asks for a reason (e.g. *PM'd Ish before changing*), which shows on the fine for everyone. Paid and waived fines are greyed out and keep an **Undo**.
-- The card under the month says **Outstanding** (with the amount still owed) or **Settled** once every fine is paid or waived. Players who still owe are listed first and open; settled players collapse.
-- **Copy outstanding for WhatsApp** copies what each player still owes that month, to paste into a message.
-- Every active squad member can be fined for games, trainings and events, app account or not, so add sheet replies **before the reply deadline**: a reply added after it counts as late. Polls only fine players with an app account. Only the Finemaster and the superadmin see the Paid / Waive buttons.
+- **Delete** (Finemaster and superadmin) removes a fine charged by mistake, for everyone, as if it was never charged. To excuse a fine but keep it on record, waive it instead. A delete can't be undone from the app.
+- **+ Fine** adds a fine by hand: player, reason, amount and **Date incurred** (today by default; pick an earlier date to backdate it). The fine counts towards that date's month.
+- The card under the month says **Outstanding** (with the amount still owed that month) or **Settled** once every fine is paid or waived. Underneath, **All months** is what's still owed across every month. Players who still owe are listed first and open; settled players collapse.
+- **Copy all outstanding for WhatsApp** copies what each player still owes across every month, not just the one on screen, to paste into a message.
+- Every active squad member can be fined for games, trainings and events, app account or not, so add sheet replies **before the reply deadline**: a reply added after it counts as late. Polls only fine players with an app account. Only the Finemaster and the superadmin see the + Fine, Paid, Waive and Delete buttons.
 
 ### Profile
 The same Profile tab every player has (see the [user manual](user-manual.md#profile)): your card, details you can edit, stats by season, and **Sign out**.

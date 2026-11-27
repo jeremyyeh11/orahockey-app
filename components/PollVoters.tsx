@@ -4,6 +4,8 @@ import { useState, type ReactNode } from 'react'
 import { fmtDateTime } from '@/lib/format'
 import type { FineReason } from '@/lib/fines'
 import { preferredName } from '@/lib/names'
+import { chaseText } from '@/lib/chase'
+import { CopyNamesButton } from './CopyNamesButton'
 
 type Person = { id: string; full_name: string; preferred_name: string | null }
 
@@ -19,6 +21,7 @@ export function PollVoters({
   roster,
   fined,
   actions,
+  chaseHeading,
 }: {
   votes: { player_id: string; voted_at?: string }[]
   /** The squad expected to vote (active players) — everyone not in `votes` hasn't */
@@ -27,6 +30,8 @@ export function PollVoters({
   fined?: Record<string, FineReason[]>
   /** Buttons on the left of the summary row */
   actions?: ReactNode
+  /** First line of the copied "Hasn't voted" names; no copy button without it (closed polls) */
+  chaseHeading?: string
 }) {
   const [open, setOpen] = useState(false)
   const byId = new Map(roster.map((p) => [p.id, p]))
@@ -97,7 +102,13 @@ export function PollVoters({
           )}
           {notVoted.length > 0 && (
             <div>
-              <div className="mb-1 text-[11px] font-medium text-slate-500">Hasn&apos;t voted ({notVoted.length})</div>
+              <div className="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                Hasn&apos;t voted ({notVoted.length})
+                {/* Copy who still needs to vote, to chase them in a group chat — open polls only */}
+                {chaseHeading && (
+                  <CopyNamesButton label="Copy names of players who haven't voted" text={chaseText(chaseHeading, notVoted.map((p) => nameOf(p.id)))} />
+                )}
+              </div>
               <div className="space-y-0.5">{notVoted.map((p) => row(p.id))}</div>
             </div>
           )}

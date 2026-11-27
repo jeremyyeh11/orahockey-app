@@ -951,7 +951,7 @@ test('every admin server action checks is_admin() before doing anything', () => 
   // Fines are managed by the Finemaster title and the superadmin, not admins: those actions
   // live outside app/admin and check can_manage_fines() first
   const fineActions = read('app/dashboard/fines/actions.ts')
-  for (const name of ['setFineWaived', 'setFinePaid']) {
+  for (const name of ['setFineWaived', 'setFinePaid', 'addFine', 'deleteFine']) {
     assert.match(fineActions, new RegExp(String.raw`export const ${name} = action\(async \([^)]*\) => \{\s+const supabase = createClient\(\)\s+await requireFineManager\(supabase\)`), `${name} calls requireFineManager first`)
   }
   assert.doesNotMatch(fineActions, /requireAdmin/)
