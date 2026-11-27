@@ -335,20 +335,22 @@ test('RSVP: "Update later" (stored as maybe), and an optional reason box under t
 test('anyone can copy who still needs to reply (event) or vote (open poll) to chase them', () => {
   // A heading line, then one preferred name per line
   assert.match(read('lib/chase.ts'), /return \[`\$\{heading\}:`, \.\.\.names\]\.join\('\\n'\)/)
-  // Event details: beside "Hasn't responded", for everyone (not admin-gated), while replies are open
+  // Event details: top of Attendance, above Your response — everyone (not admin-gated), while replies are open
   const detail = read('components/EventDetailModal.tsx')
   assert.match(detail, /\{ label: NO_REPLY, players: noResponse\.map\(\(p\) => \(\{ id: p\.id, name: preferredName\(p\) \}\)\) \}/)
   assert.match(
     detail,
-    /\{group\.label === NO_REPLY && !readOnly && !off && \(\s*<CopyNamesButton[\s\S]*?text=\{chaseText\(`Still need replies for \$\{fmtDate\(dateStr\)\} · \$\{title\}`, group\.players\.map\(\(p\) => p\.name\)\)\}/
+    /\{!readOnly && !off && \(\s*<div className="mb-4">\s*\{\/\*[^*]*\*\/\}\s*\{noReply\.length > 0 && \(\s*<CopyNamesButton\s+label="Copy who hasn't responded for WhatsApp"\s+text=\{chaseText\(`Still need replies for \$\{fmtDate\(dateStr\)\} · \$\{title\}`, noReply\.map\(\(p\) => p\.name\)\)\}[\s\S]*?Your response/
   )
-  // Polls: beside "Hasn't voted", open polls only
-  assert.match(read('components/PollVoters.tsx'), /\{chaseHeading && \(\s*<CopyNamesButton [^>]*text=\{chaseText\(chaseHeading, notVoted\.map\(\(p\) => nameOf\(p\.id\)\)\)\}/)
-  assert.match(read('components/PollsClient.tsx'), /chaseHeading=\{open \? `Still need votes for "\$\{poll\.question\}"` : undefined\}/)
-  // Icon-only, with a tick once copied
+  // Polls: the card's top row, left of Active — open polls only
+  const polls = read('components/PollsClient.tsx')
+  assert.match(polls, /const chase = open && notVoted\.length > 0 \? chaseText\(`Still need votes for "\$\{poll\.question\}"`, notVoted\) : null/)
+  assert.match(polls, /\{chase && <CopyNamesButton label="Copy who hasn't voted" text=\{chase\} [^>]*\/>\}\s*\{admin && poll\.is_active && \(\s*<span className="liga-status-label/)
+  // Labelled like the Fines tab's copy button; "Copied" once copied
   const button = read('components/CopyNamesButton.tsx')
   assert.match(button, /navigator\.clipboard\.writeText\(text\)/)
-  assert.match(button, /\{copied \? <CheckIcon [^>]*\/> : <CopyIcon /)
+  assert.match(button, /className=\{`liga-button liga-button-secondary liga-copy-names rounded-lg border text-xs font-semibold/)
+  assert.match(button, /\{copied \? 'Copied' : label\}/)
 })
 
 test('admins cancel or postpone events instead of deleting them; those count for nothing', () => {

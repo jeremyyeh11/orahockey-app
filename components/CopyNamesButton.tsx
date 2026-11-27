@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { CheckIcon, CopyIcon } from './icons'
 
 /**
- * Icon-only copy button beside a "Hasn't responded" / "Hasn't voted" heading: copies
- * the names (see lib/chase.ts) so anyone can paste them into a group chat to chase replies.
- * The icon turns into a green tick for 2s once copied.
+ * Labelled copy button (same style as the Fines tab's "Copy all outstanding for WhatsApp"):
+ * copies who still hasn't replied to an event or voted on a poll (see lib/chase.ts) so anyone
+ * can paste it into a group chat to chase them. Reads "Copied" for 2s afterwards.
  */
-export function CopyNamesButton({ text, label }: { text: string; label: string }) {
+export function CopyNamesButton({ text, label, className = '' }: { text: string; label: string; className?: string }) {
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>()
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -28,13 +27,9 @@ export function CopyNamesButton({ text, label }: { text: string; label: string }
     <button
       type="button"
       onClick={copy}
-      aria-label={copied ? 'Copied' : label}
-      title={copied ? 'Copied' : label}
-      className={`liga-copy-names -my-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded transition ${
-        copied ? 'text-green-400' : 'text-slate-500 hover:text-white'
-      }`}
+      className={`liga-button liga-button-secondary liga-copy-names rounded-lg border text-xs font-semibold text-slate-300 transition hover:text-white ${className}`}
     >
-      {copied ? <CheckIcon className="h-3.5 w-3.5" aria-hidden="true" /> : <CopyIcon className="h-3.5 w-3.5" aria-hidden="true" />}
+      {copied ? 'Copied' : label}
     </button>
   )
 }
