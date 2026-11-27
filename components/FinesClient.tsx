@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Modal from '@/components/Modal'
 import { FormButtons, FormError, hintCls, inputCls, labelCls } from '@/components/form'
 import { fmtDate, fmtDateTime } from '@/lib/format'
-import { FINE_AMOUNT, FINE_KIND_NOUN, RSVP_LABEL, centsFromDigits, fineHref, fineKey, finesByPlayer, fmtMoney, isOutstanding, type Fine } from '@/lib/fines'
+import { FINE_AMOUNT, FINE_KIND_NOUN, PRESET_FINE_REASONS, RSVP_LABEL, centsFromDigits, presetFineReason, fineHref, fineKey, finesByPlayer, fmtMoney, isOutstanding, type Fine } from '@/lib/fines'
 import { addFine, deleteFine, setFinePaid, setFineWaived } from '@/app/dashboard/fines/actions'
 import { preferredName } from '@/lib/names'
 import { unwrap } from '@/lib/action-result'
@@ -408,14 +408,18 @@ function WaiveModal({
 }
 
 /**
- * Adds a fine by hand: player, reason, amount and the date it was incurred
- * (today by default; backdating only). The amount is keyed as digits only and
+ * Adds a fine by hand: player, the date it was incurred (today by default;
+ * backdating only), reason and amount. Buttons under Reason fill in starter text
+ * worded like the automatic fines ('Late arrival · Training · Tue 24 Nov') for the
+ * Finemaster to edit. The amount is keyed as digits only and
  * fills in from the cents: 2 → $0.02, 22 → $0.22, 220 → $2.20.
  */
 function AddFineModal({ players, today, onClose }: { players: { id: string; name: string }[]; today: string; onClose: () => void }) {
   const [playerId, setPlayerId] = useState('')
   const [date, setDate] = useState(today)
   const [reason, setReason] = useState('')
+  /** The last starter text a reason button filled in */
+  const [filled, setFilled] = useState<{ what: string; text: string } | null>(null)
   const [cents, setCents] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -454,6 +458,29 @@ function AddFineModal({ players, today, onClose }: { players: { id: string; name
           </select>
         </div>
         <div>
+          <label htmlFor="fine-date" className={labelCls}>
+            Date incurred *
+          </label>
+          <input
+            id="fine-date"
+            type="date"
+            required
+            max={today}
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value)
+              // Starter text nobody has edited yet follows the date
+              if (filled && reason === filled.text && e.target.value) {
+                const text = presetFineReason(filled.what, e.target.value)
+                setReason(text)
+                setFilled({ what: filled.what, text })
+              }
+            }}
+            className={inputCls}
+          />
+          <p className={hintCls}>The fine counts towards that month.</p>
+        </div>
+        <div>
           <label htmlFor="fine-reason" className={labelCls}>
             Reason *
           </label>
@@ -463,10 +490,27 @@ function AddFineModal({ players, today, onClose }: { players: { id: string; name
             maxLength={200}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. Forgot the team kit"
+            placeholder="e.g. Late arrival · Training · Tue 24 Nov"
             className={inputCls}
           />
-          <p className={hintCls}>Shown on the fine for everyone.</p>
+          <div className="liga-fine-presets mt-2 flex flex-wrap gap-1.5">
+            {PRESET_FINE_REASONS.map((what) => (
+              <button
+                key={what}
+                type="button"
+                disabled={!date}
+                onClick={() => {
+                  const text = presetFineReason(what, date)
+                  setReason(text)
+                  setFilled({ what, text })
+                }}
+                className={actionCls}
+              >
+                {what}
+              </button>
+            ))}
+          </div>
+          <p className={hintCls}>Tap one to fill it in, then edit it to fit (e.g. Match instead of Training). Shown on the fine for everyone.</p>
         </div>
         <div>
           <label htmlFor="fine-amount" className={labelCls}>
@@ -483,13 +527,6 @@ function AddFineModal({ players, today, onClose }: { players: { id: string; name
             className={`${inputCls} font-mono tabular-nums`}
           />
           <p className={hintCls}>Type the digits only: 220 is $2.20.</p>
-        </div>
-        <div>
-          <label htmlFor="fine-date" className={labelCls}>
-            Date incurred *
-          </label>
-          <input id="fine-date" type="date" required max={today} value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
-          <p className={hintCls}>The fine counts towards that month.</p>
         </div>
         <FormError error={error} />
         <FormButtons isPending={pending} disabled={!ready} onCancel={onClose} label="Add fine" pendingLabel="Adding…" />

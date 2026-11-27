@@ -3,7 +3,7 @@
 // they're derived from each entry's respond-by, the RSVP history
 // (attendance_log), poll votes and admin waivers. See 018_fines.sql. The one
 // exception is a fine the finemaster adds by hand (manual_fines, 042).
-import { toDatetimeLocal } from '@/lib/format'
+import { fmtDate, toDatetimeLocal } from '@/lib/format'
 
 /** Dollars per fine */
 export const FINE_AMOUNT = 5
@@ -136,6 +136,21 @@ export function finedAtFromDate(ymd: string, now: Date): string | null {
 
 /** Today's 'YYYY-MM-DD' in Singapore — the Add fine date's default and latest */
 export const sgToday = (now: Date) => sgYmd(now.toISOString())
+
+/**
+ * Common reasons the Finemaster fines for: buttons under Add fine's Reason that
+ * fill in starter text to edit, not a fixed list
+ */
+export const PRESET_FINE_REASONS = ['Late reply', 'Late change', 'Late arrival', 'No-show', 'Forgot kit'] as const
+
+/**
+ * Starter text for a reason, worded like the automatic fines' headings so the
+ * list reads the same whoever issued it: 'Late arrival · Training · Tue 24 Nov'.
+ * Training is the usual case; the Finemaster edits it to Match or Event.
+ */
+export function presetFineReason(what: string, ymd: string, at = 'Training') {
+  return `${what} · ${at} · ${fmtDate(`${ymd}T12:00:00+08:00`)}`
+}
 
 export type Fine = {
   playerId: string
