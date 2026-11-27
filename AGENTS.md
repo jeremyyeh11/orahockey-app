@@ -108,8 +108,9 @@ squad-visible "why I'm out", cleared by trigger when the answer isn't Out.
 
 Players: `cap_number` is the permanent debut order (#1 is the honorary cap for everyone before 2016,
 #2 the first recorded debutant; 028–032) with `debut_game_id` (031). Players without an email yet are
-"pending" (012). A BEFORE UPDATE guard (017/020) limits a player's self-edits to preferred name, date
-of birth and positions; photos (`photo_path`, public `player-photos` bucket) are admin-written. Seasons record different stats (`seasons.recorded_stats`, 024) and
+"pending" (012). A BEFORE UPDATE guard (017/020/043) limits a player's self-edits to preferred name, date
+of birth, positions and photo; photos (`photo_path`, public `player-photos` bucket) live in their
+player's folder (`{player id}/…`) — admins write anyone's, players only their own (043). Seasons record different stats (`seasons.recorded_stats`, 024) and
 can be cancelled (`cancelled_reason`, 026 — 2020/2021 COVID).
 
 Cancelled / postponed (038): `games.status` (`scheduled` | `cancelled` | `postponed`), `training_sessions.status`

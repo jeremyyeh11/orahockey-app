@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PHOTO_BUCKET, playerPhotoUrl } from '@/lib/photos'
 import { setPlayerPhoto } from '@/app/admin/team/actions'
+import { setMyPhoto } from '@/app/dashboard/profile/actions'
 import { unwrap } from '@/lib/action-result'
 
 const MAX_SIDE = 1200
@@ -23,12 +24,14 @@ async function shrink(file: File): Promise<Blob> {
 }
 
 /**
- * Admin-only photo for a player (backlog #7): shows the current photo, uploads a
- * new one straight from the browser to Storage (only admins may write the
- * bucket), then saves its path. Live immediately; Remove goes back to the
- * silhouette. Separate from the edit form's Save.
+ * A player's photo (backlog #7): shows the current photo, uploads a new one
+ * straight from the browser to the player's folder in Storage, then saves its
+ * path. Live immediately; Remove goes back to the silhouette. Separate from the
+ * edit form's Save. Admins use it for anyone (Squad → Edit player); with
+ * `self`, a player uses it for their own photo (Profile → Edit, 043).
  */
-export function PlayerPhotoField({ playerId, photoPath }: { playerId: string; photoPath: string | null }) {
+export function PlayerPhotoField({ playerId, photoPath, self = false }: { playerId: string; photoPath: string | null; self?: boolean }) {
+  const save = self ? setMyPhoto : setPlayerPhoto
   const router = useRouter()
   const input = useRef<HTMLInputElement>(null)
   const [path, setPath] = useState(photoPath)
@@ -45,7 +48,7 @@ export function PlayerPhotoField({ playerId, photoPath }: { playerId: string; ph
       const name = `${playerId}/${Date.now()}.webp`
       const { error: upErr } = await createClient().storage.from(PHOTO_BUCKET).upload(name, blob, { contentType: 'image/webp' })
       if (upErr) throw new Error(upErr.message)
-      await unwrap(setPlayerPhoto(playerId, name))
+      await unwrap(save(playerId, name))
       setPath(name)
       startTransition(() => router.refresh())
     } catch (err) {
@@ -60,7 +63,7 @@ export function PlayerPhotoField({ playerId, photoPath }: { playerId: string; ph
     setError(null)
     setBusy(true)
     try {
-      await unwrap(setPlayerPhoto(playerId, null))
+      await unwrap(save(playerId, null))
       setPath(null)
       startTransition(() => router.refresh())
     } catch (err) {

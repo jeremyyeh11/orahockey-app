@@ -87,6 +87,15 @@ player stats page (shot zones, monthly trend line, side tiles with bars).
 
 ## Archived
 
+### 16. Players upload their own photo ✓ Nov 2026
+
+Every player can now set their own photo from **Profile → Edit profile → Photo** (same
+upload/replace/remove field as the admin's **Squad → Edit player → Photo**, live immediately).
+Migration `043_player_photo_self_upload.sql`: `photo_path` joins the self-update guard; a photo must
+sit in its player's own folder (`players_photo_in_own_folder` check); players may upload to / delete
+from only their own folder in `player-photos`. Also adds the storage **select** policy that
+`remove()` needs — without it, replacing a photo had silently left the old file in the bucket.
+
 ### 11. Profile tab for every player ✓ Oct 2026
 
 Built at build time as: a **Profile** tab for every player (admins' Profile became the same
@@ -94,7 +103,7 @@ page) — identity panel (photo, name, positions, career apps/goals/assists/POTM
 ORA, Edit profile, Sign out), per-appearance rates, details, stats by season + career (league
 games only). Players edit **preferred name, date of birth and positions** (migration
 `020_player_photos_self_edit.sql` adds `position` to the self-update guard and limits positions to
-FWD/MID/DEF/GK). Decided: photos are **not** self-uploaded (admins upload, see #7); DOB is visible
+FWD/MID/DEF/GK). Decided: photos are **not** self-uploaded (admins upload, see #7 — reversed in #16); DOB is visible
 to everyone; the Squad card stays as the public view (its redesign is #14).
 
 ### 7. Live player photos ✓ Oct 2026

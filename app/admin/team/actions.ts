@@ -6,6 +6,7 @@ import { getRequestUser } from '@/lib/supabase/request-user'
 import { getNow } from '@/lib/preview'
 import { action, requireAdmin, revalidateTabs, teamId } from '@/lib/action-helpers'
 import { TITLES, type Role, type Title } from '@/lib/roles'
+import { savePlayerPhoto } from '@/lib/photos-server'
 
 // Squad changes are admin-only: /admin routes are gated in middleware, these
 // actions check is_admin() themselves, and RLS allows season_players writes to
@@ -285,22 +286,12 @@ export const setPlayerEmail = action(async (playerId: string, email: string) => 
 })
 
 /**
- * Set (or clear) a player's photo — the path of an object the admin just
+ * Set (or clear) any player's photo — the path of an object the admin just
  * uploaded to the player-photos bucket. The previous photo's object is deleted.
+ * Players set their own with setMyPhoto (Profile tab).
  */
 export const setPlayerPhoto = action(async (playerId: string, path: string | null) => {
   const supabase = createClient()
   await requireAdmin(supabase)
-  if (path && !path.startsWith(`${playerId}/`)) throw new Error('That photo belongs to another player.')
-
-  const { data: current, error: readError } = await supabase.from('players').select('photo_path').eq('id', playerId).single()
-  if (readError) throw new Error(readError.message)
-
-  const { error } = await supabase.from('players').update({ photo_path: path }).eq('id', playerId)
-  if (error) throw new Error(error.message)
-
-  if (current.photo_path && current.photo_path !== path) {
-    await supabase.storage.from('player-photos').remove([current.photo_path])
-  }
-  revalidateTabs('team', 'schedule', 'profile')
+  await savePlayerPhoto(supabase, playerId, path)
 })

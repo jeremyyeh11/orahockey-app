@@ -11,6 +11,7 @@ import type { LeaderboardRow } from '@/lib/stats'
 import { updateMyProfile } from '@/app/dashboard/profile/actions'
 import { FormButtons, FormError, PositionPicker, inputCls, labelCls } from '@/components/form'
 import { unwrap } from '@/lib/action-result'
+import { PlayerPhotoField } from '@/components/PlayerPhotoField'
 import type { Role, Title } from '@/lib/roles'
 
 export type MyProfileData = {
@@ -25,6 +26,8 @@ export type MyProfileData = {
     role: Role
     titles: Title[]
     photoUrl: string | null
+    /** Storage path behind photoUrl, for the photo field in Edit */
+    photoPath: string | null
   }
   /** Seasons they've been in the squad for, newest first */
   /** From their first squad season to now; `played` false = not in that season's squad */
@@ -317,7 +320,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
   )
 }
 
-/** What a player may change about themselves: preferred name, date of birth, positions */
+/** What a player may change about themselves: photo, preferred name, date of birth, positions */
 function EditMyProfile({ player, onClose }: { player: MyProfileData['player']; onClose: () => void }) {
   const router = useRouter()
   const [positions, setPositions] = useState<string[]>(player.position ?? [])
@@ -347,6 +350,7 @@ function EditMyProfile({ player, onClose }: { player: MyProfileData['player']; o
     <Modal onClose={onClose} scrollable>
       <h2 className="mb-5 text-lg font-bold text-white">Edit profile</h2>
       <form onSubmit={submit} className="liga-my-profile-edit space-y-4">
+        <PlayerPhotoField playerId={player.id} photoPath={player.photoPath} self />
         <div>
           <label className={labelCls} htmlFor="me-preferred">Preferred name</label>
           <input id="me-preferred" name="preferred_name" defaultValue={player.preferred_name ?? ''} maxLength={40} placeholder="Auto (first name)" className={inputCls} />
@@ -361,7 +365,7 @@ function EditMyProfile({ player, onClose }: { player: MyProfileData['player']; o
           <span className={labelCls}>Positions</span>
           <PositionPicker value={positions} onChange={setPositions} />
         </div>
-        <p className="text-[11px] text-slate-500">Your photo, name, jersey number and email are managed by the coaches.</p>
+        <p className="text-[11px] text-slate-500">Your full name, jersey number and email are managed by the coaches.</p>
         <FormError error={error} />
         <FormButtons isPending={isPending} onCancel={onClose} />
       </form>

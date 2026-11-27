@@ -88,6 +88,7 @@ export async function MyProfileView() {
       role: player.role,
       titles: player.titles ?? [],
       photoUrl: playerPhotoUrl(player.photo_path),
+      photoPath: player.photo_path,
     },
     seasons: bySeason,
     career: rowOf('all'),
