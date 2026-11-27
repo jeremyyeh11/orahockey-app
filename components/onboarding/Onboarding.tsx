@@ -1,40 +1,46 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { unwrap } from '@/lib/action-result'
 import { finishTour, markWhatsNewSeen } from '@/app/dashboard/profile/actions'
 import type { OnboardingState } from '@/lib/onboarding-server'
 import { OPEN_WHATS_NEW_EVENT, START_TOUR_EVENT, tourSteps } from '@/lib/tour'
-import { allReleases, unseenReleases, type Release } from '@/lib/whats-new'
+import { allReleases, unseenReleases, type Release, type WhatsNewViewer } from '@/lib/whats-new'
 import Tour from './Tour'
 import WhatsNew from './WhatsNew'
 
 /**
- * Decides what a player sees on load, rendered once by the app shell:
- *  - a new account (no player_onboarding row): the tour, on Home
- *  - otherwise, releases they haven't seen: the What's new modal
- * Finishing either is saved (finishTour / markWhatsNewSeen) so it shows once.
- * The tour runs on Home, so starting it elsewhere goes there first.
+ * Decides what a player sees, rendered once by the app shell:
+ *  - the tour, on Home, until they finish or skip it once (new and existing
+ *    accounts alike); after that only Profile → Take the tour starts it
+ *  - releases they haven't seen: the What's new modal, after the tour for an
+ *    existing player (a new account's tour counts as seeing them)
+ * Both are saved (finishTour / markWhatsNewSeen) so they show once.
  */
 export default function Onboarding({
   state,
   isAdmin,
+  fineManager,
   homeHref,
 }: {
   state: OnboardingState | null
   isAdmin: boolean
+  /** Finemaster title or superadmin: sees the fine-management What's new items */
+  fineManager: boolean
   homeHref: string
 }) {
+  const viewer: WhatsNewViewer = useMemo(() => ({ isAdmin, fineManager }), [isAdmin, fineManager])
   const router = useRouter()
   const pathname = usePathname()
   const [touring, setTouring] = useState(false)
-  // Tour asked for while not on Home: start it once Home has rendered
-  const [tourPending, setTourPending] = useState(() => !!state?.isNew)
-  const [releases, setReleases] = useState<Release[]>(() =>
-    state && !state.isNew ? unseenReleases(state.seenRelease, isAdmin) : []
-  )
-  const [unseen, setUnseen] = useState(() => releases.length > 0)
+  // Tour due or asked for: it starts once Home has rendered
+  const [tourPending, setTourPending] = useState(() => !!state && !state.tourDone)
+  // The first, saved run (Profile replays aren't saved again)
+  const [firstTour, setFirstTour] = useState(() => !!state && !state.tourDone)
+  const [unseen] = useState<Release[]>(() => (state && !state.isNew ? unseenReleases(state.seenRelease, viewer) : []))
+  const [releases, setReleases] = useState<Release[]>(() => (state?.tourDone ? unseen : []))
+  const [seenSaved, setSeenSaved] = useState(false)
 
   const save = useCallback((fn: () => Promise<unknown>) => {
     // Best effort: if saving fails it simply shows again next time
@@ -68,21 +74,21 @@ export default function Onboarding({
       setReleases([])
       requestTour()
     }
-    const onWhatsNew = () => setReleases(allReleases(isAdmin))
+    const onWhatsNew = () => setReleases(allReleases(viewer))
     window.addEventListener(START_TOUR_EVENT, onTour)
     window.addEventListener(OPEN_WHATS_NEW_EVENT, onWhatsNew)
     return () => {
       window.removeEventListener(START_TOUR_EVENT, onTour)
       window.removeEventListener(OPEN_WHATS_NEW_EVENT, onWhatsNew)
     }
-  }, [requestTour, isAdmin])
+  }, [requestTour, viewer])
 
   if (!state) return null
 
   function closeWhatsNew() {
     setReleases([])
-    if (unseen) {
-      setUnseen(false)
+    if (unseen.length > 0 && !seenSaved) {
+      setSeenSaved(true)
       save(() => unwrap(markWhatsNewSeen()))
     }
   }
@@ -90,22 +96,17 @@ export default function Onboarding({
   function endTour() {
     setTouring(false)
     window.scrollTo({ top: 0 })
-    save(() => unwrap(finishTour()))
+    if (!firstTour) return
+    setFirstTour(false)
+    // A new account has nothing to catch up on; an existing one sees what's new next
+    save(() => unwrap(finishTour(!!state?.isNew)))
+    if (unseen.length > 0 && !seenSaved) setReleases(unseen)
   }
 
   return (
     <>
-      {releases.length > 0 && !touring && (
-        <WhatsNew
-          releases={releases}
-          onClose={closeWhatsNew}
-          onTour={() => {
-            closeWhatsNew()
-            requestTour()
-          }}
-        />
-      )}
-      {touring && <Tour steps={tourSteps(isAdmin)} onDone={endTour} />}
+      {releases.length > 0 && !touring && <WhatsNew releases={releases} onClose={closeWhatsNew} />}
+      {touring && <Tour steps={tourSteps(viewer.isAdmin)} onDone={endTour} />}
     </>
   )
 }

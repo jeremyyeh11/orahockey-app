@@ -6,6 +6,7 @@ import { type SeasonNav } from '@/components/SeasonSwitcher'
 import AdminBadge from '@/components/AdminControlPanel'
 import type { ViewerRole } from '@/lib/supabase/request-user'
 import type { OnboardingState } from '@/lib/onboarding-server'
+import { canManageFines } from '@/lib/roles'
 import {
   HomeIcon,
   UsersIcon,
@@ -40,7 +41,7 @@ export default function AdminShell({
   children: React.ReactNode
 }) {
   return (
-    <AppShell nav={NAV} titleExtra={<span data-tour="admin-badge"><AdminBadge viewer={viewer} debug={debug} /></span>} seasonNav={seasonNav} onboarding={onboarding} isAdmin>
+    <AppShell nav={NAV} titleExtra={<span data-tour="admin-badge"><AdminBadge viewer={viewer} debug={debug} /></span>} seasonNav={seasonNav} onboarding={onboarding} isAdmin fineManager={canManageFines(viewer.role, viewer.titles)}>
       {children}
     </AppShell>
   )

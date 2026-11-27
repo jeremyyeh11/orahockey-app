@@ -11,8 +11,9 @@
 -- players self-edit guard (017/020/043) stays as it is.
 --
 -- Existing accounts are backfilled with a row (tour not done, nothing seen):
--- they get the What's new modal, which offers the tour, instead of the tour
--- itself. Additive: older app code never reads the table. Re-run safe.
+-- they get the tour, then the latest What's new. A new account's tour counts
+-- as seeing every current release. Additive: older app code never reads the
+-- table. Re-run safe.
 -- =============================================================
 
 create table if not exists public.player_onboarding (
@@ -37,7 +38,7 @@ create policy "Players update own onboarding" on public.player_onboarding
   for update using (player_id = (select id from public.players where auth_user_id = auth.uid()))
   with check (player_id = (select id from public.players where auth_user_id = auth.uid()));
 
--- Accounts that exist at launch: What's new (with "Take the tour"), not the tour.
+-- Accounts that exist at launch: the tour, then What's new.
 -- Only on the first run (empty table), so a re-run never takes the tour from
 -- accounts made since.
 insert into public.player_onboarding (player_id)

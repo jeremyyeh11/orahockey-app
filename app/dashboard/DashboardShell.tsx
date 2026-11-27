@@ -9,7 +9,7 @@ import { startNavigationProgress } from '@/components/NavigationProgress'
 import { type NavItem } from '@/components/BottomNav'
 import { type SeasonNav } from '@/components/SeasonSwitcher'
 import type { OnboardingState } from '@/lib/onboarding-server'
-import { isAdminRole } from '@/lib/roles'
+import { canManageFines, isAdminRole } from '@/lib/roles'
 import { HomeIcon, UsersIcon, CalendarIcon, PollIcon, ReceiptIcon, UserIcon } from '@/components/icons'
 
 const NAV: NavItem[] = [
@@ -64,6 +64,7 @@ export default function DashboardShell({
       seasonNav={seasonNav}
       onboarding={onboarding}
       isAdmin={isAdminRole(viewer.role)}
+      fineManager={canManageFines(viewer.role, viewer.titles)}
     >
       {children}
     </AppShell>

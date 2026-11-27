@@ -8,12 +8,10 @@ export type WhatsNewItem = {
   title: string
   /** One or two short sentences: what it is and how to use it */
   body: string
-  /** /whats-new/<release id>/<name>.png — a 390×844 phone screenshot taken at 2x */
-  image?: string
-  /** Only admins see it (scheduling, squad edits, ...) */
-  adminOnly?: boolean
-  /** A button under the text that starts the tour */
-  action?: 'tour'
+  /** /whats-new/<release id>/<name>.png — a 390px-wide phone screenshot taken at 2x */
+  image: string
+  /** Only these viewers see it: admins, or whoever manages fines (Finemaster title / superadmin) */
+  only?: 'admin' | 'fines'
 }
 
 export type Release = {
@@ -24,21 +22,30 @@ export type Release = {
   items: WhatsNewItem[]
 }
 
+/** Who's looking: decides which `only` items they get */
+export type WhatsNewViewer = { isAdmin: boolean; fineManager: boolean }
+
 export const RELEASES: Release[] = [
   {
-    id: '2026-11-tour',
+    id: '2026-11-fines',
     date: '2026-11-27',
     items: [
       {
-        title: 'Take the tour',
-        body: 'A one-minute walk through the app: where to reply, vote and see your stats. Tap anywhere to move on.',
-        image: '/whats-new/2026-11-tour/tour.png',
-        action: 'tour',
+        title: 'What you owe, all months',
+        body: 'The Fines card now shows All months: everything still owed. Copy all outstanding for WhatsApp copies each player’s total.',
+        image: '/whats-new/2026-11-fines/all-months.png',
       },
       {
-        title: "What's new, after every update",
-        body: "New features show up here the first time you open the app. See them again any time: Profile → What's new.",
-        image: '/whats-new/2026-11-tour/profile.png',
+        title: 'Add a fine by hand',
+        body: '+ Fine → pick the player and Date incurred (backdate if needed), then tap a reason like Late arrival or No-show. Edit the text to fit.',
+        image: '/whats-new/2026-11-fines/add-fine.png',
+        only: 'fines',
+      },
+      {
+        title: 'Delete a mistake',
+        body: 'Delete on a fine removes it for everyone, as if never charged. To excuse a fine but keep it on record, use Waive.',
+        image: '/whats-new/2026-11-fines/delete.png',
+        only: 'fines',
       },
     ],
   },
@@ -50,21 +57,23 @@ export const LATEST_RELEASE_ID: string | null = RELEASES[0]?.id ?? null
 const MAX_RELEASES = 3
 
 /**
- * The releases this player hasn't seen yet, newest first, with admin-only
- * items dropped for players (and releases left empty by that dropped too).
+ * The releases this player hasn't seen yet, newest first, without items meant
+ * for others (and releases left empty by that).
  * `seen` null (never seen any) or an id no longer listed: just the latest.
  */
-export function unseenReleases(seen: string | null, isAdmin: boolean): Release[] {
+export function unseenReleases(seen: string | null, viewer: WhatsNewViewer): Release[] {
   const at = seen ? RELEASES.findIndex((r) => r.id === seen) : -1
   const fresh = at === -1 ? RELEASES.slice(0, 1) : RELEASES.slice(0, at)
-  return fresh.slice(0, MAX_RELEASES).map((r) => forViewer(r, isAdmin)).filter((r) => r.items.length > 0)
+  return fresh.slice(0, MAX_RELEASES).map((r) => forViewer(r, viewer)).filter((r) => r.items.length > 0)
 }
 
-/** Every release, newest first, for Profile → What's new */
-export function allReleases(isAdmin: boolean): Release[] {
-  return RELEASES.slice(0, MAX_RELEASES).map((r) => forViewer(r, isAdmin)).filter((r) => r.items.length > 0)
+/** The recent releases, newest first, for Profile → What's new */
+export function allReleases(viewer: WhatsNewViewer): Release[] {
+  return RELEASES.slice(0, MAX_RELEASES).map((r) => forViewer(r, viewer)).filter((r) => r.items.length > 0)
 }
 
-function forViewer(release: Release, isAdmin: boolean): Release {
-  return { ...release, items: release.items.filter((i) => isAdmin || !i.adminOnly) }
+function forViewer(release: Release, viewer: WhatsNewViewer): Release {
+  const sees = (item: WhatsNewItem) =>
+    !item.only || (item.only === 'admin' ? viewer.isAdmin : viewer.fineManager)
+  return { ...release, items: release.items.filter(sees) }
 }

@@ -34,6 +34,7 @@ export default function AppShell({
   seasonNav,
   onboarding,
   isAdmin = false,
+  fineManager = false,
   children,
 }: {
   nav: NavItem[]
@@ -44,6 +45,8 @@ export default function AppShell({
   onboarding?: OnboardingState | null
   /** Admin tour steps and admin-only What's new items */
   isAdmin?: boolean
+  /** Finemaster title or superadmin: fine-management What's new items */
+  fineManager?: boolean
   children: React.ReactNode
 }) {
   const router = useRouter()
@@ -101,7 +104,7 @@ export default function AppShell({
 
       <NavigationProgress />
 
-      <Onboarding state={onboarding ?? null} isAdmin={isAdmin} homeHref={nav[0].href} />
+      <Onboarding state={onboarding ?? null} isAdmin={isAdmin} fineManager={fineManager} homeHref={nav[0].href} />
     </div>
   )
 }

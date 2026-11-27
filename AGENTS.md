@@ -130,11 +130,12 @@ Home's attendance %/next up/day banner filter `status = 'scheduled'` (`lib/event
 before `cancelled_at` stay; none are issued after it (`computeFines`, `FineEntry.cancelledAt`).
 
 Tour and What's new (045): `player_onboarding` (one row per account, own row only: `tour_done_at`, `seen_release`).
-No row = a new account → the spotlight tour runs on Home (`lib/tour.ts`; targets are `data-tour="…"` attributes, a
-missing target's step is skipped). Otherwise releases in `lib/whats-new.ts` newer than `seen_release` open the What's
-new modal (admin-only items hidden from players). Finishing the tour also marks the latest release seen
-(`finishTour`, `markWhatsNewSeen` in `app/dashboard/profile/actions.ts`). Accounts that existed at launch were
-backfilled with a row, so they got What's new with a "Take the tour" button. Profile has Replay tour / What's new.
+Every player, new or existing, gets the spotlight tour on Home until they finish or skip it once (`tour_done_at`;
+`lib/tour.ts`, targets are `data-tour="…"` attributes, a missing target's step is skipped); after that only Profile →
+Take the tour starts it. Releases in `lib/whats-new.ts` newer than `seen_release` open the What's new modal, right
+after the tour for an existing player; items with `only: 'admin'` / `only: 'fines'` go to admins / fine managers
+only. A new account (no row) has its tour count as seeing every current release (`finishTour(markSeen)`,
+`markWhatsNewSeen` in `app/dashboard/profile/actions.ts`). Profile has Take the tour / What's new.
 
 All tables have RLS enabled. `is_admin()` SQL function used in policies.
 
@@ -219,7 +220,8 @@ gh pr create --fill
 **Every PR that ships a major, user-visible feature adds a What's new release** in the same PR:
 1. Add a release at the top of `RELEASES` in `lib/whats-new.ts`: `id` `YYYY-MM-short-name` (never renamed), `date`,
    1–5 items. Each item: a short `title`, a `body` of one or two sentences saying what it is and how to use it
-   (≤ 160 chars, plain words, e.g. "Tap a fine → Delete"), an `image`, `adminOnly: true` for admin-only features.
+   (≤ 160 chars, plain words, e.g. "+ Fine → pick the player…"), an `image`, and `only: 'admin'` (admins) or
+   `only: 'fines'` (Finemaster title / superadmin) for features only they can use.
    Small fixes and tweaks don't get one.
 2. Take the screenshots: add the release's shots to `SHOTS` in `scripts/whats-new-shots.cjs` (page, setup steps,
    selectors to clip to), run `npm run dev`, then

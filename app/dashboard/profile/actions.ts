@@ -58,16 +58,17 @@ export const setMyPhoto = action(async (playerId: string, path: string | null) =
 })
 
 /**
- * The first-time tour finished or skipped (player_onboarding, 045). Marks every
- * current What's new release as seen too: a new player doesn't need both.
+ * The tour finished or skipped for the first time (player_onboarding, 045): it
+ * won't start by itself again. `markSeen` for a new account: every current
+ * What's new release counts as seen too, since there's nothing to catch up on.
  */
-export const finishTour = action(async () => {
+export const finishTour = action(async (markSeen: boolean) => {
   const supabase = createClient()
   const playerId = await requirePlayerId(supabase)
   const now = new Date().toISOString()
-  const { error } = await supabase
-    .from('player_onboarding')
-    .upsert({ player_id: playerId, tour_done_at: now, seen_release: LATEST_RELEASE_ID, updated_at: now }, { onConflict: 'player_id' })
+  const row: Record<string, string | null> = { player_id: playerId, tour_done_at: now, updated_at: now }
+  if (markSeen) row.seen_release = LATEST_RELEASE_ID
+  const { error } = await supabase.from('player_onboarding').upsert(row, { onConflict: 'player_id' })
   if (error) throw new Error(error.message)
 })
 

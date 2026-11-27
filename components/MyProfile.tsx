@@ -189,7 +189,7 @@ export default function MyProfile({ data }: { data: MyProfileData }) {
                   onClick={() => window.dispatchEvent(new Event(START_TOUR_EVENT))}
                   className="liga-button liga-button-secondary rounded-2xl border px-3 py-3 text-sm font-semibold text-slate-300 transition hover:text-white"
                 >
-                  Replay tour
+                  Take the tour
                 </button>
                 <button
                   type="button"

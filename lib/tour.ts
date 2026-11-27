@@ -4,7 +4,7 @@
 // seasons yet, say) is skipped, and a step without one is a centred card.
 // A plain module: client components import it.
 
-/** Profile's "Replay tour" / "What's new" buttons dispatch these; components/onboarding/Onboarding.tsx listens */
+/** Profile's "Take the tour" / "What's new" buttons dispatch these; components/onboarding/Onboarding.tsx listens */
 export const START_TOUR_EVENT = 'ora:start-tour'
 export const OPEN_WHATS_NEW_EVENT = 'ora:whats-new'
 
@@ -64,7 +64,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: 'nav-profile',
     title: 'Profile',
-    body: "Your stats by season. Edit your name, positions and photo. Replay this tour or see What's new here.",
+    body: "Your stats by season. Edit your name, positions and photo. Take this tour again or see What's new here.",
   },
   {
     title: "You're all set",

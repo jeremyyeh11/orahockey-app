@@ -22,23 +22,46 @@ const MARGIN = 16
  * prepare: optional steps on the page before the shot
  * clip:    selectors; the shot is the band of the screen that covers them all
  */
+/** Fines tab: step back month by month to the latest one with an unpaid fine */
+async function toMonthWithUnpaidFines(page) {
+  for (let i = 0; i < 12; i++) {
+    if ((await page.locator('.liga-fine:has(button:has-text("Paid"))').count()) > 0) return
+    await page.getByRole('link', { name: '← Prev' }).click()
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(500)
+  }
+  throw new Error('No month with unpaid fines in the last year')
+}
+
 const SHOTS = {
-  '2026-11-tour': [
+  // Sign in as a Finemaster (or the superadmin) for the + Fine and Delete shots.
+  // The account should have the tour done and this release seen, so nothing covers the page.
+  '2026-11-fines': [
     {
-      name: 'tour',
-      path: '/dashboard',
-      async prepare(page) {
-        // A new account: the tour opens by itself. Step 2 spotlights Next up.
-        await page.waitForSelector('.liga-tour-card')
-        await page.getByRole('button', { name: 'Next' }).click()
-        await page.waitForTimeout(600)
-      },
-      clip: ['.liga-tour-spotlight', '.liga-tour-card'],
+      name: 'all-months',
+      path: '/dashboard/fines',
+      prepare: toMonthWithUnpaidFines,
+      clip: ['.liga-fines-status', 'button:has-text("Copy all outstanding")'],
     },
     {
-      name: 'profile',
-      path: '/dashboard/profile',
-      clip: ['button:has-text("Edit profile")', '.liga-signout'],
+      name: 'add-fine',
+      path: '/dashboard/fines',
+      async prepare(page) {
+        await page.getByRole('button', { name: '+ Fine' }).click()
+        const select = page.locator('#fine-player')
+        const firstPlayer = await select.locator('option:not([value=""])').first().getAttribute('value')
+        await select.selectOption(firstPlayer)
+        await page.locator('.liga-fine-presets button', { hasText: 'Late arrival' }).click()
+        await page.fill('#fine-amount', '500')
+        await page.waitForTimeout(300)
+      },
+      clip: ['.liga-modal-panel'],
+    },
+    {
+      name: 'delete',
+      path: '/dashboard/fines',
+      prepare: toMonthWithUnpaidFines,
+      clip: ['.liga-fines-player:has(button:has-text("Paid"))'],
     },
   ],
 }
@@ -59,7 +82,14 @@ async function main() {
   try {
     for (const shot of shots) {
       // A fresh sign-in per shot, so one shot's state never leaks into the next
-      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+        locale: 'en-GB',
+        timezoneId: 'Asia/Singapore',
+      })
       const page = await context.newPage()
       await page.goto(`${BASE_URL}/login`)
       await page.fill('input[type="email"]', SHOT_EMAIL)

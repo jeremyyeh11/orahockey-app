@@ -35,6 +35,7 @@ test("What's new: every release is well formed and its screenshots exist", () =>
       assert.ok(item.title.length > 0 && item.title.length <= 40, `${r.id}: "${item.title}" title ≤ 40 chars`)
       assert.ok(item.body.length > 0 && item.body.length <= 160, `${r.id}: "${item.title}" body ≤ 160 chars (keep it short)`)
       assert.ok(item.image, `${r.id}: "${item.title}" has a screenshot`)
+      assert.ok(item.only === undefined || ['admin', 'fines'].includes(item.only), `${r.id}: "${item.title}" only is admin or fines`)
       assert.ok(item.image.startsWith(`/whats-new/${r.id}/`), `${item.image} lives in public/whats-new/${r.id}/`)
       assert.ok(fs.existsSync(path.join(root, 'public', item.image)), `${item.image} exists`)
     }
@@ -44,17 +45,23 @@ test("What's new: every release is well formed and its screenshots exist", () =>
 test("What's new: players see only releases they haven't, without admin-only items", () => {
   const wn = loadTs('lib/whats-new.ts')
   wn.RELEASES.splice(0, wn.RELEASES.length,
-    { id: '2027-03-c', date: '2027-03-01', items: [{ title: 'C', body: 'c', adminOnly: true }] },
-    { id: '2027-02-b', date: '2027-02-01', items: [{ title: 'B', body: 'b' }, { title: 'B admin', body: 'b', adminOnly: true }] },
+    { id: '2027-03-c', date: '2027-03-01', items: [{ title: 'C', body: 'c', only: 'admin' }] },
+    { id: '2027-02-b', date: '2027-02-01', items: [{ title: 'B', body: 'b' }, { title: 'B fines', body: 'b', only: 'fines' }] },
     { id: '2027-01-a', date: '2027-01-01', items: [{ title: 'A', body: 'a' }] },
   )
+  const admin = { isAdmin: true, fineManager: false }
+  const player = { isAdmin: false, fineManager: false }
+  const finemaster = { isAdmin: false, fineManager: true }
   const ids = (rs) => rs.map((r) => r.id)
-  assert.deepEqual(ids(wn.unseenReleases('2027-01-a', true)), ['2027-03-c', '2027-02-b'])
-  assert.deepEqual(ids(wn.unseenReleases('2027-01-a', false)), ['2027-02-b'], 'a release with only admin items is dropped for players')
-  assert.deepEqual(wn.unseenReleases('2027-01-a', false)[0].items.map((i) => i.title), ['B'])
-  assert.deepEqual(ids(wn.unseenReleases('2027-03-c', true)), [], 'up to date')
-  assert.deepEqual(ids(wn.unseenReleases(null, true)), ['2027-03-c'], 'never seen any: just the latest')
-  assert.deepEqual(ids(wn.unseenReleases('gone', true)), ['2027-03-c'], 'unknown id: just the latest')
+  const titles = (rs) => rs.flatMap((r) => r.items.map((i) => i.title))
+  assert.deepEqual(ids(wn.unseenReleases('2027-01-a', admin)), ['2027-03-c', '2027-02-b'])
+  assert.deepEqual(ids(wn.unseenReleases('2027-01-a', player)), ['2027-02-b'], 'a release with only admin items is dropped for players')
+  assert.deepEqual(titles(wn.unseenReleases('2027-01-a', player)), ['B'])
+  assert.deepEqual(titles(wn.unseenReleases('2027-01-a', admin)), ['C', 'B'], 'admins without the Finemaster title skip fines items')
+  assert.deepEqual(titles(wn.unseenReleases('2027-01-a', finemaster)), ['B', 'B fines'], 'a Finemaster player gets fines items')
+  assert.deepEqual(ids(wn.unseenReleases('2027-03-c', admin)), [], 'up to date')
+  assert.deepEqual(ids(wn.unseenReleases(null, admin)), ['2027-03-c'], 'never seen any: just the latest')
+  assert.deepEqual(ids(wn.unseenReleases('gone', admin)), ['2027-03-c'], 'unknown id: just the latest')
 })
 
 test('tour: every target is tagged in the app, admin steps only for admins', () => {
@@ -89,15 +96,27 @@ test('onboarding state: own row only, saved by player actions, loaded by both la
 
   const actions = read('app/dashboard/profile/actions.ts')
   for (const name of ['finishTour', 'markWhatsNewSeen']) {
-    assert.match(actions, new RegExp(String.raw`export const ${name} = action\(async \(\) => \{\s+const supabase = createClient\(\)\s+const playerId = await requirePlayerId\(supabase\)`), `${name} saves for the signed-in player`)
+    assert.match(actions, new RegExp(String.raw`export const ${name} = action\(async \([^)]*\) => \{\s+const supabase = createClient\(\)\s+const playerId = await requirePlayerId\(supabase\)`), `${name} saves for the signed-in player`)
   }
   assert.match(actions, /seen_release: LATEST_RELEASE_ID/, 'the server picks the release, not the browser')
 
   for (const area of ['admin', 'dashboard']) {
     assert.match(read(`app/${area}/layout.tsx`), /getOnboarding\(\)[\s\S]*onboarding=\{onboarding\}/)
   }
-  assert.match(read('components/AppShell.tsx'), /<Onboarding state=\{onboarding \?\? null\} isAdmin=\{isAdmin\} homeHref=\{nav\[0\]\.href\} \/>/)
+  assert.match(read('components/AppShell.tsx'), /<Onboarding state=\{onboarding \?\? null\} isAdmin=\{isAdmin\} fineManager=\{fineManager\} homeHref=\{nav\[0\]\.href\} \/>/)
+  for (const shell of ['app/admin/AdminShell.tsx', 'app/dashboard/DashboardShell.tsx']) {
+    assert.match(read(shell), /fineManager=\{canManageFines\(viewer\.role, viewer\.titles\)\}/, `${shell}: fines items follow can_manage_fines()`)
+  }
   const profile = read('components/MyProfile.tsx')
-  assert.match(profile, /new Event\(START_TOUR_EVENT\)[\s\S]*Replay tour/)
+  assert.match(profile, /new Event\(START_TOUR_EVENT\)[\s\S]*Take the tour/)
   assert.match(profile, /new Event\(OPEN_WHATS_NEW_EVENT\)[\s\S]*What&apos;s new/)
+})
+
+test('everyone gets the tour until they finish it once; existing players see What’s new after it', () => {
+  const src = read('components/onboarding/Onboarding.tsx')
+  assert.match(src, /useState\(\(\) => !!state && !state\.tourDone\)/, 'the tour is due whenever it was never finished, new or existing account')
+  assert.match(src, /finishTour\(!!state\?\.isNew\)/, 'only a new account’s tour marks the releases seen')
+  assert.match(src, /if \(!firstTour\) return/, 'a replay from Profile saves nothing')
+  assert.match(src, /state\?\.tourDone \? unseen : \[\]/, 'What’s new waits for the tour')
+  assert.doesNotMatch(read('lib/whats-new.ts'), /action\?: 'tour'/, 'What’s new no longer advertises the tour')
 })
