@@ -600,6 +600,7 @@ test('admin player edit: prefilled form, season-aware jersey, locked email/role 
     'next/navigation': { useRouter: () => ({ refresh() {}, push() {}, back() {} }), usePathname: () => '/admin/team/p' },
     './actions': { updatePlayer: async (...args) => saved.push(args) },
     '@/app/admin/team/actions': { setPlayerPhoto: async () => {} },
+    '@/app/dashboard/profile/actions': { setMyPhoto: async () => {} },
     '@/lib/supabase/client': { createClient: () => ({}) },
   })
   const { default: PlayerEditModal } = boundaryLoad('app/admin/team/PlayerEditModal.tsx')
@@ -1122,4 +1123,18 @@ test('role tags: a coloured chip per title, grey for untitled Admins, a shimmeri
   const actions = read('app/admin/team/actions.ts')
   assert.match(actions, /if \(!data\.titles\.every\(\(t\) => TITLES\.includes\(t\)\)\) throw new Error\('Unknown title\.'\)/)
   assert.match(actions, /const titles = TITLES\.filter\(\(t\) => data\.titles\.includes\(t\)\)/)
+})
+
+test('players upload their own photo from Profile → Edit; only into their own folder', () => {
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  assert.match(read('components/MyProfile.tsx'), /<PlayerPhotoField playerId=\{player\.id\} photoPath=\{player\.photoPath\} self \/>/)
+  assert.match(read('components/PlayerPhotoField.tsx'), /const save = self \? setMyPhoto : setPlayerPhoto/)
+  const profileActions = read('app/dashboard/profile/actions.ts')
+  assert.match(profileActions, /export const setMyPhoto = action[\s\S]*?eq\('auth_user_id', user\.id\)[\s\S]*?if \(me\.id !== playerId\) throw/, 'a player can only set their own photo')
+  assert.match(read('app/admin/team/actions.ts'), /export const setPlayerPhoto = action[\s\S]*?requireAdmin\(supabase\)[\s\S]*?savePlayerPhoto/, 'admins still set any player\'s photo')
+  const migration = read('supabase/migrations/043_player_photo_self_upload.sql')
+  assert.match(migration, /check \(photo_path is null or split_part\(photo_path, '\/', 1\) = id::text\)/)
+  assert.match(migration, /self_editable constant text\[\] := array\['preferred_name', 'date_of_birth', 'position', 'photo_path'\]/)
+  assert.match(migration, /"Players upload own photo"[\s\S]*?for insert[\s\S]*?my_player_folder\(\)/)
+  assert.match(migration, /"See player photo objects"[\s\S]*?for select/, 'remove() needs select, or replaced photos are left behind')
 })

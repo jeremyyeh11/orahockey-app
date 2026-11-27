@@ -1,5 +1,6 @@
 // Player photos live in the public `player-photos` Storage bucket (020); a
-// player row stores the object's path. Uploaded by admins only.
+// player row stores the object's path (`{player id}/{timestamp}.webp`).
+// Admins upload anyone's; players upload their own (043).
 
 export const PHOTO_BUCKET = 'player-photos'
 

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { action, revalidateTabs } from '@/lib/action-helpers'
 import { POSITIONS } from '@/lib/constants'
+import { savePlayerPhoto } from '@/lib/photos-server'
 
 /**
  * A player editing their own profile: preferred name, date of birth and
@@ -34,4 +35,23 @@ export const updateMyProfile = action(async (data: { preferred_name: string | nu
   if (!updated?.length) throw new Error('No player record is linked to this account.')
 
   revalidateTabs('profile', 'team', 'home')
+})
+
+/**
+ * A player setting (or clearing) their own photo: `path` is the object they
+ * just uploaded to their folder in the player-photos bucket (043 lets players
+ * write only there). The previous photo's object is deleted.
+ */
+export const setMyPhoto = action(async (playerId: string, path: string | null) => {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not signed in')
+
+  const { data: me } = await supabase.from('players').select('id').eq('auth_user_id', user.id).maybeSingle()
+  if (!me) throw new Error('No player record is linked to this account.')
+  if (me.id !== playerId) throw new Error('You can only change your own photo.')
+
+  await savePlayerPhoto(supabase, me.id, path)
 })
