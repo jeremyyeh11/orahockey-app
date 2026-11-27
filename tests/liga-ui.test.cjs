@@ -340,17 +340,17 @@ test('anyone can copy who still needs to reply (event) or vote (open poll) to ch
   assert.match(detail, /\{ label: NO_REPLY, players: noResponse\.map\(\(p\) => \(\{ id: p\.id, name: preferredName\(p\) \}\)\) \}/)
   assert.match(
     detail,
-    /\{!readOnly && !off && \(\s*<div className="mb-4">\s*\{\/\*[^*]*\*\/\}\s*\{noReply\.length > 0 && \(\s*<CopyNamesButton\s+label="Copy who hasn't responded for WhatsApp"\s+text=\{chaseText\(`Still need replies for \$\{fmtDate\(dateStr\)\} · \$\{title\}`, noReply\.map\(\(p\) => p\.name\)\)\}[\s\S]*?Your response/
+    /\{!readOnly && !off && \(\s*<div className="mb-4">\s*\{\/\*[^*]*\*\/\}\s*\{noReply\.length > 0 && \(\s*<CopyNamesButton\s+label="Hasn't responded"\s+title="Copy who hasn't responded, for WhatsApp"\s+text=\{chaseText\(`Still need replies for \$\{fmtDate\(dateStr\)\} · \$\{title\}`, noReply\.map\(\(p\) => p\.name\)\)\}[\s\S]*?Your response/
   )
   // Polls: the card's top row, left of Active — open polls only
   const polls = read('components/PollsClient.tsx')
   assert.match(polls, /const chase = open && notVoted\.length > 0 \? chaseText\(`Still need votes for "\$\{poll\.question\}"`, notVoted\) : null/)
-  assert.match(polls, /\{chase && <CopyNamesButton label="Copy who hasn't voted" text=\{chase\} [^>]*\/>\}\s*\{admin && poll\.is_active && \(\s*<span className="liga-status-label/)
-  // Labelled like the Fines tab's copy button; "Copied" once copied
+  assert.match(polls, /\{chase && <CopyNamesButton label="Hasn't voted" title="Copy who hasn't voted, for WhatsApp" text=\{chase\} \/>\}\s*\{admin && poll\.is_active && \(\s*<span className="liga-status-label/)
+  // Copy icon + short label, styled like the Fines tab's copy button
   const button = read('components/CopyNamesButton.tsx')
   assert.match(button, /navigator\.clipboard\.writeText\(text\)/)
-  assert.match(button, /className=\{`liga-button liga-button-secondary liga-copy-names rounded-lg border text-xs font-semibold/)
-  assert.match(button, /\{copied \? 'Copied' : label\}/)
+  assert.match(button, /className=\{`liga-button liga-button-secondary liga-copy-names inline-flex items-center gap-1\.5 rounded-lg border px-3 py-1\.5 text-xs font-semibold/)
+  assert.match(button, /\{copied \? <CheckIcon [^>]*\/> : <CopyIcon [^>]*\/>\}\s*\{copied \? 'Copied' : label\}/, 'copy icon + label; tick + Copied once copied')
 })
 
 test('admins cancel or postpone events instead of deleting them; those count for nothing', () => {

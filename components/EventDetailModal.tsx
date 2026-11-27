@@ -558,9 +558,10 @@ export function EventDetailModal({
               {/* Copy who still needs to reply, to chase them in a group chat — everyone, while replies are open */}
               {noReply.length > 0 && (
                 <CopyNamesButton
-                  label="Copy who hasn't responded for WhatsApp"
+                  label="Hasn't responded"
+                  title="Copy who hasn't responded, for WhatsApp"
                   text={chaseText(`Still need replies for ${fmtDate(dateStr)} · ${title}`, noReply.map((p) => p.name))}
-                  className="mb-3 w-full"
+                  className="mb-3"
                 />
               )}
               {eventRespondBy(currentItem) &&

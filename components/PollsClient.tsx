@@ -268,7 +268,7 @@ function PollCard({
         {(chase || (admin && poll.is_active)) && (
           <div className="flex shrink-0 items-center gap-3">
             {/* Copy who still needs to vote, to chase them in a group chat — everyone, open polls only */}
-            {chase && <CopyNamesButton label="Copy who hasn't voted" text={chase} className="px-3 py-1.5" />}
+            {chase && <CopyNamesButton label="Hasn't voted" title="Copy who hasn't voted, for WhatsApp" text={chase} />}
             {admin && poll.is_active && (
               <span className="liga-status-label text-[10px] font-semibold uppercase text-green-300">
                 Active
