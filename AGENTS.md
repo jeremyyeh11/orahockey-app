@@ -57,7 +57,7 @@ lib/
   format.ts                 Dates in Singapore time
   preview.ts                getNow(): honours the admin preview date
 middleware.ts               Auth guard, role routing, forwards the verified user on request headers
-supabase/migrations/        001–042 — apply in filename order (prefixes 005 and 009 are each used twice)
+supabase/migrations/        001–044 — apply in filename order (prefixes 005 and 009 are each used twice)
 supabase/seed/              Historical caps 2016–2025 and the 2026 season
 tests/                      node:test suites (see Tests)
 docs/                       User and admin manuals
@@ -67,7 +67,7 @@ docs/                       User and admin manuals
 `teams`, `players`, `player_whitelist`, `seasons`, `season_players`, `games`, `training_sessions`,
 `team_events`, `opponents`, `attendance`, `attendance_log`, `polls`, `poll_options`, `poll_votes`,
 `player_stats`, `potm`, `potm_polls`, `potm_ballots`, `potm_votes`, `match_team_lists`, `match_goals`,
-`match_cards`, `fine_waivers`, `fine_payments`, `manual_fines`
+`match_cards`, `fine_waivers`, `fine_payments`, `manual_fines`, `fine_deletions`
 
 Seasons (`011_seasons.sql`): `seasons` (label, dates, one `is_current`, `locked`) scopes
 `games`/`training_sessions` via `season_id`; `season_players` is each season's squad with that
@@ -98,7 +98,7 @@ from definer functions; the poll UI and `loadFines` use them, never raw `poll_vo
 
 Fines (018–019) are derived, never stored (`lib/fines.ts` `computeFines`): from each entry's
 `respond_by` + `fines_enabled`, the RSVP history (`attendance_log`), poll votes and waivers
-(`fine_waivers`); `fine_payments` marks a fine paid. The one stored kind: fines the Finemaster adds by hand (`manual_fines`, 042 — player, reason, `amount_cents`; "Add fine" on the Fines tab, `addFine`), waived/paid with `item_type`/`reason` `manual`. Amounts are per fine (`Fine.amount`). Expected to reply: every active squad member for games,
+(`fine_waivers`); `fine_payments` marks a fine paid. The one stored kind: fines the Finemaster adds by hand (`manual_fines`, 042 — player, reason, `amount_cents`, `fined_at` = the date incurred, backdatable via `finedAtFromDate`; "Add fine" on the Fines tab, `addFine`), waived/paid with `item_type`/`reason` `manual`. Deleting a fine charged by mistake (`deleteFine`, unlike waiving it's gone for everyone): a manual fine's row is deleted; a derived one is recorded in `fine_deletions` (044) and `computeFines` skips it (it still blocks a second fine on that entry). The Fines tab shows one month, but its card's "All months" total and the WhatsApp copy cover everything still owed. Amounts are per fine (`Fine.amount`). Expected to reply: every active squad member for games,
 trainings and team events (app account or not — admins add sheet replies, before the deadline or they count late);
 polls only expect players with an account. Waiving and paying are Finemaster-title/superadmin only
 (`can_manage_fines()`, 035; actions in `app/dashboard/fines/actions.ts` start with `requireFineManager()`). At most one fine per player per entry. RSVP
@@ -164,7 +164,7 @@ gh pr create --fill
 
 ## Current state
 - Live on Vercel; auto-deploys from `main`
-- Schema: migrations 001–042 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
+- Schema: migrations 001–044 applied. Jeremy is the superadmin. The live DB has drifted from `001_initial_schema.sql` —
   `players.position` is `text[]` (FWD/MID/DEF/GK), `players.date_of_birth` added,
   `player_stats` has goals_fg/goals_pc/goals_ps (field goal / penalty corner / penalty stroke)
   with `goals` as a generated total, plus assists. Appearances (APP) are derived from attendance
@@ -173,7 +173,7 @@ gh pr create --fill
   column is legacy and no longer read
 - Both areas have the same six tabs: Home, Schedule (games, trainings, team events + RSVP),
   Polls (incl. POTM voting), Squad (+ player profiles), Fines, Profile. Admin-only: adding/editing
-  players, invites, scheduling, team lists, poll management. Superadmin-only: closing a season. Finemaster title/superadmin-only: fine waivers/payments
+  players, invites, scheduling, team lists, poll management. Superadmin-only: closing a season. Finemaster title/superadmin-only: adding, waiving, paying and deleting fines
 - Login: dev shortcut admin/admin maps to `NEXT_PUBLIC_DEV_LOGIN_*` in `.env.local`, dev builds only
 - Seed data: historical caps 2016–2025 (2020/2021 cancelled) and the 2026 season, using the real roster
 - Debug mode (superadmin only, `isDebugRole()`): double-tap the ADMIN badge in the top bar — switch to

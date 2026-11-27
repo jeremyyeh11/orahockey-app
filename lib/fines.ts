@@ -116,9 +116,26 @@ export type PollVote = { poll_id: string; player_id: string; voted_at: string }
 
 export type FineWaiver = { player_id: string; item_type: FineItemKind; item_id: string; reason: FineReason; note?: string | null }
 export type FinePayment = { player_id: string; item_type: FineItemKind; item_id: string; reason: FineReason; paid_at: string }
+/** A derived fine deleted as charged by mistake (fine_deletions, 044) — never listed again */
+export type FineDeletion = { player_id: string; item_type: FineKind; item_id: string; reason: FineReason }
 
-/** One manual_fines row: added by the finemaster with its own reason and amount */
+/** One manual_fines row: added by the finemaster with its own reason, amount and the date it was incurred */
 export type ManualFine = { id: string; player_id: string; reason: string; amount_cents: number; fined_at: string }
+
+/**
+ * When a fine added by hand was incurred, from the Add fine date ('YYYY-MM-DD',
+ * Singapore): null for today (stamped now), otherwise noon that day. Backdating
+ * only — a future date is rejected.
+ */
+export function finedAtFromDate(ymd: string, now: Date): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd) || Number.isNaN(Date.parse(`${ymd}T00:00:00Z`))) throw new Error('Pick the date the fine was incurred.')
+  const today = sgYmd(now.toISOString())
+  if (ymd > today) throw new Error("The date can't be in the future.")
+  return ymd === today ? null : new Date(`${ymd}T12:00:00+08:00`).toISOString()
+}
+
+/** Today's 'YYYY-MM-DD' in Singapore — the Add fine date's default and latest */
+export const sgToday = (now: Date) => sgYmd(now.toISOString())
 
 export type Fine = {
   playerId: string
@@ -171,7 +188,9 @@ export const fineKey = (f: { playerId: string; kind: FineItemKind; itemId: strin
  *    first such change). The coaching committee can't be seen from here, so admins
  *    waive the ones who told them.
  * Entries with fines off or no respond-by never fine. Fines added by hand
- * (`manual`) are passed through with their own reason and amount. A cancelled / postponed
+ * (`manual`) are passed through with their own reason and amount. Deleted fines
+ * (`deletions`, 044) are left out; they still count as issued, so a deleted
+ * late reply doesn't turn into a late change. A cancelled / postponed
  * entry keeps the fines issued before `cancelledAt` and issues none after it.
  * `authIdOf` maps a player
  * to their auth user, so changes someone else made aren't held against them.
@@ -183,6 +202,7 @@ export function computeFines({
   waivers,
   payments = [],
   manual = [],
+  deletions = [],
   authIdOf,
   now,
 }: {
@@ -192,6 +212,7 @@ export function computeFines({
   waivers: FineWaiver[]
   payments?: FinePayment[]
   manual?: ManualFine[]
+  deletions?: FineDeletion[]
   authIdOf: (playerId: string) => string | null
   now: Date
 }): Fine[] {
@@ -199,6 +220,7 @@ export function computeFines({
     fineKey({ playerId: r.player_id, kind: r.item_type, itemId: r.item_id, reason: r.reason })
   const waived = new Map(waivers.map((w) => [keyOf(w), w.note ?? null]))
   const paid = new Map(payments.map((p) => [keyOf(p), p.paid_at]))
+  const deleted = new Set(deletions.map(keyOf))
   const nowMs = now.getTime()
   const ms = (iso: string) => new Date(iso).getTime()
 
@@ -229,6 +251,7 @@ export function computeFines({
   const fines: Fine[] = []
   const add = (f: Omit<Fine, 'amount' | 'waived' | 'waiveNote' | 'paid' | 'paidAt'> & { amount?: number }) => {
     const key = fineKey(f)
+    if (deleted.has(key)) return
     fines.push({ amount: FINE_AMOUNT, ...f, waived: waived.has(key), waiveNote: waived.get(key) ?? null, paid: paid.has(key), paidAt: paid.get(key) ?? null })
   }
 

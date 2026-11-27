@@ -22,7 +22,7 @@ function load(file, cache = new Map()) {
   return mod.exports
 }
 
-const { defaultRespondBy, defaultFinesEnabled, computeFines, finesByPlayer, fineMonth, fmtMoney, centsFromDigits, FINE_AMOUNT } = load('lib/fines.ts')
+const { defaultRespondBy, defaultFinesEnabled, computeFines, finesByPlayer, fineMonth, fmtMoney, centsFromDigits, finedAtFromDate, FINE_AMOUNT } = load('lib/fines.ts')
 const sg = (local) => new Date(`${local}+08:00`).toISOString()
 const posted = new Date(sg('2026-10-01T10:00:00'))
 
@@ -294,6 +294,32 @@ test('fines added by hand keep their own reason and amount, and can be waived or
   const totals = Object.fromEntries(finesByPlayer(fines).map((r) => [r.playerId, [r.count, r.total, r.settled]]))
   assert.deepEqual(totals.a, [1, 2.2, false], 'only the unpaid one counts')
   assert.deepEqual(totals.b, [0, 0, true], 'waived costs nothing')
+})
+
+test('a deleted fine is never listed, and a deleted late reply does not turn into a late change', () => {
+  const entry = {
+    kind: 'training', id: 't1', title: 'Training', start: sg('2026-10-10T09:00:00'), respondBy: sg('2026-10-08T23:59:59'),
+    finesEnabled: true, expected: ['never', 'late'],
+  }
+  const changes = [
+    // replied late, then changed their own answer within 24h of the start
+    { player_id: 'late', session_id: 't1', session_type: 'training', status: 'attending', previous_status: null, changed_at: sg('2026-10-09T08:00:00'), changed_by: 'auth-late' },
+    { player_id: 'late', session_id: 't1', session_type: 'training', status: 'not_attending', previous_status: 'attending', changed_at: sg('2026-10-10T08:00:00'), changed_by: 'auth-late' },
+  ]
+  const args = { entries: [entry], changes, votes: [], waivers: [], authIdOf: (p) => `auth-${p}`, now: new Date(sg('2026-10-12T00:00:00')) }
+  assert.deepEqual(computeFines(args).map((f) => [f.playerId, f.reason]), [['never', 'late_reply'], ['late', 'late_reply']])
+
+  const deletions = [{ player_id: 'late', item_type: 'training', item_id: 't1', reason: 'late_reply' }]
+  assert.deepEqual(computeFines({ ...args, deletions }).map((f) => [f.playerId, f.reason]), [['never', 'late_reply']], 'one fine per entry, even once deleted')
+})
+
+test('a fine added by hand can be backdated, never dated in the future', () => {
+  const now = new Date(sg('2026-11-27T21:00:00'))
+  assert.equal(finedAtFromDate('2026-11-27', now), null, 'today: stamped now')
+  assert.equal(finedAtFromDate('2026-10-03', now), sg('2026-10-03T12:00:00'), 'an earlier day: noon in Singapore')
+  assert.equal(fineMonth({ at: finedAtFromDate('2026-10-31', now) }), '2026-10', 'counts towards the month it was incurred')
+  assert.throws(() => finedAtFromDate('2026-11-28', now), /future/)
+  assert.throws(() => finedAtFromDate('', now), /Pick the date/)
 })
 
 test('amounts are keyed as digits, the last two being cents', () => {

@@ -2,14 +2,15 @@ import { getRequestUser } from '@/lib/supabase/request-user'
 import { createClient } from '@/lib/supabase/server'
 import { getNow } from '@/lib/preview'
 import { loadFines } from '@/lib/fines-server'
-import { fineMonth, monthLabel, sgMonth, shiftMonth } from '@/lib/fines'
+import { fineMonth, isOutstanding, monthLabel, sgMonth, sgToday, shiftMonth } from '@/lib/fines'
 import { canManageFines } from '@/lib/roles'
 import FinesClient from '@/components/FinesClient'
 
 /**
  * The Fines page for players and admins: one month at a time (`?month=YYYY-MM`,
- * default this month), everyone's fines. The Finemaster title and the superadmin get
- * Add fine, Paid and Waive buttons, in either area.
+ * default this month), everyone's fines, plus what's still owed across every month
+ * (the status card's total and the WhatsApp copy). The Finemaster title and the
+ * superadmin get Add fine, Paid, Waive and Delete buttons, in either area.
  */
 export async function FinesView({ basePath, month }: { basePath: '/dashboard' | '/admin'; month?: string }) {
   const user = await getRequestUser()
@@ -18,7 +19,8 @@ export async function FinesView({ basePath, month }: { basePath: '/dashboard' | 
     loadFines(),
   ])
 
-  const thisMonth = sgMonth(getNow())
+  const now = getNow()
+  const thisMonth = sgMonth(now)
   const shown = month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : thisMonth
   const href = (m: string) => `${basePath}/fines?month=${m}`
 
@@ -29,6 +31,8 @@ export async function FinesView({ basePath, month }: { basePath: '/dashboard' | 
       prevHref={href(shiftMonth(shown, -1))}
       nextHref={shown < thisMonth ? href(shiftMonth(shown, 1)) : null}
       fines={fines.filter((f) => fineMonth(f) === shown)}
+      outstandingAll={fines.filter(isOutstanding)}
+      today={sgToday(now)}
       players={Object.fromEntries(Array.from(players, ([id, p]) => [id, { full_name: p.full_name, preferred_name: p.preferred_name, is_active: p.is_active }]))}
       myPlayerId={me?.id ?? null}
       canManage={canManageFines(me?.role, me?.titles)}
