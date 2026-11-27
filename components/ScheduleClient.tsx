@@ -19,7 +19,7 @@ import {
 import { setAttendance } from '@/app/dashboard/schedule/actions'
 import { fromDatetimeLocal } from '@/lib/format'
 import { EventDetailModal, type Game, type Training, type TeamEvent, type AttendanceRow, type PlayerLite } from '@/components/EventDetailModal'
-import { EventRow, eventFinesEnabled, eventId, eventRespondBy, eventStatus, type EventItem, type MyStatus } from '@/components/EventRow'
+import { EventRow, eventFinesEnabled, eventId, eventMyRespondBy, eventStatus, type EventItem, type MyStatus } from '@/components/EventRow'
 import type { EventStatus } from '@/lib/event-status'
 import { eventKey, useEventSelection } from '@/lib/useEventSelection'
 import { RespondBy, rowCountdownClass } from '@/components/RespondBy'
@@ -107,7 +107,7 @@ export default function ScheduleClient({
   // Touch layouts show the reply countdown on this one (and on any under 48h) — see rowCountdownClass
   const firstOpen = upcoming.find((i) => {
     if (eventStatus(i) !== 'scheduled') return false
-    const r = eventRespondBy(i)
+    const r = eventMyRespondBy(i, myStatus[eventId(i)])
     return !!r && new Date(r).getTime() > nowMs
   })
   const past = items
@@ -358,7 +358,7 @@ export default function ScheduleClient({
                   const open = !readOnly && eventStatus(item) === 'scheduled'
                   const countdown = !open
                     ? null
-                    : rowCountdownClass({ respondBy: eventRespondBy(item), replied: !!mine, now, first: !!firstOpen && eventId(firstOpen) === id })
+                    : rowCountdownClass({ respondBy: eventMyRespondBy(item, mine), replied: !!mine && mine !== 'maybe', now, first: !!firstOpen && eventId(firstOpen) === id })
                   return (
                     <div key={`${item.kind}-${id}`} data-selected={isSelected(item) || undefined} className="liga-event-card card px-4 py-3">
                       <div
@@ -372,7 +372,7 @@ export default function ScheduleClient({
                         <EventRow item={item} attending={attending} />
                       </div>
                       {countdown !== null && (
-                        <RespondBy respondBy={eventRespondBy(item)} finesEnabled={eventFinesEnabled(item)} now={now} countdownOnly={!!mine} className={`${countdown} ml-14 mt-2`} />
+                        <RespondBy respondBy={eventMyRespondBy(item, mine)} finesEnabled={eventFinesEnabled(item)} now={now} countdownOnly={!!mine && mine !== 'maybe'} className={`${countdown} ml-14 mt-2`} />
                       )}
                       {open && (
                         <RsvpButtons value={mine} onPick={(status) => respond(item, status)} disabled={isPending && respondingId === id} className="ml-14 mt-2" />

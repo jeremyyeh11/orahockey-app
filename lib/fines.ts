@@ -28,6 +28,21 @@ export type RsvpStatus = 'attending' | 'not_attending' | 'maybe'
 /** What players see for each RSVP answer ('maybe' is stored, "Update later" is shown) */
 export const RSVP_LABEL: Record<RsvpStatus, string> = { attending: "I'm in", maybe: 'Update later', not_attending: 'Out' }
 
+/** When "Update later" must become I'm in or Out: 24h before the start, or the respond-by if that's later */
+export function decideByMs(respondBy: string, start: string) {
+  return Math.max(new Date(respondBy).getTime(), new Date(start).getTime() - LATE_CHANGE_WINDOW_MS)
+}
+
+/**
+ * The reply deadline as it stands for one player: on "Update later" it moves to the
+ * decide-by (computeFines), so their countdown shows the time they actually have left.
+ */
+export function myRespondBy(respondBy: string | null | undefined, start: string | null | undefined, status: string | null | undefined) {
+  if (!respondBy) return null
+  if (status !== 'maybe' || !start) return respondBy
+  return new Date(decideByMs(respondBy, start)).toISOString()
+}
+
 /** Longest "why I'm out" (attendance.reason, 033) */
 export const OUT_REASON_MAX = 200
 
@@ -278,7 +293,7 @@ export function computeFines({
     const history = changesBySession.get(`${e.kind}|${e.id}`) ?? []
     const startMs = e.kind === 'poll' || !e.start ? null : ms(e.start)
     // "Update later" must turn into I'm in or Out by 24h before the start (or the respond-by, if later)
-    const decideByMs = startMs === null ? null : Math.max(dueMs, startMs - LATE_CHANGE_WINDOW_MS)
+    const decideAtMs = startMs === null || !e.start ? null : decideByMs(e.respondBy, e.start)
     const fined = new Set<string>()
 
     for (const playerId of dueMs <= untilMs ? e.expected : []) {
@@ -286,9 +301,9 @@ export function computeFines({
       if (!replied || ms(replied) > dueMs) {
         fined.add(playerId)
         add({ playerId, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_reply', at: e.respondBy, repliedAt: replied })
-      } else if (decideByMs !== null && decideByMs <= untilMs && statusAt(history, playerId, decideByMs) === 'maybe') {
+      } else if (decideAtMs !== null && decideAtMs <= untilMs && statusAt(history, playerId, decideAtMs) === 'maybe') {
         fined.add(playerId)
-        add({ playerId, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_reply', at: new Date(decideByMs).toISOString(), repliedAt: replied, undecided: true })
+        add({ playerId, kind: e.kind, itemId: e.id, title: e.title, reason: 'late_reply', at: new Date(decideAtMs).toISOString(), repliedAt: replied, undecided: true })
       }
     }
 

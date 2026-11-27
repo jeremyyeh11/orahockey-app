@@ -22,7 +22,7 @@ function load(file, cache = new Map()) {
   return mod.exports
 }
 
-const { defaultRespondBy, defaultFinesEnabled, computeFines, finesByPlayer, fineMonth, fmtMoney, centsFromDigits, finedAtFromDate, presetFineReason, FINE_AMOUNT } = load('lib/fines.ts')
+const { defaultRespondBy, defaultFinesEnabled, computeFines, finesByPlayer, fineMonth, fmtMoney, centsFromDigits, finedAtFromDate, presetFineReason, myRespondBy, FINE_AMOUNT } = load('lib/fines.ts')
 const sg = (local) => new Date(`${local}+08:00`).toISOString()
 const posted = new Date(sg('2026-10-01T10:00:00'))
 
@@ -334,4 +334,23 @@ test('amounts are keyed as digits, the last two being cents', () => {
 test('reason buttons fill in starter text worded like the automatic fines', () => {
   assert.equal(presetFineReason('Late arrival', '2026-11-24'), 'Late arrival · Training · Tue 24 Nov')
   assert.equal(presetFineReason('No-show', '2026-11-28', 'Match'), 'No-show · Match · Sat 28 Nov')
+})
+
+test('myRespondBy: Update later moves your deadline to 24h before the start (or keeps a later respond-by)', () => {
+  const start = '2026-11-28T11:00:00.000Z' // Sat 7pm SGT
+  const due = '2026-11-26T15:59:59.000Z' // Thu 11:59pm SGT
+  assert.equal(myRespondBy(due, start, null), due)
+  assert.equal(myRespondBy(due, start, 'attending'), due)
+  assert.equal(myRespondBy(due, start, 'maybe'), '2026-11-27T11:00:00.000Z')
+  const lateDue = '2026-11-28T05:00:00.000Z'
+  assert.equal(myRespondBy(lateDue, start, 'maybe'), lateDue)
+  assert.equal(myRespondBy(null, start, 'maybe'), null)
+})
+
+test('the Update later countdown uses the per-player deadline everywhere it shows', () => {
+  const src = (f) => fs.readFileSync(path.join(root, f), 'utf8')
+  assert.match(src('components/ScheduleClient.tsx'), /RespondBy respondBy=\{eventMyRespondBy\(item, mine\)\}/)
+  assert.match(src('components/EventDetailModal.tsx'), /RespondBy respondBy=\{eventMyRespondBy\(currentItem, localMyStatus\)\}/)
+  assert.match(src('components/HomeView.tsx'), /respondBy=\{myRespondBy\(next\.respondBy, next\.when, rsvp\)\}/)
+  assert.match(src('components/FineRules.tsx'), /or by the initial deadline, if that’s later/)
 })
