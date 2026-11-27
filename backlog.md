@@ -36,9 +36,9 @@ player stats page (shot zones, monthly trend line, side tiles with bars).
 
 ## Archived
 
-### 17. Fines tab: all-month totals, backdated fines, delete ✓ Nov 2026
+### 17. Fines tab: all-month totals, backdated fines, delete, reason buttons ✓ Nov 2026
 
-Fines tab changes for the Finemaster and the superadmin (PR #29):
+Fines tab changes for the Finemaster and the superadmin (PRs #29 and #32):
 - **Copy all outstanding for WhatsApp** copies every fine still owed across all months, not just the
   month on screen ("ORA Hockey fines · outstanding as of Fri 27 Nov", then one line per player).
 - The status card keeps this month's **Outstanding** amount and adds **All months $X** underneath in
@@ -50,6 +50,12 @@ Fines tab changes for the Finemaster and the superadmin (PR #29):
   A fine added by hand loses its `manual_fines` row. An automatic fine is recorded in `fine_deletions`
   (migration `044_fine_deletions.sql`) so it isn't recalculated, and it still blocks a second fine on
   that entry. The fine's waiver/payment rows go too.
+- Under **+ Fine → Reason**, buttons (**Late reply**, **Late change**, **Late arrival**, **No-show**,
+  **Forgot kit**) fill in starter text worded like the automatic fines, e.g. "Late arrival · Training ·
+  Tue 24 Nov" (date from Date incurred, which now sits above Reason). It's a guide, not a dropdown:
+  the Finemaster edits it (Match instead of Training) or types their own. Starter text nobody has
+  edited follows a date change. Decided Nov 2026: standardise manual fines on the automatic wording
+  ("Late change", not "last minute update").
 
 ### 10. Copy "Hasn't responded" names ✓ Nov 2026
 
