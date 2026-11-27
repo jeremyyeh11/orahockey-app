@@ -12,29 +12,6 @@
 
 ## Backlog
 
-## 6.1 Emailed invites (deferred from #6)
-
-Deferred at build time: sending invite/reset links by email instead of admin copy-link.
-Blocked on an email service — Supabase free-plan built-in email is ~2/hour and only
-delivers to project team members, and external SMTP providers (Resend etc.) need a
-verified custom domain. If the club ever gets a domain (or routes via Gmail SMTP with an
-app password), wire `generateSetupLink`'s output into Supabase `inviteUserByEmail` /
-`resetPasswordForEmail` and add a self-serve "Forgot password?" flow on the login page.
-
-## 8. Reason field for attendance
-
-When a player votes attendance on an event (event detail modal on the Schedule tab), let them
-add a short optional reason — e.g. "injured", "away for work", "late, arriving 2nd half".
-Show the reason next to the player's name in the attendance breakdown list.
-
-Open questions to resolve at build time:
-- Optional for every status, or only offered/required for **Maybe** and **Not attending**?
-- Free text, preset chips (Injured / Work / Away / Sick), or both? Max length?
-- Who sees reasons — everyone on the team, or admins only?
-- Can a player edit the reason later without changing their status?
-
-Needs a nullable `reason` column on `attendance` (new migration).
-
 ## 10. Copy "Hasn't responded" names
 
 In the event detail modal's attendance breakdown, add an icon-only copy button beside the
@@ -47,21 +24,6 @@ Open questions to resolve at build time:
   (e.g. "Still need replies for Sat vs X: …")?
 - Preferred names or full names? (WhatsApp @-mentions won't resolve from pasted text either way.)
 - Same button on the Polls tab "Yet to vote" list?
-
-## 13. Finemaster role
-
-Fines can only be marked **Paid** or **Waived** by admins (RLS on `fine_payments` /
-`fine_waivers`, migrations 018–019). Add a **finemaster** role so a non-admin player can run
-the monthly collection: mark fines paid, waive them (with a reason), and copy the outstanding
-list — without the rest of admin.
-
-Open questions to resolve at build time:
-- A new `player_role` value, or a separate flag on `players` (a finemaster can still be an admin)?
-- Who assigns it — any admin, from the player's profile edit?
-- Should a finemaster be able to edit Respond by / Fines on events and polls, or only settle fines?
-
-Needs: a role/flag column, `is_finemaster()` alongside `is_admin()` in the two tables' policies,
-and the Fines tab's Paid/Waive buttons shown to finemasters.
 
 ## 14. Player card redesign (Squad)
 
@@ -95,6 +57,25 @@ Migration `043_player_photo_self_upload.sql`: `photo_path` joins the self-update
 sit in its player's own folder (`players_photo_in_own_folder` check); players may upload to / delete
 from only their own folder in `player-photos`. Also adds the storage **select** policy that
 `remove()` needs — without it, replacing a photo had silently left the old file in the bucket.
+
+### 13. Finemaster ✓ Oct 2026
+
+Built as a **title** rather than a role. Migrations 034–035 first added `finemaster` and `superadmin`
+roles and moved the `fine_waivers` / `fine_payments` policies from `is_admin()` to
+`can_manage_fines()`, so admins no longer waive or settle fines. 036 added committee titles
+(`players.titles`), and 037 made Finemaster one of them: roles are now player / admin / superadmin, and
+`can_manage_fines()` is the superadmin or anyone titled Finemaster. Only the superadmin assigns roles
+and titles (**Squad → Edit player**, `guard_player_roles` trigger). On the **Fines** tab, Finemasters
+and the superadmin get **Paid** / **Waive** (with a reason) and **Undo**. Decided: settling fines
+only; editing Respond by / Fines on events and polls stays with admins.
+
+### 8. Reason field for attendance ✓ Oct 2026
+
+Built with the RSVP rework that renamed Maybe to **Update later** (migration `033_attendance_reason.sql`).
+Tapping **Out** opens an optional free-text box under the buttons (up to 200 characters). The reason
+shows next to the name under **Not attending** in the event details, visible to the whole squad.
+It's kept only while the answer is Out (any other answer clears it, by trigger). Saving or
+editing a reason doesn't change the status, so it can't trigger a late-change fine.
 
 ### 11. Profile tab for every player ✓ Oct 2026
 
@@ -161,8 +142,8 @@ stay consistent with the displayed label.
 
 Replaced manual Supabase-dashboard onboarding. Design changed at build time: links are
 **hand-delivered by the admin (copy / WhatsApp share), not emailed** — free-plan Supabase
-email is ~2/hour and team-members-only, and external SMTP needs a custom domain (deferred
-to #6.1). Admin flow: every Squad card shows an account-status dot (green active / amber
+email is ~2/hour and team-members-only, and external SMTP needs a custom domain (emailing them was
+#6.1, later dropped). Admin flow: every Squad card shows an account-status dot (green active / amber
 invited / grey none); the player profile (admin view) gains an ACCOUNT panel whose button
 mints a private one-time link — "Invite link" for new players (24h expiry, creates the
 auth user), "Password reset link" for active ones (1h expiry). Links land on a
